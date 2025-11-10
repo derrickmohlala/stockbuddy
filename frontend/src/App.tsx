@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Home from './pages/Home'
+import { apiFetch } from './lib/api'
 import Onboarding from './pages/Onboarding'
 import Discover from './pages/Discover'
 import Portfolio from './pages/Portfolio'
@@ -21,12 +22,38 @@ function App() {
   const [isOnboarded, setIsOnboarded] = useState(false)
 
   useEffect(() => {
-    // Check if user is already onboarded
-    const savedUserId = localStorage.getItem('stockbuddy_user_id')
-    if (savedUserId) {
-      setUserId(parseInt(savedUserId))
-      setIsOnboarded(true)
+    // Bootstrap from localStorage then verify with backend (handles new deployments with a fresh DB)
+    const saved = localStorage.getItem('stockbuddy_user_id')
+    if (!saved) {
+      setIsOnboarded(false)
+      setUserId(null)
+      return
     }
+    const id = parseInt(saved)
+    if (!Number.isFinite(id)) {
+      localStorage.removeItem('stockbuddy_user_id')
+      setIsOnboarded(false)
+      setUserId(null)
+      return
+    }
+    // Optimistically set, then verify
+    setUserId(id)
+    ;(async () => {
+      try {
+        const resp = await apiFetch(`/api/users/${id}`)
+        if (resp.ok) {
+          setIsOnboarded(true)
+        } else {
+          // Stale userId (e.g., new backend instance). Reset and send user through onboarding.
+          localStorage.removeItem('stockbuddy_user_id')
+          setIsOnboarded(false)
+          setUserId(null)
+        }
+      } catch {
+        // On network error keep soft state; pages that need data will guide the user.
+        setIsOnboarded(!!id)
+      }
+    })()
   }, [])
 
   const handleOnboardingComplete = (newUserId: number) => {
