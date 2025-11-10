@@ -20,10 +20,13 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Expect sharp drawdowns; stick with long horizons and regular reviews.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STX40.JO (Top 40)': 30,
-      'STXIND.JO (Industrials)': 20,
-      'SYGWD.JO (World)': 25,
-      'Blue chips (NPN, MTN, SBK, SHP)': 20
+      'STX40.JO': 30,
+      'STXIND.JO': 20,
+      'SYGWD.JO': 15,
+      'NPN.JO': 12,
+      'MTN.JO': 8,
+      'SBK.JO': 5,
+      'SHP.JO': 5
     }
   },
   {
@@ -35,9 +38,14 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Rebalance annually; keep contributions consistent through cycles.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STX40.JO (Top 40)': 35,
-      'SYGWD.JO (World)': 25,
-      'Blue chips (NPN, MTN, SBK, SHP)': 30
+      'STX40.JO': 28,
+      'STXIND.JO': 18,
+      'SYGWD.JO': 10,
+      'STXDIV.JO': 10,
+      'NPN.JO': 10,
+      'SBK.JO': 9,
+      'MTN.JO': 5,
+      'SHP.JO': 5
     }
   },
   {
@@ -49,10 +57,14 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Keep the growth sleeve disciplined; avoid style drift.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STX40.JO (Top 40)': 30,
-      'STXDIV.JO (Dividends)': 20,
-      'Blue chips': 30,
-      'Growth sector tilt': 15
+      'STX40.JO': 30,
+      'STXDIV.JO': 15,
+      'STXIND.JO': 10,
+      'STXRES.JO': 10,
+      'NPN.JO': 10,
+      'MTN.JO': 8,
+      'SBK.JO': 7,
+      'SHP.JO': 5
     }
   },
   {
@@ -64,9 +76,14 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Reinvest distributions; widen offshore gradually if needed.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STX40.JO (Top 40)': 30,
-      'STXDIV.JO (Dividends)': 30,
-      'Blue chips': 35
+      'STX40.JO': 25,
+      'STXDIV.JO': 20,
+      'STXIND.JO': 15,
+      'STXRES.JO': 8,
+      'SBK.JO': 8,
+      'NPN.JO': 7,
+      'MTN.JO': 7,
+      'SHP.JO': 5
     }
   },
   {
@@ -78,9 +95,14 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Watch payout stability and sector concentration closely.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STXDIV.JO (Dividends)': 35,
-      'REITs (GRT, NRP, RDF)': 35,
-      'Blue chips': 25
+      'STXDIV.JO': 25,
+      'GRT.JO': 15,
+      'NRP.JO': 15,
+      'RDF.JO': 12,
+      'VKE.JO': 10,
+      'SBK.JO': 8,
+      'MTN.JO': 5,
+      'STX40.JO': 5
     }
   },
   {
@@ -92,9 +114,14 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Prefer resilient sectors; review coverage ratios annually.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STXDIV.JO (Dividends)': 40,
-      'REITs (GRT, NRP, RDF)': 30,
-      'Blue chips': 25
+      'STXDIV.JO': 30,
+      'GRT.JO': 15,
+      'RDF.JO': 10,
+      'STX40.JO': 10,
+      'SBK.JO': 10,
+      'VKE.JO': 10,
+      'MTN.JO': 5,
+      'NRP.JO': 5
     }
   },
   {
@@ -106,12 +133,15 @@ export const archetypesData: ArchetypeItem[] = [
     guidance: 'Use as a ballast sleeve next to goal-driven allocations.',
     anchor_cap_pct: 5,
     sleeves: {
-      'STX40.JO (Top 40)': 35,
-      'STXDIV.JO (Dividends)': 35,
-      'Blue chips': 25
+      'STX40.JO': 30,
+      'STXDIV.JO': 25,
+      'SBK.JO': 10,
+      'NPN.JO': 10,
+      'MTN.JO': 10,
+      'STXIND.JO': 5,
+      'SHP.JO': 5
     }
   }
 ]
 
 export default archetypesData
-
