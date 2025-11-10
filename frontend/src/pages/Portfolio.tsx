@@ -249,10 +249,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         const options = (items || []).map((it: any) => ({ symbol: it.symbol, label: it.label || it.symbol }))
         setBenchmarkOptions(options)
         const saved = typeof window !== 'undefined' ? localStorage.getItem('stockbuddy_benchmark') : null
-        const savedValid = options.find(o => o.symbol === saved)?.symbol
+        const savedValid = options.find((o: { symbol: string; label: string }) => o.symbol === saved)?.symbol
         if (!benchmark) {
           setBenchmark(savedValid || (options[0]?.symbol ?? ''))
-        } else if (!options.find(o => o.symbol === benchmark)) {
+        } else if (!options.find((o: { symbol: string; label: string }) => o.symbol === benchmark)) {
           // Current benchmark is not in the supported list; switch to first
           setBenchmark(options[0]?.symbol ?? '')
         }
