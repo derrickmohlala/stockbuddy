@@ -1288,6 +1288,15 @@ const handleResetScenario = async () => {
     }
   }, [benchmark])
 
+  // When the user selects a different benchmark (or after the list loads and picks a default),
+  // refresh performance so the benchmark line and KPIs render.
+  useEffect(() => {
+    if (!userId) return
+    if (!benchmark) return
+    fetchPerformanceData(false, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchmark, userId])
+
   useEffect(() => {
     if (timeframe === 'custom') {
       if (customStart && customEnd) {
