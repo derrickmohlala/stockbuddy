@@ -1,0 +1,5 @@
+.hero-gradient { background: linear-gradient(135deg,#7a3ff2 0%,#3fd0c9 60%,#ffc943 100%); }
+.card-sheen { background: linear-gradient(180deg,rgba(122,63,242,.18) 0%,rgba(63,208,201,.10) 100%); }
+.btn-cta { @apply bg-brand-coral text-white rounded-2xl px-6 py-3 font-semibold hover:opacity-90 transition; }
+.btn-secondary { @apply bg-white text-brand-purple border border-brand-purple rounded-2xl px-6 py-3 hover:bg-brand-purple hover:text-white transition; }
+.badge { @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm; }

@@ -1,0 +1,27 @@
+{
+  "name": "stockbuddy",
+  "version": "1.0.0",
+  "description": "A South African educational investing platform for paper trading and portfolio building",
+  "scripts": {
+    "dev": "concurrently \"cd backend && python app.py\" \"cd frontend && npm run dev\"",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "seed": "cd backend && python seed_instruments.py && python seed_cpi.py && python seed_baskets.py && python backfill_prices.py",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && python app.py"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "investing",
+    "education",
+    "south-africa",
+    "jse",
+    "paper-trading",
+    "portfolio"
+  ],
+  "author": "StockBuddy Team",
+  "license": "MIT"
+}
