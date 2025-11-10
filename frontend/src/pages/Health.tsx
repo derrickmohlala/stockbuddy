@@ -79,6 +79,7 @@ const formatRand = (value: number) => new Intl.NumberFormat('en-ZA', { style: 'c
 
 const Health: React.FC<HealthProps> = ({ userId }) => {
   const navigate = useNavigate()
+  const [hasPortfolio, setHasPortfolio] = useState<boolean | null>(null)
   const [goalType, setGoalType] = useState<GoalType>('lump_sum')
   const [goalInputs, setGoalInputs] = useState<Record<string, number>>(() => {
     const defaults = HEALTH_DEFAULTS['lump_sum']
@@ -166,6 +167,33 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     setGoalInputs(prev => ({ ...prev, [label]: parsed }))
   }
 
+  // Check if the user actually has a portfolio before running simulations
+  useEffect(() => {
+    const loadPortfolioPresence = async () => {
+      if (!userId) {
+        setHasPortfolio(false)
+        return
+      }
+      try {
+        const response = await apiFetch(`/api/portfolio/${userId}`)
+        if (!response.ok) {
+          setHasPortfolio(false)
+          return
+        }
+        const data = await response.json()
+        const hasHoldings = Array.isArray(data?.holdings) && data.holdings.length > 0
+        setHasPortfolio(hasHoldings)
+        // If we have a portfolio, sync the current value input with backend total_value for better defaults
+        if (hasHoldings && typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
+          setGoalInputs(prev => ({ ...prev, 'Current portfolio value (ZAR)': Math.max(0, Math.round(data.total_value)) }))
+        }
+      } catch {
+        setHasPortfolio(false)
+      }
+    }
+    loadPortfolioPresence()
+  }, [userId])
+
   useEffect(() => {
     if (!userId || preferenceSynced) return
 
@@ -251,7 +279,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       setYieldError(null)
       return
     }
-    if (!userId) return
+    if (!userId || hasPortfolio !== true) return
     let cancelled = false
     const controller = new AbortController()
     const fetchYield = async () => {
@@ -310,7 +338,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       cancelled = true
       controller.abort()
     }
-  }, [userId, useRealReturns, currentPortfolioValueInput, loadStoredPerformance])
+  }, [userId, useRealReturns, currentPortfolioValueInput, loadStoredPerformance, hasPortfolio])
 
   const marginBand = useMemo(() => (goalType === 'dividend_growth' ? 0.08 : goalType === 'passive_income' ? 0.12 : 0.1), [goalType])
 
@@ -500,6 +528,24 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         opacity: 1 - index * 0.15,
       },
     }
+  }
+
+  // Empty state if there is no portfolio yet
+  if (hasPortfolio === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="card max-w-lg text-center space-y-4">
+          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">Create a portfolio to see health</h2>
+          <p className="text-muted dark:text-gray-300">
+            Health projections use your current holdings. Finish onboarding or add your first instruments to get personalised progress rings and timelines.
+          </p>
+          <div className="flex justify-center gap-3">
+            <button className="btn-cta" onClick={() => navigate('/onboarding')}>Start onboarding</button>
+            <button className="btn-secondary" onClick={() => navigate('/portfolio')}>Go to portfolio</button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

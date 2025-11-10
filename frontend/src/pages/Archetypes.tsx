@@ -56,6 +56,17 @@ const Archetypes: React.FC = () => {
     )
   }
 
+  if (!archetypes.length) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="card max-w-md text-center space-y-3">
+          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">No archetypes available</h2>
+          <p className="text-muted dark:text-gray-300">We couldn’t load the archetype library right now. Please refresh, or try again a bit later.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen py-12">
       <div className="max-w-5xl mx-auto px-4 space-y-10">
