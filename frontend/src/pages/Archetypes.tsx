@@ -1,17 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { apiFetch } from '../lib/api'
+import archetypesData, { ArchetypeItem } from '../data/archetypes'
 
-interface ArchetypeItem {
-  name: string
-  goal: string
-  risk_band: string
-  description: string
-  persona: string
-  guidance: string
-  anchor_cap_pct: number
-  sleeves: Record<string, number>
-  total_pre_anchor?: number
-}
+// Using static, front-end bundled archetypes.
 
 const goalLabels: Record<string, string> = {
   growth: 'Growth',
@@ -28,24 +18,11 @@ const riskLabels: Record<string, string> = {
 
 const Archetypes: React.FC = () => {
   const [archetypes, setArchetypes] = useState<ArchetypeItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchArchetypes = async () => {
-      try {
-        const response = await apiFetch('/api/archetypes')
-        if (response.ok) {
-          const data = await response.json()
-          setArchetypes(data)
-        }
-      } catch (error) {
-        console.error('Error fetching archetypes', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchArchetypes()
+    // Immediately use static data; no network call needed
+    setArchetypes(archetypesData)
   }, [])
 
   if (loading) {
