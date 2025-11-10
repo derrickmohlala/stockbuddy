@@ -222,28 +222,46 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   }
   const navigate = useNavigate()
 
+  // Load instruments for holdings pickers
   useEffect(() => {
-    const fetchBenchmarks = async () => {
+    const fetchInstruments = async () => {
       try {
         const response = await apiFetch('/api/instruments')
         if (response.ok) {
           const data = await response.json()
-          const instrumentList = (data || []).map((item: any) => ({
-            symbol: item.symbol,
-            label: item.name
-          }))
+          const instrumentList = (data || []).map((item: any) => ({ symbol: item.symbol, label: item.name }))
           setInstrumentOptions(instrumentList)
-          setBenchmarkOptions(instrumentList)
-          if (!benchmark && instrumentList.length) {
-            setBenchmark(instrumentList[0].symbol)
-          }
         }
       } catch (error) {
         console.error('Error loading instruments:', error)
       }
     }
+    fetchInstruments()
+  }, [])
 
+  // Load supported benchmarks from backend list
+  useEffect(() => {
+    const fetchBenchmarks = async () => {
+      try {
+        const response = await apiFetch('/api/benchmarks')
+        if (!response.ok) return
+        const items = await response.json()
+        const options = (items || []).map((it: any) => ({ symbol: it.symbol, label: it.label || it.symbol }))
+        setBenchmarkOptions(options)
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('stockbuddy_benchmark') : null
+        const savedValid = options.find(o => o.symbol === saved)?.symbol
+        if (!benchmark) {
+          setBenchmark(savedValid || (options[0]?.symbol ?? ''))
+        } else if (!options.find(o => o.symbol === benchmark)) {
+          // Current benchmark is not in the supported list; switch to first
+          setBenchmark(options[0]?.symbol ?? '')
+        }
+      } catch (error) {
+        console.error('Error loading benchmarks:', error)
+      }
+    }
     fetchBenchmarks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
