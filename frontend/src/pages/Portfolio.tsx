@@ -178,6 +178,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const [appliedSuggestions, setAppliedSuggestions] = useState<PortfolioData['applied_suggestions']>([])
   const [baselineAllocations, setBaselineAllocations] = useState<Record<string, number>>({})
   const [instrumentOptions, setInstrumentOptions] = useState<{ symbol: string; label: string }[]>([])
+  const [starterBaskets, setStarterBaskets] = useState<Array<{ id: number; name: string; goal?: string }>>([])
+  const [selectedBasketId, setSelectedBasketId] = useState<number | ''>('')
   const [showCustomBuilder, setShowCustomBuilder] = useState(false)
   const [customRows, setCustomRows] = useState<Array<{ id: string; symbol: string; weight: number }>>([])
   const [customError, setCustomError] = useState<string | null>(null)
@@ -263,6 +265,44 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     fetchBenchmarks()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Load starter baskets for quick creation
+  useEffect(() => {
+    const fetchBaskets = async () => {
+      try {
+        const resp = await apiFetch('/api/baskets')
+        if (!resp.ok) return
+        const items = await resp.json()
+        const options = (items || []).map((b: any) => ({ id: b.id, name: b.name as string, goal: b.goal as string }))
+        setStarterBaskets(options)
+        if (options.length && selectedBasketId === '') {
+          setSelectedBasketId(options[0].id)
+        }
+      } catch (e) {
+        console.error('Error loading baskets', e)
+      }
+    }
+    fetchBaskets()
+  }, [selectedBasketId])
+
+  const applyStarterBasket = async () => {
+    if (!userId || !selectedBasketId) return
+    try {
+      setIsFetching(true)
+      const response = await apiFetch('/api/portfolio/apply-basket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, basket_id: selectedBasketId })
+      })
+      if (response.ok) {
+        await fetchPortfolio()
+      }
+    } catch (err) {
+      console.error('Failed to apply starter basket', err)
+    } finally {
+      setIsFetching(false)
+    }
+  }
 
   useEffect(() => {
     setSuggestionDecisions({})
@@ -1451,13 +1491,34 @@ const handleResetScenario = async () => {
   }
 
   if (!portfolio) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-muted dark:text-gray-300">No portfolio data found</p>
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="card max-w-2xl w-full space-y-5">
+          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">Create a starter portfolio</h2>
+          <p className="text-muted dark:text-gray-300">
+            Pick a model basket to instantly populate holdings. You can always edit weights, add instruments, and compare against a benchmark.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="text-sm text-subtle dark:text-gray-300 sm:w-48">Starter basket</label>
+            <select
+              className="input-field sm:flex-1"
+              value={selectedBasketId}
+              onChange={(e) => setSelectedBasketId(Number(e.target.value))}
+            >
+              {starterBaskets.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}{b.goal ? ` · ${b.goal}` : ''}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-3">
+            <button disabled={isFetching || !selectedBasketId} onClick={applyStarterBasket} className="btn-cta">
+              {isFetching ? 'Applying…' : 'Apply basket'}
+            </button>
+            <button onClick={() => navigate('/baskets')} className="btn-secondary">Browse all baskets</button>
           </div>
         </div>
-      )
+      </div>
+    )
   }
 
   const chartLabels = chartSeries.map((point: any) =>
