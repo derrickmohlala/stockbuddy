@@ -18,20 +18,11 @@ const riskLabels: Record<string, string> = {
 
 const Archetypes: React.FC = () => {
   const [archetypes, setArchetypes] = useState<ArchetypeItem[]>([])
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     // Immediately use static data; no network call needed
     setArchetypes(archetypesData)
   }, [])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted dark:text-gray-300">Loading archetypes...</p>
-      </div>
-    )
-  }
 
   if (!archetypes.length) {
     return (
