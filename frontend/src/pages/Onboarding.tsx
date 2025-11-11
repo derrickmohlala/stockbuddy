@@ -36,6 +36,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitStartedAt, setSubmitStartedAt] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchExistingProfile = async () => {
@@ -83,6 +85,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
 
   const handleSubmit = async () => {
     try {
+      setSubmitting(true)
+      setSubmitStartedAt(Date.now())
       const response = await apiFetch('/api/onboarding', {
         method: 'POST',
         headers: {
@@ -105,6 +109,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
     } catch (error) {
       console.error('Error during onboarding:', error)
       setSubmitError('Something went wrong. Please try again later.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -392,10 +398,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
 
             <button
               onClick={handleNext}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || submitting}
               className="btn-cta flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>{currentStep === 3 ? 'Complete Setup' : 'Next'}</span>
+              <span>{submitting ? 'Finishing…' : (currentStep === 3 ? 'Complete Setup' : 'Next')}</span>
               {currentStep === 3 ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
@@ -405,6 +411,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
           )}
         </div>
       </div>
+
+      {submitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="card max-w-md w-full text-center space-y-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mx-auto" />
+            <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">Setting up your plan…</h3>
+            <p className="text-sm text-muted dark:text-gray-300">
+              We’re saving your preferences and preparing your starter options.
+            </p>
+            {submitStartedAt && Date.now() - submitStartedAt > 7000 && (
+              <button onClick={() => navigate('/portfolio')} className="btn-secondary mt-2">Continue to portfolio</button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

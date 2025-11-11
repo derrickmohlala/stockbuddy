@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
 
 import yfinance as yf
 
@@ -65,6 +64,19 @@ STATIC_NEWS = {
         }
     ]
 }
+
+# Add a lightweight fallback for Vodacom headlines (helps when Yahoo is quiet or cached empty)
+STATIC_NEWS["VOD.JO"] = [
+    {
+        "headline": "Vodacom posts interim results; data, fibre and fintech drive growth",
+        "summary": "Management highlighted double‑digit momentum in financial services and fibre while spectrum investments underpin network quality across SA.",
+        "source": "Vodacom IR / Press",
+        "url": "https://www.vodacom.com/investors/",
+        "sentiment": "Neutral",
+        "topic": "Results",
+        "days_ago": 1
+    }
+]
 
 
 def fetch_static_news(symbol):
@@ -164,9 +176,25 @@ def _normalise_yf_record(record):
     }
 
 
-@lru_cache(maxsize=128)
-def fetch_live_news(symbol, limit=6, lookback_days=7):
-    cutoff = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+NEWS_CACHE = {}
+
+def fetch_live_news(symbol, limit=6, lookback_days=14):
+    """Fetch recent headlines for a symbol with short‑lived in‑memory caching.
+
+    - Successful (non‑empty) fetches are cached for 30 minutes.
+    - Empty results are cached for 5 minutes to allow quick refresh without
+      hammering the upstream, but still pick up fresh items the same day.
+    """
+    now = datetime.now(timezone.utc)
+    cache_key = (symbol, lookback_days, limit)
+    cached = NEWS_CACHE.get(cache_key)
+    if cached:
+        ttl = timedelta(minutes=30) if cached.get("stories") else timedelta(minutes=5)
+        if now - cached.get("at", now) < ttl:
+            stories = cached.get("stories", [])
+            return stories if stories else fetch_static_news(symbol)
+
+    cutoff = now - timedelta(days=lookback_days)
     collected = []
     try:
         ticker = yf.Ticker(symbol)
@@ -181,7 +209,8 @@ def fetch_live_news(symbol, limit=6, lookback_days=7):
             continue
         if published_at < cutoff:
             continue
-        if not normalised.get("url"):
+        url = normalised.get("url")
+        if not (isinstance(url, str) and url.startswith("http")):
             continue
         normalised["published_at"] = published_at
         collected.append(normalised)
@@ -196,9 +225,9 @@ def fetch_live_news(symbol, limit=6, lookback_days=7):
         entry["published_at"] = entry["published_at"].isoformat()
         stories.append(entry)
 
-    if stories:
-        return stories
-    return fetch_static_news(symbol)
+    # Cache and return
+    NEWS_CACHE[cache_key] = {"at": now, "stories": stories}
+    return stories if stories else fetch_static_news(symbol)
 
 
 def fetch_upcoming_earnings(symbol, horizon_days=60, limit=4):

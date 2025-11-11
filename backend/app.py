@@ -993,7 +993,7 @@ def portfolio_news(user_id):
             "symbol": anchor_symbol,
             "name": anchor_instrument.name if anchor_instrument else anchor_symbol
         }
-        anchor_items = fetch_live_news(anchor_symbol, limit=5, lookback_days=7)
+        anchor_items = fetch_live_news(anchor_symbol, limit=5, lookback_days=14)
         for item in anchor_items:
             story = item.copy()
             story["symbol"] = anchor_symbol
@@ -1015,7 +1015,7 @@ def portfolio_news(user_id):
             "symbol": benchmark_symbol,
             "name": benchmark_instrument.name if benchmark_instrument else benchmark_symbol
         }
-        raw_news = fetch_live_news(benchmark_symbol, limit=5, lookback_days=7)
+        raw_news = fetch_live_news(benchmark_symbol, limit=5, lookback_days=14)
         for item in raw_news:
             story = item.copy()
             story["symbol"] = benchmark_symbol
@@ -1040,7 +1040,7 @@ def portfolio_news(user_id):
         if not instrument:
             continue
         stories = []
-        raw_news = fetch_live_news(position.symbol, limit=4, lookback_days=7)
+        raw_news = fetch_live_news(position.symbol, limit=4, lookback_days=14)
         for item in raw_news:
             story = item.copy()
             story["symbol"] = position.symbol

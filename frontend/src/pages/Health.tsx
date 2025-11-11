@@ -530,6 +530,18 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     }
   }
 
+  // While we verify portfolio presence, show a neutral loader to avoid flicker
+  if (hasPortfolio === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mx-auto mb-4"></div>
+          <p className="text-muted dark:text-gray-300">Loading…</p>
+        </div>
+      </div>
+    )
+  }
+
   // Empty state if there is no portfolio yet
   if (hasPortfolio === false) {
     return (
