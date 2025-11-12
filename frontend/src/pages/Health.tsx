@@ -128,6 +128,10 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   const [portfolioWeightedYield, setPortfolioWeightedYield] = useState<number | null>(null)
   const [useCustomYield, setUseCustomYield] = useState<boolean>(false)
   const [customYieldPct, setCustomYieldPct] = useState<string>('')
+  const [useCustomReturn, setUseCustomReturn] = useState<boolean>(false)
+  const [customReturnPct, setCustomReturnPct] = useState<string>('')
+  const [startingCapital, setStartingCapital] = useState<number | null>(null)
+  const [monthlyBudget, setMonthlyBudget] = useState<string>('')
   const [useRealReturns, setUseRealReturns] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('stockbuddy_inflation_adjust') === '1'
@@ -201,6 +205,12 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           if (currentAnnual !== null && Number.isFinite(currentAnnual)) {
             setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': Math.max(0, Math.round(currentAnnual)) }))
           }
+          // Use total portfolio value as the default starting capital
+          if (typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
+            setStartingCapital(Math.max(0, Math.round(data.total_value)))
+          } else if (currentAnnual !== null && Number.isFinite(currentAnnual) && wy && wy > 0) {
+            setStartingCapital(Math.round(currentAnnual / (wy / 100)))
+          }
         }
       } catch {
         setHasPortfolio(false)
@@ -208,6 +218,30 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     }
     loadPortfolioPresence()
   }, [userId])
+
+  // Derive effective yield (%) and return (%) from portfolio or custom overrides
+  const effectiveYieldPct = useMemo(() => {
+    const override = useCustomYield ? Number(customYieldPct) : null
+    if (override !== null && Number.isFinite(override) && override > 0) return override
+    if (portfolioWeightedYield !== null && Number.isFinite(portfolioWeightedYield) && portfolioWeightedYield > 0) return portfolioWeightedYield
+    return 3.5
+  }, [useCustomYield, customYieldPct, portfolioWeightedYield])
+
+  const effectiveReturnPct = useMemo(() => {
+    const override = useCustomReturn ? Number(customReturnPct) : null
+    if (override !== null && Number.isFinite(override)) return override
+    const base = useRealReturns ? portfolioRealReturn : portfolioNominalReturn
+    if (base !== null && Number.isFinite(base)) return base
+    return 8.0
+  }, [useCustomReturn, customReturnPct, useRealReturns, portfolioNominalReturn, portfolioRealReturn])
+
+  // Keep Current annual dividends aligned to starting capital × yield for dividend growth
+  useEffect(() => {
+    if (goalType !== 'dividend_growth') return
+    const cap = startingCapital ?? 0
+    const c = Math.max(0, Math.round(cap * (effectiveYieldPct / 100)))
+    setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': c }))
+  }, [goalType, startingCapital, effectiveYieldPct])
 
   useEffect(() => {
     if (!userId || preferenceSynced) return
@@ -415,24 +449,28 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     }
 
     if (goalType === 'dividend_growth') {
-      // Translate dividend shortfall into the capital required at current portfolio yield,
-      // then suggest an equivalent monthly contribution to reach that capital within the term.
-      const override = useCustomYield ? Number(customYieldPct) : null
-      const y = (override !== null && Number.isFinite(override) && override > 0
-        ? override / 100
-        : Math.max((portfolioWeightedYield ?? 0) / 100, 0))
-      const effectiveYield = y > 0 ? y : 0.035 // fallback 3.5% if yield unknown
-      const capitalNeeded = shortfall / effectiveYield
-      const monthly = termYears > 0 ? capitalNeeded / (termYears * 12) : capitalNeeded / 12
-      const yieldPctLabel = (
-        override !== null && Number.isFinite(override) && override > 0
-          ? override
-          : (portfolioWeightedYield ?? (effectiveYield * 100))
-      ).toFixed?.(1) ?? ((effectiveYield * 100).toFixed(1))
+      // Compounding-aware plan
+      const y = Math.max(effectiveYieldPct / 100, 0.0001)
+      const r = Math.max(effectiveReturnPct / 100, 0)
+      const A = projection.target
+      const C = goalInputs['Current annual dividends (ZAR)'] ?? 0
+      const dividendShortfallNow = Math.max(A - C, 0)
+      const Ktarget = A / y
+      const K0 = (startingCapital ?? 0)
+      const N = Math.max(1, Math.round(termYears * 12))
+      const rm = Math.pow(1 + r, 1 / 12) - 1
+      let monthly: number
+      if (rm > 0) {
+        const factor = Math.pow(1 + rm, N)
+        monthly = ((Ktarget - K0 * factor) * rm) / (factor - 1)
+      } else {
+        monthly = (Ktarget - K0) / N
+      }
+      const lump = Math.max(0, Ktarget - K0)
       return {
-        amount: monthly,
+        amount: Math.max(0, Math.round(monthly)),
         cadence: 'p/m',
-        message: `To lift dividends by ~${formatRand(shortfall)}/yr at ~${yieldPctLabel}% yield, invest about ${formatRand(monthly)} per month for ${termYears} year(s) — or a once‑off ~${formatRand(capitalNeeded)}.`
+        message: `To lift dividends by ~${formatRand(dividendShortfallNow)}/yr at ~${(y*100).toFixed(1)}% yield with ${(effectiveReturnPct).toFixed(1)}% return, invest about ${formatRand(Math.max(0, Math.round(monthly)))} per month for ${termYears} year(s) — or a once‑off ~${formatRand(Math.round(lump))}.`
       }
     }
 
@@ -588,6 +626,115 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     )
   }
 
+  const renderReturnAssumptions = () => {
+    const effectivePortfolioReturn = (() => {
+      const base = useRealReturns ? portfolioRealReturn : portfolioNominalReturn
+      return base !== null && Number.isFinite(base) ? `${base.toFixed(2)}%` : 'n/a'
+    })()
+    return (
+      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Capital return assumption</p>
+            <p className="text-brand-ink dark:text-gray-100">Portfolio return (annualised): <span className="font-semibold">{effectivePortfolioReturn}</span></p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              className="accent-brand-purple"
+              checked={useCustomReturn}
+              onChange={(e) => setUseCustomReturn(e.target.checked)}
+            />
+            Use custom
+          </label>
+        </div>
+        {useCustomReturn && (
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="number"
+              step={0.1}
+              placeholder="e.g. 10.0"
+              value={customReturnPct}
+              onChange={(e) => setCustomReturnPct(e.target.value)}
+              className="input-field w-32"
+            />
+            <span className="text-xs text-muted dark:text-gray-400">% p.a.</span>
+            <span className="text-xs text-muted dark:text-gray-400">We’ll use this for compounding in the plan.</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderStartingCapital = () => {
+    if (goalType !== 'dividend_growth') return null
+    return (
+      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
+        <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Starting capital</p>
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="number"
+            min={0}
+            value={startingCapital ?? 0}
+            onChange={(e) => setStartingCapital(Math.max(0, Math.round(Number(e.target.value || '0'))))}
+            className="input-field w-48"
+          />
+          <span className="text-xs text-muted dark:text-gray-400">We infer current dividends as start × yield.</span>
+        </div>
+      </div>
+    )
+  }
+
+  const renderBudgetTimeCalc = () => {
+    if (goalType !== 'dividend_growth') return null
+    const y = Math.max(effectiveYieldPct / 100, 0.0001)
+    const r = Math.max(effectiveReturnPct / 100, 0)
+    const Ktarget = projection.target / y
+    const K0 = (startingCapital ?? 0)
+    const m = Math.max(0, Math.round(Number(monthlyBudget || '0')))
+    let monthsNeeded: number | null = null
+    if (m > 0 && Ktarget > K0) {
+      const rm = Math.pow(1 + r, 1 / 12) - 1
+      if (rm > 0) {
+        const num = m + rm * Ktarget
+        const den = m + rm * K0
+        if (num > 0 && den > 0 && num > den) {
+          monthsNeeded = Math.ceil(Math.log(num / den) / Math.log(1 + rm))
+        }
+      } else {
+        monthsNeeded = Math.ceil((Ktarget - K0) / m)
+      }
+    }
+    const yearsPart = monthsNeeded !== null ? Math.floor(monthsNeeded / 12) : null
+    const monthsPart = monthsNeeded !== null ? (monthsNeeded % 12) : null
+    return (
+      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
+        <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Have a monthly budget?</p>
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="number"
+            min={0}
+            value={monthlyBudget}
+            onChange={(e) => setMonthlyBudget(e.target.value)}
+            className="input-field w-48"
+            placeholder="e.g. 3000"
+          />
+          <span className="text-xs text-muted dark:text-gray-400">ZAR per month</span>
+        </div>
+        <div className="mt-3 text-sm text-brand-ink dark:text-gray-200">
+          {monthsNeeded !== null ? (
+            <span>
+              Estimated time to target: <span className="font-semibold">{yearsPart} yr</span>{' '}
+              {monthsPart ? <><span className="font-semibold">{monthsPart}</span> mo</> : null}
+            </span>
+          ) : (
+            <span className="text-muted dark:text-gray-400">Enter a monthly amount to estimate time to target.</span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const ringStyles = (radius: number, index: number, value: number, color: string) => {
     const circumference = 2 * Math.PI * radius
     const offset = circumference * (1 - value)
@@ -677,6 +824,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             />
 
             {renderYieldAssumptions()}
+            {renderReturnAssumptions()}
+            {renderStartingCapital()}
+            {renderBudgetTimeCalc()}
 
             <div className="rounded-3xl bg-brand-purple/5 p-6 text-sm text-brand-ink dark:text-gray-200">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-purple">
