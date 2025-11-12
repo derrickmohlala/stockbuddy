@@ -173,10 +173,10 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
 
   return (
     <div className="space-y-20">
-      <section className="rounded-[44px] border border-[#e7e9f3] bg-white px-8 py-14">
+      <section className="rounded-[32px] border border-[#e7e9f3] bg-white px-8 py-14">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center">
           <div className="space-y-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-4 py-2 text-xs font-semibold text-muted">
               Paper trading studio
             </span>
             <div className="space-y-5">
@@ -202,12 +202,12 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
               <button
                 type="button"
                 onClick={() => navigate('/discover')}
-                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-5 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/30 hover:text-brand-coral"
+                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-5 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
               >
                 Explore live instruments
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.4em] text-muted">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted">
               <span>Live SA data feed</span>
               <span>Archetype guidance</span>
               <span>Inflation aware metrics</span>
@@ -216,7 +216,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
           <div className="grid gap-4">
             <div className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-[0.3em] text-muted">Navigator growth</span>
+                <span className="text-xs uppercase tracking-[0.2em] text-muted">Navigator growth</span>
                 <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">Live</span>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
@@ -240,19 +240,19 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
             </div>
             <div className="grid gap-4 rounded-3xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.3em] text-muted">Daily rhythm</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-muted">Daily rhythm</p>
                 <span className="text-xs font-medium text-brand-purple">Auto curated</span>
               </div>
               <div className="space-y-3 text-sm text-subtle">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center justify-between">
                   <span>Rebalance insight: Top 40 vs Income basket</span>
                   <span className="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">+6.3%</span>
                 </div>
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center justify-between">
                   <span>Dividend calendar alert: Satrix DIVI</span>
                   <span className="rounded-full bg-brand-gold/15 px-3 py-1 text-xs font-semibold text-brand-gold">Two weeks</span>
                 </div>
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center justify-between">
                   <span>Inflation watch: SARB band threshold</span>
                   <span className="rounded-full bg-brand-coral/10 px-3 py-1 text-xs font-semibold text-brand-coral">On track</span>
                 </div>
@@ -279,7 +279,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
         ].map((feature) => (
           <div
             key={feature.title}
-            className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-8"
+            className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-8"
           >
             <h3 className="text-xl font-semibold text-primary-ink">{feature.title}</h3>
             <p className="mt-3 text-subtle">{feature.copy}</p>
@@ -287,10 +287,10 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
         ))}
       </section>
 
-      <section className="mx-auto max-w-6xl rounded-[40px] border border-[#e7e9f3] bg-white px-6 py-12">
+      <section className="mx-auto max-w-6xl rounded-[36px] border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 md:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-5">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold text-muted">
               Learning journey
             </span>
             <h2 className="text-3xl font-semibold text-primary-ink">From definition to decision in four steps.</h2>
@@ -339,7 +339,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
               Tap any card to see the plain-language explanation South Africans actually use.
             </p>
           </div>
-          <div className="rounded-full border border-[#e7e9f3] px-4 py-2 text-xs uppercase tracking-[0.4em] text-muted">
+          <div className="rounded-full border border-[#e7e9f3] px-4 py-2 text-xs text-muted">
             Local insight feed
           </div>
         </div>
@@ -348,7 +348,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 text-center">
+      <section className="mx-auto max-w-5xl rounded-[32px] border border-[#e7e9f3] bg-white px-8 py-12 text-center">
         <h2 className="text-3xl font-semibold text-primary-ink">Launch your investing era with clarity.</h2>
         <p className="mt-3 text-lg text-subtle">
           Join thousands of South Africans who now understand their risk, their inflation gap, and their dividend runway.
@@ -384,11 +384,11 @@ const Flashcard: React.FC<FlashcardProps> = ({ term, analogy }) => {
       aria-label={`Flashcard for ${term}`}
     >
       <div className={`relative h-52 w-full transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? 'rotate-y-180' : ''}`}>
-        <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6 [backface-visibility:hidden]">
+        <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white p-6 [backface-visibility:hidden]">
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <Wallet className="h-8 w-8 text-brand-purple" />
-            <p className="text-lg font-semibold text-primary-ink tracking-wide">{term}</p>
-            <p className="text-xs uppercase text-muted tracking-[0.25em]">Tap to flip</p>
+            <p className="text-lg font-semibold text-primary-ink">{term}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted">Tap to flip</p>
           </div>
         </div>
         <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6 text-left text-sm text-subtle [backface-visibility:hidden] rotate-y-180">

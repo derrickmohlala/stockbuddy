@@ -501,43 +501,36 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   }
 
   const renderInputs = () => {
+    const goalOptions: Array<{ value: GoalType; label: string; helper: string }> = [
+      { value: 'growth', label: 'Growth target', helper: 'Focus on portfolio size' },
+      { value: 'balanced', label: 'Balanced', helper: 'Beat inflation steadily' },
+      { value: 'income', label: 'Income', helper: 'Cover monthly commitments' }
+    ]
+
     return (
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan controls</p>
-            <h2 className="text-xl font-semibold text-primary-ink">Tune your north star</h2>
+        <div className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Plan controls</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {goalOptions.map(({ value, label, helper }) => {
+              const active = goalType === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setGoalType(value)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    active ? 'border-brand-purple bg-brand-purple text-white' : 'border-soft bg-white text-subtle hover:border-brand-purple hover:text-brand-purple'
+                  }`}
+                >
+                  <span className="block text-left leading-tight">
+                    <span>{label}</span>
+                    <span className="block text-xs font-normal text-muted">{helper}</span>
+                  </span>
+                </button>
+              )
+            })}
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-soft bg-white/70 px-3 py-1 text-xs text-subtle">
-            <Sparkles className="h-4 w-4 text-brand-purple" /> Live preview
-          </span>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <GoalTab
-            label="Growth target"
-            active={goalType === 'growth'}
-            icon={<TrendingUp className="h-4 w-4" />}
-            onClick={() => setGoalType('growth')}
-            helper="Chase a rand milestone"
-            tone="cyan"
-          />
-          <GoalTab
-            label="Balanced (beat inflation)"
-            active={goalType === 'balanced'}
-            icon={<Gauge className="h-4 w-4" />}
-            onClick={() => setGoalType('balanced')}
-            helper="Stay ahead of CPI"
-            tone="amber"
-          />
-          <GoalTab
-            label="Income (dividends)"
-            active={goalType === 'income'}
-            icon={<Wallet className="h-4 w-4" />}
-            onClick={() => setGoalType('income')}
-            helper="Cover living costs"
-            tone="emerald"
-          />
         </div>
 
         <FieldShell label="Term (years)">
@@ -574,7 +567,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         )}
 
         {goalType === 'balanced' && (
-          <div className="surface-card space-y-4 bg-white/75 p-5">
+          <div className="space-y-4 rounded-2xl border border-soft bg-white px-5 py-5">
             <p className="text-sm font-semibold text-primary-ink">Inflation guardrail</p>
             <div className="flex flex-wrap items-center gap-4 text-sm text-subtle">
               <label className="inline-flex items-center gap-2">
@@ -644,7 +637,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-muted">Update any slider or input and refresh for an instant recalculation.</p>
+          <p className="text-xs text-muted">Update any input and refresh for an instant recalculation.</p>
           <button
             type="button"
             onClick={handleUpdate}
@@ -670,13 +663,13 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   }
 
   return (
-    <>
+    <div className="space-y-16">
       <section className="section-hero space-y-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
-            <span className="badge bg-white/80">{heroContent.badge}</span>
+            <span className="badge bg-white">{heroContent.badge}</span>
             <div className="flex items-start gap-4">
-              <div className="surface-glass inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-card">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-soft bg-white">
                 {heroContent.icon}
               </div>
               <div className="space-y-2">
@@ -701,8 +694,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 accent={heroContent.accent}
               />
             )}
-            <div className="w-full rounded-2xl border border-soft bg-white/70 px-4 py-3 text-sm text-subtle shadow-card">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Term length</p>
+            <div className="w-full rounded-2xl border border-soft bg-white px-4 py-3 text-sm text-subtle">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted">Term length</p>
               <p className="text-xl font-semibold text-primary-ink">{termYears} year(s)</p>
             </div>
           </div>
@@ -710,10 +703,10 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       </section>
 
       {highlightCards.length > 0 && (
-        <section className="section-surface space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <section className="space-y-4 rounded-[28px] border border-soft bg-white px-6 py-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-2xl font-semibold text-primary-ink">Plan checkpoints</h2>
-            <span className="text-xs uppercase tracking-[0.3em] text-muted">Live metrics</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-muted">Live metrics</span>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {highlightCards.map((card) => (
@@ -741,7 +734,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           {error && <p className="text-sm text-danger-500">{error}</p>}
         </div>
       </section>
-    </>
+    </div>
   )
 }
 
@@ -771,16 +764,14 @@ interface ProgressOrbProps {
 const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan' }) => {
   const clamped = Math.min(Math.max(value, 0), 100)
   const palette = ACCENT_TOKENS[accent]
-  const gradient = `conic-gradient(${palette.conic} ${clamped}%, rgba(255,255,255,0.08) ${clamped}% 100%)`
+
   return (
-    <div className="relative flex flex-col items-center">
-      <div className={`absolute inset-0 h-36 w-36 rounded-full ${palette.glow} opacity-40 blur-3xl`}></div>
-      <div className="relative mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-soft bg-white/80 p-1 shadow-card">
-        <div className="relative h-full w-full rounded-full border border-soft" style={{ background: gradient }}>
-          <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white/95 text-center">
-            <p className="text-3xl font-semibold text-primary-ink">{clamped.toFixed(0)}%</p>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
-          </div>
+    <div className="flex flex-col items-center gap-3">
+      <div className={`flex h-28 w-28 items-center justify-center rounded-full border-4 ${palette.ring} bg-white`}
+      >
+        <div className="text-center">
+          <p className="text-3xl font-semibold text-primary-ink">{clamped.toFixed(0)}%</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">{label}</p>
         </div>
       </div>
     </div>
@@ -788,46 +779,6 @@ const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan'
 }
 
 export default Health
-
-interface GoalTabProps {
-  label: string
-  helper: string
-  icon: React.ReactNode
-  active: boolean
-  onClick: () => void
-  tone: AccentKey
-}
-
-const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick, tone }) => {
-  const accent = ACCENT_TOKENS[tone]
-  const iconElement =
-    React.isValidElement(icon) &&
-    React.cloneElement(icon, {
-      className: `${icon.props.className ?? ''} ${
-        active ? accent.icon : 'text-muted'
-      } transition-colors duration-200`
-    })
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-2xl border px-4 py-4 text-left transition-all duration-200 ${
-        active
-          ? `${accent.border} ${accent.background} text-primary-ink shadow-pop`
-          : 'border-soft bg-white/70 text-subtle hover:-translate-y-0.5 hover:border-brand-purple/30'
-      }`}
-    >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <div className={`absolute -top-16 right-0 h-28 w-28 ${accent.glow} blur-3xl`}></div>
-      </div>
-      <span className="flex items-center gap-2 text-sm font-semibold">
-        {iconElement || icon} {label}
-      </span>
-      <span className="text-xs text-subtle group-hover:text-primary-ink">{helper}</span>
-    </button>
-  )
-}
 
 interface FieldShellProps {
   label: string
@@ -861,51 +812,12 @@ const PlanCallout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 )
 
-const ACCENT_TOKENS: Record<
-  AccentKey,
-  {
-    background: string
-    border: string
-    glow: string
-    icon: string
-    conic: string
-  }
-> = {
-  cyan: {
-    background: 'bg-gradient-to-br from-cyan-500/20 via-cyan-400/10 to-cyan-500/5',
-    border: 'border-cyan-300/60',
-    glow: 'bg-cyan-500/30',
-    icon: 'text-cyan-100',
-    conic: '#22d3ee'
-  },
-  violet: {
-    background: 'bg-gradient-to-br from-violet-500/20 via-violet-400/10 to-violet-500/5',
-    border: 'border-violet-300/60',
-    glow: 'bg-violet-500/30',
-    icon: 'text-violet-100',
-    conic: '#a855f7'
-  },
-  emerald: {
-    background: 'bg-gradient-to-br from-emerald-500/20 via-emerald-400/10 to-emerald-500/5',
-    border: 'border-emerald-300/60',
-    glow: 'bg-emerald-500/30',
-    icon: 'text-emerald-100',
-    conic: '#10b981'
-  },
-  amber: {
-    background: 'bg-gradient-to-br from-amber-500/20 via-amber-400/10 to-amber-500/5',
-    border: 'border-amber-300/60',
-    glow: 'bg-amber-500/30',
-    icon: 'text-amber-100',
-    conic: '#f59e0b'
-  },
-  fuchsia: {
-    background: 'bg-gradient-to-br from-fuchsia-500/20 via-fuchsia-400/10 to-fuchsia-500/5',
-    border: 'border-fuchsia-300/60',
-    glow: 'bg-fuchsia-500/30',
-    icon: 'text-fuchsia-100',
-    conic: '#d946ef'
-  }
+const ACCENT_TOKENS: Record<AccentKey, { icon: string; ring: string }> = {
+  cyan: { icon: 'text-brand-mint', ring: 'border-brand-mint' },
+  violet: { icon: 'text-brand-purple', ring: 'border-brand-purple' },
+  emerald: { icon: 'text-brand-mint', ring: 'border-brand-mint' },
+  amber: { icon: 'text-brand-gold', ring: 'border-brand-gold' },
+  fuchsia: { icon: 'text-brand-coral', ring: 'border-brand-coral' }
 }
 
 interface HighlightCardShape {
@@ -927,16 +839,13 @@ const HighlightCard: React.FC<HighlightCardProps> = ({ label, value, helper, ico
       className: `${icon.props.className ?? ''} ${accent.icon}`
     })
   return (
-    <div
-      className={`surface-card relative overflow-hidden border ${accent.border} bg-white/80 p-5 shadow-card transition hover:-translate-y-1 hover:shadow-pop`}
-    >
-      <div className={`pointer-events-none absolute -right-14 top-0 h-32 w-32 rounded-full ${accent.glow} blur-3xl opacity-60`}></div>
+    <div className="rounded-2xl border border-soft bg-white px-5 py-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">{label}</p>
           <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white/70">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white">
           {iconElement || icon}
         </div>
       </div>

@@ -33,7 +33,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
     }`
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 bg-white">
       <div className="border-b border-[#e7e9f3]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-4">
           <div className="flex items-center gap-3">
@@ -42,7 +42,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
             </NavLink>
             <div className="hidden sm:flex flex-col">
               <span className="text-sm font-semibold text-primary-ink">StockBuddy</span>
-              <span className="text-xs uppercase tracking-[0.4em] text-muted">Investing studio</span>
+              <span className="text-xs uppercase tracking-[0.25em] text-muted">Investing studio</span>
             </div>
           </div>
 

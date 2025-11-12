@@ -168,8 +168,8 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
     const cardTone =
       accent === 'primary'
-        ? 'border-brand-purple/25 shadow-[0_25px_70px_-55px_rgba(122,63,242,0.55)]'
-        : 'border-[#e7e9f3] shadow-[0_25px_70px_-55px_rgba(94,102,135,0.45)]'
+        ? 'border-brand-purple/30'
+        : 'border-[#e7e9f3]'
 
     return (
       <article
@@ -226,7 +226,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
 
   return (
     <div className="space-y-16">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -298,7 +298,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         {(anchorHeadline || benchmarkHeadline) && (
           <div className="grid gap-6 md:grid-cols-2">
             {anchorHeadline && (
-              <div className="space-y-4 rounded-[30px] border border-brand-purple/30 bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(122,63,242,0.5)]">
+              <div className="space-y-4 rounded-[30px] border border-brand-purple/30 bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.4em] text-brand-purple">Anchor watch</p>
@@ -310,7 +310,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               </div>
             )}
             {benchmarkHeadline && (
-              <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(94,102,135,0.5)]">
+              <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.4em] text-muted">Benchmark pulse</p>
@@ -336,7 +336,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
           </div>
 
           {holdingNews.length === 0 ? (
-            <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle shadow-[0_28px_90px_-70px_rgba(94,102,135,0.45)]">
+            <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle">
               Your watchlist is quiet. We’ll surface stories as soon as your holdings hit the news cycle.
             </div>
           ) : (
@@ -362,7 +362,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         </div>
 
         {shouldRenderScheduleCard && (
-          <section className="space-y-6 rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
+          <section className="space-y-6 rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-semibold text-primary-ink">Upcoming earnings checkpoints</h2>
