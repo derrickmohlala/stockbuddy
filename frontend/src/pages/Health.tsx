@@ -39,6 +39,12 @@ const PROFILE_GOAL_TO_HEALTH: Record<string, GoalType> = {
 
 const sarbInflationTarget = 6
 
+const currencyFormatter = new Intl.NumberFormat('en-ZA', {
+  style: 'currency',
+  currency: 'ZAR',
+  maximumFractionDigits: 0
+})
+
 const Health: React.FC<HealthProps> = ({ userId }) => {
   const [goalType, setGoalType] = useState<GoalType>('growth')
   const [termYears, setTermYears] = useState<number>(5)
@@ -133,6 +139,59 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   const handleUpdate = () => {
     if (userId) fetchPlan()
   }
+
+  const derivedProgressPct = useMemo(() => {
+    if (!plan) return null
+    if (goalType === 'growth') {
+      return plan.progress_pct ?? null
+    }
+    if (goalType === 'balanced') {
+      const nominal = plan.nominal_return_pct ?? 0
+      const inflation = plan.inflation_target_pct ?? sarbInflationTarget
+      if (inflation <= 0) return null
+      const ratio = nominal / inflation
+      return Math.min(Math.max(ratio * 50, 0), 100)
+    }
+    const current = plan?.current_monthly_income ?? plan?.current_annual_income ?? 0
+    const target = plan?.target_monthly_income ?? plan?.target_annual_income ?? 0
+    if (!target) return null
+    return Math.min((current / target) * 100, 100)
+  }, [plan, goalType])
+
+  const heroContent = useMemo(() => {
+    if (!plan) {
+      return {
+        title: 'Select a focus',
+        primary: 'Tell us your target',
+        detail: 'Pick growth, balanced, or income and we will translate it into concrete actions.',
+        badge: 'Setup pending'
+      }
+    }
+    if (goalType === 'growth') {
+      return {
+        title: 'Growth runway',
+        primary: `Aim for ${currencyFormatter.format(plan.target_value || targetValue)}`,
+        detail: plan.message || 'Increase contributions or rebalance to stay on track.',
+        badge: `${(plan.progress_pct ?? 0).toFixed(1)}% complete`
+      }
+    }
+    if (goalType === 'balanced') {
+      const real = plan.real_return_pct ?? 0
+      const status = real >= 0 ? 'Ahead of inflation' : 'Lagging inflation'
+      return {
+        title: 'Inflation radar',
+        primary: `${real.toFixed(2)} pts real return`,
+        detail: plan.message || 'Keep nominal returns comfortably above the inflation target.',
+        badge: status
+      }
+    }
+    return {
+      title: 'Income engine',
+      primary: `${currencyFormatter.format(plan.current_monthly_income || 0)} / mo now`,
+      detail: plan.message || 'Channel contributions or hunt for higher-yield sleeves to cover living costs.',
+      badge: `Goal: ${currencyFormatter.format(plan.target_monthly_income || 0)} / mo`
+    }
+  }, [plan, goalType, targetValue])
 
   const renderPlanSummary = () => {
     if (!plan || plan.goal_type !== goalType) return null
@@ -334,15 +393,37 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 py-10 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 py-12 text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
         <header className="space-y-2">
-          <p className="text-sm uppercase tracking-wide text-cyan-400">Health check</p>
-          <h1 className="text-3xl font-semibold">Keep your plan on target</h1>
+          <p className="text-xs uppercase tracking-[0.4em] text-cyan-300">Health check</p>
+          <h1 className="text-4xl font-semibold">Stay on plan, the easy way</h1>
           <p className="text-sm text-slate-300">
-            Tell us the outcome you’re chasing and we’ll translate it into plain-language actions. Growth focuses on rand targets, balanced keeps you ahead of inflation, and income maps out dividend goals.
+            Set a rand goal, inflation target, or dividend income objective. We’ll translate it into monthly contributions, timelines, and plain-language actions.
           </p>
         </header>
+
+        <section className="rounded-3xl bg-white/5 p-6 shadow-2xl backdrop-blur">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-cyan-200">
+                {heroContent.badge}
+              </div>
+              <p className="text-2xl font-semibold text-white">{heroContent.title}</p>
+              <p className="text-4xl font-bold text-cyan-200">{heroContent.primary}</p>
+              <p className="text-sm text-slate-200 max-w-2xl">{heroContent.detail}</p>
+            </div>
+            <div className="flex items-center gap-6">
+              {derivedProgressPct !== null && (
+                <ProgressOrb value={derivedProgressPct} label={goalType === 'balanced' ? 'Real return gauge' : 'Plan progress'} />
+              )}
+              <div className="hidden text-sm text-slate-300 md:block">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Term</p>
+                <p className="text-xl font-semibold text-white">{termYears} year(s)</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl bg-slate-900/70 p-6 shadow-xl">
@@ -354,6 +435,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             {!loading && !plan && !error && (
               <p className="text-sm text-slate-400">Enter your goal details and we’ll project the required steps.</p>
             )}
+            {error && <p className="text-sm text-red-400">{error}</p>}
           </div>
         </section>
       </div>
@@ -376,5 +458,28 @@ const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status })
     {helper && <p className="text-xs text-slate-400">{helper}</p>}
   </div>
 )
+
+interface ProgressOrbProps {
+  value: number
+  label: string
+}
+
+const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label }) => {
+  const clamped = Math.min(Math.max(value, 0), 100)
+  const gradient = `conic-gradient(#22d3ee ${clamped}%, rgba(255,255,255,0.1) ${clamped}% 100%)`
+  return (
+    <div className="text-center">
+      <div className="relative mx-auto h-32 w-32">
+        <div className="absolute inset-0 rounded-full" style={{ background: gradient }}></div>
+        <div className="absolute inset-3 rounded-full bg-slate-950/80 flex items-center justify-center">
+          <div>
+            <p className="text-2xl font-semibold text-white">{clamped.toFixed(0)}%</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default Health
