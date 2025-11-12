@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, Shield, BookOpen, Users, Sparkles, Brain, Wallet } from 'lucide-react'
+import { Wallet } from 'lucide-react'
 
 interface HomeProps {
   onGetStarted?: () => void
@@ -172,19 +172,25 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
   }
 
   return (
-    <>
-      <section id="hero" className="section-hero text-primary-ink">
-        <div className="grid gap-12 md:grid-cols-2 md:items-center">
-          <div className="space-y-6">
-            <span className="badge bg-white/70 dark:bg-white/10 dark:text-tone-secondary border-white/30 dark:border-white/20">
-              Build confidence with paper trading
+    <div className="space-y-20">
+      <section className="relative overflow-hidden rounded-[48px] border border-[#e7e9f3] bg-white px-8 py-14 shadow-[0_45px_120px_-60px_rgba(94,102,135,0.45)]">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-28 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-purple/10 blur-3xl"></div>
+          <div className="absolute bottom-[-120px] right-[-80px] h-64 w-64 rounded-full bg-brand-mint/15 blur-3xl"></div>
+        </div>
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center">
+          <div className="space-y-8">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+              Paper trading studio
             </span>
-            <h1 className="text-5xl font-extrabold tracking-tight md:text-6xl">
-              Learn investing, the South African way
-            </h1>
-            <p className="max-w-xl text-lg text-subtle">
-              Master investing with curated baskets, auto adjusting sleeves, and real SA market data — all in a risk free sandbox built for South Africans.
-            </p>
+            <div className="space-y-5">
+              <h1 className="text-5xl font-semibold leading-tight text-primary-ink lg:text-6xl">
+                Build investing confidence with live JSE data — before you spend a single rand.
+              </h1>
+              <p className="max-w-xl text-lg text-subtle">
+                StockBuddy scaffolds your journey with South African market insights, guided archetypes, and hands-on simulations that feel like the real exchange — minus the risk.
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-4">
               <a
                 href={ctaPath}
@@ -192,139 +198,175 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
                   event.preventDefault()
                   handleGetStarted()
                 }}
-                className="btn-cta shadow-pop"
+                className="btn-cta text-base"
                 data-testid="cta-view-portfolio"
               >
                 {ctaLabel}
               </a>
-              <a href="/archetypes" className="btn-secondary">
-                Explore Archetypes
-              </a>
+              <button
+                type="button"
+                onClick={() => navigate('/discover')}
+                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-5 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/30 hover:text-brand-coral"
+              >
+                Explore live instruments
+              </button>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-wide text-muted">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-mint" />
-                Live SA market data
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-gold" />
-                Inflation adjusted returns
-              </span>
+            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.4em] text-muted">
+              <span>Live SA data feed</span>
+              <span>Archetype guidance</span>
+              <span>Inflation aware metrics</span>
             </div>
           </div>
-          <div className="relative">
-            <div className="surface-card relative mx-auto max-w-md p-6">
+          <div className="grid gap-4">
+            <div className="rounded-3xl border border-[#e7e9f3] bg-white/80 p-6 shadow-[0_30px_80px_-50px_rgba(94,102,135,0.55)] backdrop-blur">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted">Current plan</p>
-                  <h3 className="text-2xl font-semibold text-primary-ink dark:text-tone-primary">Navigator Growth</h3>
-                </div>
-                <span className="chip bg-brand-mint/15 text-brand-mint border-brand-mint/30 tracking-wide">
-                  Rebalanced
-                </span>
+                <span className="text-xs uppercase tracking-[0.3em] text-muted">Navigator growth</span>
+                <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">Live</span>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-                <div className="stat-stack">
+                <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
                   <p className="text-subtle">Portfolio value</p>
-                  <p className="text-2xl font-bold text-brand-purple">R 2 959</p>
+                  <p className="text-2xl font-semibold text-primary-ink">R 2 959</p>
                 </div>
-                <div className="stat-stack">
+                <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
                   <p className="text-subtle">Annualised return</p>
-                  <p className="text-2xl font-bold text-brand-mint">+24.74%</p>
+                  <p className="text-2xl font-semibold text-brand-mint">+24.74%</p>
                 </div>
-                <div className="stat-stack">
-                  <p className="text-subtle">Total P&L</p>
-                  <p className="text-2xl font-bold text-brand-gold">R 1 959</p>
+                <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
+                  <p className="text-subtle">Target runway</p>
+                  <p className="text-2xl font-semibold text-primary-ink">R 500 000</p>
                 </div>
-                <div className="stat-stack">
-                  <p className="text-subtle">Benchmark</p>
-                  <p className="text-lg font-semibold text-brand-purple">STX40 · +18.2%</p>
+                <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
+                  <p className="text-subtle">Inflation guardrail</p>
+                  <p className="text-lg font-semibold text-brand-purple">+3.1 pts</p>
                 </div>
-              </div>
-              <div className="mt-6 rounded-2xl border border-brand-purple/25 bg-gradient-to-r from-brand-purple/10 via-brand-mint/10 to-brand-gold/10 p-4 text-sm text-primary-ink dark:text-tone-secondary">
-                Rebalance suggestions ready. Lock them in with two clicks.
               </div>
             </div>
-            <div className="absolute -top-12 -left-10 hidden h-28 w-28 rounded-full bg-brand-gold/30 blur-3xl md:block" />
+            <div className="grid gap-4 rounded-3xl border border-[#e7e9f3] bg-white/90 p-6 shadow-[0_25px_70px_-50px_rgba(94,102,135,0.55)]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-[0.3em] text-muted">Daily rhythm</span>
+                <span className="text-xs font-medium text-brand-purple">Auto curated</span>
+              </div>
+              <div className="space-y-3 text-sm text-subtle">
+                <div className="flex items-start justify-between gap-3">
+                  <span>Rebalance insight: Top 40 vs Income basket</span>
+                  <span className="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">+6.3%</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span>Dividend calendar alert: Satrix DIVI</span>
+                  <span className="rounded-full bg-brand-gold/15 px-3 py-1 text-xs font-semibold text-brand-gold">Two weeks</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span>Inflation watch: SARB band threshold</span>
+                  <span className="rounded-full bg-brand-coral/10 px-3 py-1 text-xs font-semibold text-brand-coral">On track</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="section-surface">
-        <div className="text-center space-y-4 mb-12">
-          <span className="badge mx-auto bg-white/70 dark:bg-white/10">Why StockBuddy?</span>
-          <h2 className="text-3xl font-bold">Dial in your first investing wins</h2>
-          <p className="text-lg text-subtle max-w-2xl mx-auto">
-            Learn investing the South African way with a platform that brings live market intelligence and friendly guidance together.
-          </p>
-        </div>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <div className="card text-center">
-            <TrendingUp className="mx-auto mb-4 h-12 w-12 text-brand-purple" />
-            <h3 className="text-xl font-semibold mb-2">Paper trading</h3>
+      <section className="mx-auto grid max-w-6xl gap-6 px-4 md:grid-cols-3">
+        {[
+          {
+            title: 'Simulated trades with heart',
+            copy: 'Layer in real JSE instruments, slippage, and costs — all safely paper traded so every lesson sticks.'
+          },
+          {
+            title: 'Archetypes matched to you',
+            copy: 'Growth, income, or balanced? We decode the jargon and map your goals to curated market sleeves.'
+          },
+          {
+            title: 'Metrics that speak rand',
+            copy: 'See returns, inflation gaps, and dividend cover in language South African investors trust.'
+          }
+        ].map((feature) => (
+          <div
+            key={feature.title}
+            className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_30px_80px_-60px_rgba(94,102,135,0.45)]"
+          >
+            <h3 className="text-xl font-semibold text-primary-ink">{feature.title}</h3>
+            <p className="mt-3 text-subtle">{feature.copy}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mx-auto max-w-6xl rounded-[40px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+        <div className="grid gap-10 md:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="space-y-5">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+              Learning journey
+            </span>
+            <h2 className="text-3xl font-semibold text-primary-ink">From definition to decision in four steps.</h2>
             <p className="text-subtle">
-              Practice with simulated trades on real JSE instruments without risking real money.
+              StockBuddy is more than a glossary. We pair daily flashes of theory with situation-based practice and portfolio reflection.
             </p>
           </div>
-          <div className="card text-center">
-            <Shield className="mx-auto mb-4 h-12 w-12 text-brand-mint" />
-            <h3 className="text-xl font-semibold mb-2">Educational focus</h3>
-            <p className="text-subtle">
-              Learn about ETFs, REITs, and Top 40 shares with guided explanations and insights.
-            </p>
-          </div>
-          <div className="card text-center">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-brand-gold" />
-            <h3 className="text-xl font-semibold mb-2">Curated baskets</h3>
-            <p className="text-subtle">
-              Start with proven model portfolios tailored to your goals and risk tolerance.
-            </p>
-          </div>
-          <div className="card text-center">
-            <Users className="mx-auto mb-4 h-12 w-12 text-brand-coral" />
-            <h3 className="text-xl font-semibold mb-2">SA market focus</h3>
-            <p className="text-subtle">
-              Deep dive into JSE Top 40, sector ETFs, and South African REITs.
-            </p>
+          <div className="space-y-6">
+            {[
+              {
+                title: 'Translate the jargon',
+                detail: 'Flashcards and explainers convert investing slang into real-world examples from SA life.'
+              },
+              {
+                title: 'Match your archetype',
+                detail: 'Answer a friendly prompt sheet and we align you with a goal-based archetype that adjusts over time.'
+              },
+              {
+                title: 'Simulate with intent',
+                detail: 'Paper trades feed into performance dashboards that highlight inflation gaps and cash-flow coverage.'
+              },
+              {
+                title: 'Act on insights',
+                detail: 'Action prompts tell you when to rebalance, top up, or pivot to income — all before you spend a rand.'
+              }
+            ].map((item, idx) => (
+              <div key={item.title} className="flex items-start gap-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e7e9f3] text-sm font-semibold text-primary-ink">
+                  {idx + 1}
+                </span>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-primary-ink">{item.title}</p>
+                  <p className="text-sm text-subtle">{item.detail}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="section-contrast">
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <h2 className="text-3xl font-bold flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-brand-gold" /> Jargon flashcards
-            </h2>
-            <p className="text-sm sm:text-base text-white/80">
-              Tap the cards to flip them and see investing explained with playful SA flavoured analogies. Perfect for novice investors getting comfortable with the lingo.
+      <section className="mx-auto max-w-6xl space-y-8 px-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-semibold text-primary-ink">Flashcards that sound local.</h2>
+            <p className="text-subtle">
+              Tap any card to see the plain-language explanation South Africans actually use.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
-            <Brain className="h-5 w-5" />
-            <span>Swipe through for a quick confidence boost.</span>
+          <div className="rounded-full border border-[#e7e9f3] px-4 py-2 text-xs uppercase tracking-[0.4em] text-muted">
+            Local insight feed
           </div>
         </div>
-        <div className="mt-12">
+        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
           <FlashcardCarousel cards={flashcards} perPage={6} />
         </div>
       </section>
 
-      <section className="section-neutral text-center space-y-6">
-        <h2 className="text-3xl font-bold">Ready to start your investing journey?</h2>
-        <p className="text-lg text-subtle max-w-2xl mx-auto">
-          Join thousands of South Africans learning to invest smarter.
+      <section className="mx-auto max-w-5xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 text-center shadow-[0_40px_120px_-70px_rgba(94,102,135,0.5)]">
+        <h2 className="text-3xl font-semibold text-primary-ink">Launch your investing era with clarity.</h2>
+        <p className="mt-3 text-lg text-subtle">
+          Join thousands of South Africans who now understand their risk, their inflation gap, and their dividend runway.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
           <button onClick={handleGetStarted} className="btn-cta text-base px-8 py-4">
             {ctaLabel === "Get Started - It's Free" ? 'Begin your journey' : 'Go to portfolio'}
           </button>
-          <a href="/discover" className="btn-secondary">
-            Browse instruments
+          <a href="/discover" className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-6 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral">
+            Browse the instrument library
           </a>
         </div>
       </section>
-    </>
+    </div>
   )
 }
 

@@ -26,17 +26,9 @@
   padding: 0.75rem 1.6rem;
   backdrop-filter: blur(14px);
 }
-.dark .btn-secondary {
-  background: rgba(17, 25, 51, 0.65);
-  color: var(--text-secondary);
-}
 .btn-secondary:hover {
   border-color: var(--brand-purple);
   color: var(--brand-purple);
-}
-.dark .btn-secondary:hover {
-  border-color: rgba(122,63,242,0.6);
-  color: var(--brand-gold);
 }
 
 .badge {
@@ -44,10 +36,6 @@
   border-color: var(--border-soft);
   color: var(--text-secondary);
   background: rgba(255,255,255,0.6);
-}
-.dark .badge {
-  background: rgba(17, 24, 54, 0.7);
-  color: var(--text-secondary);
 }
 
 .surface-panel {
@@ -57,10 +45,6 @@
   background: var(--surface-raised);
   box-shadow: 0 18px 45px rgba(16, 20, 40, 0.16);
   backdrop-filter: blur(18px);
-}
-.dark .surface-panel {
-  background: var(--surface-raised);
-  border-color: var(--border-soft);
 }
 
 .surface-card {
@@ -76,10 +60,6 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
   backdrop-filter: blur(20px);
 }
-.dark .surface-glass {
-  border-color: rgba(255,255,255,0.08);
-  background: linear-gradient(180deg, rgba(19,27,58,0.76) 0%, rgba(19,27,58,0.58) 100%);
-}
 
 .chip {
   @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em];
@@ -91,9 +71,6 @@
   @apply flex flex-col gap-2 rounded-2xl border p-4;
   border-color: var(--border-soft);
   background: rgba(255,255,255,0.65);
-}
-.dark .stat-stack {
-  background: rgba(17, 25, 51, 0.6);
 }
 
 .headline-gradient {

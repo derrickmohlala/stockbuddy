@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Newspaper, RefreshCw, ExternalLink, AlertCircle, CalendarDays } from 'lucide-react'
-import { useTheme } from '../theme/ThemeProvider'
 import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
 
@@ -47,16 +46,14 @@ type EarningsSchedule = Partial<Record<EarningsContext, EarningsItem[]>>
 
 
 const sentimentClasses: Record<string, string> = {
-  Positive: 'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-300',
-  Neutral: 'bg-gray-200 text-muted dark:text-gray-200 dark:bg-gray-700/50 dark:text-gray-200',
-  Mixed: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-  Cautious: 'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-300'
+  Positive: 'bg-brand-mint/15 text-brand-mint',
+  Neutral: 'bg-[#e7e9f3] text-muted',
+  Mixed: 'bg-amber-100 text-amber-700',
+  Cautious: 'bg-brand-coral/15 text-brand-coral'
 }
 
 const News: React.FC<NewsProps> = ({ userId }) => {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-    const [benchmarkData, setBenchmarkData] = useState<BenchmarkPayload | null>(null)
+  const [benchmarkData, setBenchmarkData] = useState<BenchmarkPayload | null>(null)
   const [anchorData, setAnchorData] = useState<AnchorPayload | null>(null)
   const [holdingGroups, setHoldingGroups] = useState<NewsGroup[]>([])
   const [earningsWatch, setEarningsWatch] = useState<EarningsItem[]>([])
@@ -129,6 +126,14 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     [holdingGroups]
   )
 
+  const totalHeadlines = useMemo(
+    () => holdingNews.reduce((acc, group) => acc + group.news.length, 0),
+    [holdingNews]
+  )
+
+  const anchorHeadline = anchorData?.news?.[0]
+  const benchmarkHeadline = benchmarkData?.news?.[0]
+
   const scheduleSections = useMemo(
     () => ([
       {
@@ -159,65 +164,31 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     portfolio: 'None of your current holdings have scheduled calls in the next 60 days.'
   }
 
-  if (!userId) {
-    return (
-      <OnboardingCard
-        icon={<Newspaper className="w-10 h-10 text-primary-500" />}
-        title="Finish onboarding"
-        message="Complete the onboarding journey so we can tailor daily news to the shares and ETFs you actually hold."
-        primaryLabel="Start onboarding"
-        onPrimary={() => navigate('/onboarding')}
-        maxWidth="md"
-      />
-    )
-  }
-
   const renderStory = (story: PortfolioNewsItem, accent: 'primary' | 'neutral') => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
-    const containerClasses =
+    const cardTone =
       accent === 'primary'
-        ? isDark
-          ? 'rounded-xl border border-primary-500/30 bg-slate-900/70 px-4 py-4 shadow-sm'
-          : 'rounded-xl border border-brand-purple/20 bg-white px-4 py-4 shadow-sm'
-        : 'rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900 px-4 py-4 shadow-sm'
-
-    const metaClasses =
-      accent === 'primary'
-        ? isDark
-          ? 'mt-3 flex flex-wrap items-center gap-3 text-xs text-primary-200/80'
-          : 'mt-3 flex flex-wrap items-center gap-3 text-xs text-muted'
-        : 'mt-3 flex flex-wrap items-center gap-3 text-xs text-muted dark:text-gray-300'
-
-    const summaryClasses =
-      accent === 'primary'
-        ? isDark
-          ? 'mt-2 text-sm text-primary-100/80 leading-relaxed'
-          : 'mt-2 text-sm text-brand-ink leading-relaxed'
-        : 'mt-2 text-sm text-brand-ink dark:text-gray-300 leading-relaxed'
+        ? 'border-brand-purple/25 shadow-[0_25px_70px_-55px_rgba(122,63,242,0.55)]'
+        : 'border-[#e7e9f3] shadow-[0_25px_70px_-55px_rgba(94,102,135,0.45)]'
 
     return (
-      <article key={story.id} className={containerClasses}>
+      <article
+        key={story.id}
+        className={`rounded-[26px] border bg-white px-5 py-5 transition hover:-translate-y-0.5 ${cardTone}`}
+      >
         <div className="flex items-start justify-between gap-3">
-          <h3 className={`flex-1 min-w-0 break-words text-lg font-semibold ${accent === 'primary' ? (isDark ? 'text-primary-50' : 'text-brand-ink') : 'text-brand-ink dark:text-gray-100'}`}>
+          <h3 className="flex-1 min-w-0 break-words text-lg font-semibold text-primary-ink">
             {story.headline}
           </h3>
-          <span className={`whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold ${sentimentClass}`}>
+          <span className={`whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold ${sentimentClass}`}>
             {story.sentiment}
           </span>
         </div>
-        <p className={summaryClasses}>
-          {story.summary}
-        </p>
-        <div className={metaClasses}>
+        <p className="mt-3 text-sm leading-relaxed text-subtle">{story.summary}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted">
           <span>{renderPublishedDate(story.published_at)}</span>
           {story.topic && (
-            <span
-              className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                accent === 'primary'
-                  ? 'bg-primary-500/20 text-primary-100'
-                  : 'bg-primary-500/10 text-primary-600 dark:text-primary-300'
-              }`}
-            >
+            <span className="rounded-full bg-brand-purple/10 px-3 py-1 text-[11px] font-semibold text-brand-purple">
               {story.topic}
             </span>
           )}
@@ -227,10 +198,10 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               href={story.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1 ${accent === 'primary' ? 'text-primary-200' : 'text-primary-600 dark:text-primary-300'} hover:underline`}
+              className="inline-flex items-center gap-1 text-brand-purple hover:underline"
             >
               View detail
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
@@ -238,185 +209,192 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     )
   }
 
+  if (!userId) {
+    return (
+      <OnboardingCard
+        icon={<Newspaper className="w-10 h-10 text-brand-purple" />}
+        title="Finish onboarding"
+        message="Complete the onboarding journey so we can tailor daily news to the shares and ETFs you actually hold."
+        primaryLabel="Start onboarding"
+        onPrimary={() => navigate('/onboarding')}
+        maxWidth="md"
+      />
+    )
+  }
+
+  const nextEarnings = earningsWatch[0]
+
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-6xl mx-auto px-4 space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-brand-ink dark:text-gray-100">Market briefings</h1>
-            <p className="text-sm text-muted dark:text-gray-300">
-              Live headlines from credible publishers over the past seven days, ranked by your benchmark and holdings.
+    <div className="space-y-16">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+              Daily briefing
+            </span>
+            <h1 className="text-4xl font-semibold text-primary-ink">
+              Stay ahead of your holdings, benchmark, and anchor company in one glance.
+            </h1>
+            <p className="text-lg text-subtle">
+              We pull credible South African headlines every morning, prioritise what impacts your strategy, and keep the upcoming earnings diary in view.
             </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Holdings tracked</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{holdingNews.length}</p>
+              </div>
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Headlines in view</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{totalHeadlines}</p>
+              </div>
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Earnings on radar</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{earningsWatch.length}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-primary-ink">Next earnings checkpoint</p>
+              <CalendarDays className="h-5 w-5 text-brand-purple" />
+            </div>
+            {nextEarnings ? (
+              <div className="space-y-2 text-sm text-subtle">
+                <p className="text-base font-semibold text-primary-ink">{nextEarnings.symbol}</p>
+                {nextEarnings.date && (
+                  <p>{new Date(nextEarnings.date).toLocaleDateString('en-ZA', { month: 'long', day: 'numeric' })}</p>
+                )}
+                {nextEarnings.name && <p>{nextEarnings.name}</p>}
+                {typeof nextEarnings.surprise_pct === 'number' && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">
+                    Surprise {nextEarnings.surprise_pct.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-subtle">No immediate earnings flagged. We’ll surface the next call as soon as it lands.</p>
+            )}
             <button
               type="button"
               onClick={fetchNews}
-              className="btn-secondary inline-flex items-center gap-2"
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2"
               disabled={loading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh feed
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Refreshing feed…' : 'Refresh feed'}
             </button>
           </div>
         </div>
+      </section>
 
+      <section className="mx-auto max-w-6xl space-y-12 px-4">
         {error && (
-          <div className="rounded-xl border border-danger-500/40 bg-danger-500/10 px-4 py-3 flex items-center gap-3 text-danger-600 dark:text-danger-300">
-            <AlertCircle className="w-5 h-5" />
+          <div className="flex items-center gap-3 rounded-[24px] border border-brand-coral/40 bg-brand-coral/10 px-4 py-3 text-sm text-brand-coral">
+            <AlertCircle className="h-5 w-5" />
             <span>{error}</span>
           </div>
         )}
 
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-3" />
-              <p className="text-sm text-subtle dark:text-gray-400 dark:text-gray-300">Gathering the latest briefings...</p>
-            </div>
-          </div>
-        )}
-
-        {!loading && !anchorData && !benchmarkData && holdingNews.length === 0 && !error && (
-          <div className="card text-center space-y-3">
-            <Newspaper className="w-10 h-10 text-primary-500 mx-auto" />
-            <p className="text-brand-ink dark:text-gray-300">
-              We&apos;ll start surfacing stories here as soon as your holdings sync with our news desk.
-            </p>
-          </div>
-        )}
-
-        {!loading && anchorData && (
-          <section className="card space-y-4 border-primary-500/30">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold text-brand-ink dark:text-primary-100">
-                  Anchor spotlight · {anchorData.name} ({anchorData.symbol})
-                </h2>
-                <p className="text-xs uppercase tracking-wide text-brand-purple dark:text-primary-300">
-                  Your north star holding – freshest coverage (last 7 days)
-                </p>
-              </div>
-            </header>
-            <div className="space-y-3">
-              {anchorData.news?.length
-                ? anchorData.news.map((story: PortfolioNewsItem) => renderStory(story, 'primary'))
-                : (
-                  <div className="rounded-xl border border-primary-500/20 bg-white text-muted dark:bg-slate-900/40 dark:text-primary-200 px-4 py-4 text-sm">
-                    No major headlines for your anchor stock over the past week. We&apos;ll surface fresh coverage as soon as it lands.
+        {(anchorHeadline || benchmarkHeadline) && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {anchorHeadline && (
+              <div className="space-y-4 rounded-[30px] border border-brand-purple/30 bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(122,63,242,0.5)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.4em] text-brand-purple">Anchor watch</p>
+                    <p className="text-sm text-subtle">{anchorData?.name ?? anchorData?.symbol}</p>
                   </div>
-                )}
-            </div>
-          </section>
-        )}
-
-        {!loading && benchmarkData && benchmarkData.news?.length > 0 && (
-          <section className="card space-y-4 border-primary-500/30">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold text-brand-ink dark:text-primary-100">
-                  Benchmark spotlight · {benchmarkData.name} ({benchmarkData.symbol})
-                </h2>
-                <p className="text-xs uppercase tracking-wide text-brand-purple dark:text-primary-300">
-                  Latest coverage (last 7 days)
-                </p>
-              </div>
-            </header>
-            <div className="space-y-3">
-              {benchmarkData.news.map((story: PortfolioNewsItem) => renderStory(story, 'primary'))}
-            </div>
-          </section>
-        )}
-
-        {!loading && holdingNews.map(({ symbol, name, news }) => (
-          <section key={symbol} className="card space-y-4">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100">
-                  {name} ({symbol})
-                </h2>
-                <p className="text-xs uppercase tracking-wide text-subtle dark:text-brand-ink dark:text-gray-300">
-                  {news.length} headline{news.length > 1 ? 's' : ''} matched to this holding
-                </p>
-              </div>
-            </header>
-            <div className="space-y-4">
-              {news.map((story) => renderStory(story, 'neutral'))}
-            </div>
-          </section>
-        ))}
-
-        {!loading && shouldRenderScheduleCard && (
-          <section className="card space-y-6">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-primary-500" />
-                <div>
-                  <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Upcoming earnings calls</h2>
-                  <p className="text-xs uppercase tracking-wide text-subtle dark:text-brand-ink dark:text-gray-300">Next 60 days · refreshed daily</p>
+                  <Newspaper className="h-5 w-5 text-brand-purple" />
                 </div>
+                {renderStory(anchorHeadline, 'primary')}
               </div>
-            </header>
-            <div className="space-y-6">
-              {scheduleSections.map(({ key, label, helper }) => {
-                const items = earningsSchedule[key] ?? []
-                const isRelevant =
-                  (key === 'anchor' && Boolean(anchorData)) ||
-                  (key === 'benchmark' && Boolean(benchmarkData)) ||
-                  (key === 'portfolio' && holdingGroups.length > 0)
+            )}
+            {benchmarkHeadline && (
+              <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(94,102,135,0.5)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.4em] text-muted">Benchmark pulse</p>
+                    <p className="text-sm text-subtle">{benchmarkData?.name ?? benchmarkData?.symbol}</p>
+                  </div>
+                  <Newspaper className="h-5 w-5 text-muted" />
+                </div>
+                {renderStory(benchmarkHeadline, 'neutral')}
+              </div>
+            )}
+          </div>
+        )}
 
-                if (!isRelevant) {
-                  return null
-                }
-                return (
-                  <div key={key} className="space-y-3">
+        <div className="space-y-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-primary-ink">Holdings in the headlines</h2>
+              <p className="text-subtle">Stories that reference the ETFs and shares you currently track.</p>
+            </div>
+            <span className="rounded-full border border-[#e7e9f3] px-3 py-1 text-xs uppercase tracking-[0.4em] text-muted">
+              Updated hourly
+            </span>
+          </div>
+
+          {holdingNews.length === 0 ? (
+            <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle shadow-[0_28px_90px_-70px_rgba(94,102,135,0.45)]">
+              Your watchlist is quiet. We’ll surface stories as soon as your holdings hit the news cycle.
+            </div>
+          ) : (
+            <div className="grid gap-10">
+              {holdingNews.map((group) => (
+                <section key={group.symbol} className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">{label}</h3>
-                      <p className="text-xs text-subtle dark:text-brand-ink dark:text-gray-300">{helper}</p>
+                      <h3 className="text-xl font-semibold text-primary-ink">{group.name}</h3>
+                      <p className="text-sm text-subtle">{group.symbol}</p>
                     </div>
-                    {items.length > 0 ? (
-                      <ul className="divide-y divide-gray-200/60 dark:divide-gray-700/60">
-                        {items.map((item) => {
-                          const dateDisplay = new Date(item.date).toLocaleString('en-ZA', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                          return (
-                            <li key={`${key}-${item.symbol}-${item.date}`} className="py-3 flex flex-wrap items-center justify-between gap-4 text-sm">
-                              <div>
-                                <p className="font-semibold text-brand-ink dark:text-gray-100">{item.name || item.symbol}</p>
-                                <p className="text-brand-ink dark:text-gray-300">
-                                  {item.symbol} · {dateDisplay}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-3 text-xs text-subtle dark:text-brand-ink dark:text-gray-300">
-                                {typeof item.eps_estimate === 'number' && (
-                                  <span>EPS est: {item.eps_estimate.toFixed(2)}</span>
-                                )}
-                                {typeof item.eps_actual === 'number' && (
-                                  <span>Last EPS: {item.eps_actual.toFixed(2)}</span>
-                                )}
-                                {typeof item.surprise_pct === 'number' && (
-                                  <span
-                                    className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                                      item.surprise_pct >= 0 ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'
-                                    }`}
-                                  >
-                                    Prev surprise {item.surprise_pct.toFixed(1)}%
-                                  </span>
-                                )}
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
+                    <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">
+                      {group.news.length} stories
+                    </span>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {group.news.map((story, index) => renderStory(story, index === 0 ? 'primary' : 'neutral'))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {shouldRenderScheduleCard && (
+          <section className="space-y-6 rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold text-primary-ink">Upcoming earnings checkpoints</h2>
+                <p className="text-subtle">Map the events that could move your holdings over the next two months.</p>
+              </div>
+              <CalendarDays className="h-6 w-6 text-brand-purple" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {scheduleSections.map(({ key, label, helper }) => {
+                const grouped = earningsSchedule[key] ?? []
+                return (
+                  <div key={key} className="space-y-4 rounded-[24px] border border-[#e7e9f3] bg-white px-5 py-5">
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-primary-ink">{label}</p>
+                      <p className="text-xs text-subtle">{helper}</p>
+                    </div>
+                    {grouped.length === 0 ? (
+                      <p className="text-sm text-subtle">{schedulePlaceholders[key]}</p>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-gray-300/70 dark:border-gray-700/70 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-4 text-sm text-brand-ink dark:text-gray-300">
-                        {schedulePlaceholders[key]}
-                      </div>
+                      <ul className="space-y-3 text-sm text-subtle">
+                        {grouped.slice(0, 4).map((item) => (
+                          <li key={`${item.symbol}-${item.date}`} className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
+                            <p className="text-sm font-semibold text-primary-ink">{item.symbol}</p>
+                            {item.date && <p>{new Date(item.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</p>}
+                            {typeof item.surprise_pct === 'number' && (
+                              <span className="inline-flex items-center gap-2 text-xs text-brand-mint">
+                                Surprise {item.surprise_pct.toFixed(1)}%
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 )
@@ -424,57 +402,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
             </div>
           </section>
         )}
-
-        {!loading && !hasGroupedItems && earningsWatch.length > 0 && (
-          <section className="card space-y-4">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-primary-500" />
-                <div>
-                  <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Earnings on the radar</h2>
-                  <p className="text-xs uppercase tracking-wide text-subtle dark:text-brand-ink dark:text-gray-300">Next 60 days</p>
-                </div>
-              </div>
-            </header>
-            <ul className="divide-y divide-gray-200/60 dark:divide-gray-700/60">
-              {earningsWatch.map((item) => {
-                const dateDisplay = new Date(item.date).toLocaleString('en-ZA', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
-                return (
-                  <li key={`${item.symbol}-${item.date}`} className="py-3 flex flex-wrap items-center justify-between gap-4 text-sm">
-                    <div>
-                      <p className="font-semibold text-brand-ink dark:text-gray-100">{item.name || item.symbol}</p>
-                      <p className="text-brand-ink dark:text-gray-300">{item.symbol} · {dateDisplay}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-subtle dark:text-brand-ink dark:text-gray-300">
-                      {typeof item.eps_estimate === 'number' && (
-                        <span>EPS est: {item.eps_estimate.toFixed(2)}</span>
-                      )}
-                      {typeof item.eps_actual === 'number' && (
-                        <span>Last EPS: {item.eps_actual.toFixed(2)}</span>
-                      )}
-                      {typeof item.surprise_pct === 'number' && (
-                        <span
-                          className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                            item.surprise_pct >= 0 ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'
-                          }`}
-                        >
-                          Prev surprise {item.surprise_pct.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        )}
-      </div>
+      </section>
     </div>
   )
 }

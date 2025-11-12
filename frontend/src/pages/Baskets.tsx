@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { PieChart, TrendingUp, Users, CheckCircle, ArrowRight } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 import { Doughnut } from 'react-chartjs-2'
-import { useTheme } from '../theme/ThemeProvider'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,7 +40,6 @@ interface Basket {
 }
 
 const Baskets: React.FC<BasketsProps> = ({ userId }) => {
-  const { theme } = useTheme()
   const navigate = useNavigate()
   const [baskets, setBaskets] = useState<Basket[]>([])
   const [loading, setLoading] = useState(true)
@@ -135,9 +133,8 @@ const Baskets: React.FC<BasketsProps> = ({ userId }) => {
       ],
     }
 
-    const isDark = theme === 'dark'
-    const legendColor = isDark ? '#dfe6ee' : '#2a2a2a'
-    const tooltipBg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(42,42,42,0.9)'
+    const legendColor = '#2a2a2a'
+    const tooltipBg = 'rgba(42,42,42,0.9)'
 
     const options = {
       responsive: true,

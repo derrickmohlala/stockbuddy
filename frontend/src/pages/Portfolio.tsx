@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Coins, BarChart3, PiggyBank, ArrowRightLeft, AlertTriangle, ShieldAlert, Info, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
-import { useTheme } from '../theme/ThemeProvider'
 import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
 import {
@@ -144,8 +143,8 @@ const MONTH_NAMES = [
 ]
 
 const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
+  const isDark = false
+  const isDarkMode = false
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [scenarioData, setScenarioData] = useState<any>(null)
@@ -1499,16 +1498,17 @@ const handleResetScenario = async () => {
   if (!portfolio) {
     return (
       <OnboardingCard
+        icon={<BarChart3 className="w-10 h-10 text-primary-500" />}
         title="Complete onboarding"
-        message="Finish the guided onboarding so we can generate your first portfolio and keep everything in sync."
+        message="Finish onboarding to generate your first plan and unlock the portfolio workspace."
         primaryLabel="Start onboarding"
         onPrimary={() => navigate('/onboarding')}
-        secondaryLabel="Browse baskets"
-        onSecondary={() => navigate('/baskets')}
-        maxWidth="lg"
+        maxWidth="md"
       />
     )
   }
+
+  const investorName = portfolio.first_name ?? 'Investor'
 
   const chartLabels = chartSeries.map((point: any) =>
     new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
@@ -1650,7 +1650,6 @@ const handleResetScenario = async () => {
     ? ((inflationAdjust && performanceData.total_return_real !== null ? performanceData.total_return_real : performanceData.total_return) / Math.max(performanceData.total_invested || 1, 1)) * 100
     : 0
 
-  const isDarkMode = theme === 'dark'
   const axisColor = isDarkMode ? '#dfe6ee' : '#2a2a2a'
   const gridColor = isDarkMode ? 'rgba(223,230,238,0.08)' : 'rgba(0,0,0,0.05)'
   const tooltipBg = isDarkMode ? 'rgba(15,23,42,0.92)' : 'rgba(42,42,42,0.9)'
@@ -1747,29 +1746,63 @@ const handleResetScenario = async () => {
     }
   }
 
+  const displayedTotalValue = metrics ? metrics.totalValue : portfolio.total_value
+  const displayedTotalReturn = metrics ? metrics.totalReturn : portfolio.total_pnl
+  const displayedTotalReturnPct = metrics ? metrics.totalReturnPct : portfolio.total_pnl_pct
+
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-brand-ink dark:text-gray-100">
-              Welcome
+    <div className="space-y-16">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+          <div className="space-y-6">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+              Portfolio control room
+            </span>
+            <h1 className="text-4xl font-semibold text-primary-ink">
+              {investorName}, here is your {portfolio.archetype} strategy at a glance.
             </h1>
-            <p className="text-muted dark:text-gray-300">
-              {portfolio.archetype} plan • {investmentModeLabel} • {timeframeLabel}
+            <p className="text-lg text-subtle">
+              {portfolio.plan_summary || 'Track progress, contributions, and inflation headroom without wrestling spreadsheets.'}
             </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Total value</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalValue)}</p>
+              </div>
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Total return</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalReturn)}</p>
+                <p className="text-sm text-brand-mint">{formatPercentage(displayedTotalReturnPct)}</p>
+              </div>
+              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted">Weighted yield</p>
+                <p className="mt-2 text-2xl font-semibold text-primary-ink">{portfolioWeightedYield !== null ? `${portfolioWeightedYield.toFixed(2)}%` : '--'}</p>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleAdjustPreferences}
-              className="btn-secondary whitespace-nowrap"
-            >
-              Adjust preferences
-            </button>
+          <div className="space-y-5 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-primary-ink">Plan quick actions</p>
+              <PiggyBank className="h-5 w-5 text-brand-purple" />
+            </div>
+            <p className="text-sm text-subtle">Adjust your archetype inputs, rebuild sleeves, or revisit onboarding if your goals have shifted.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={handleAdjustPreferences} className="btn-cta inline-flex items-center justify-center gap-2">
+                Adjust preferences
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/news')}
+                className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-4 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+              >
+                View daily briefing
+              </button>
+            </div>
           </div>
         </div>
+      </section>
 
+      <div className="max-w-7xl mx-auto px-4 space-y-12">
         {sortedAlerts.length > 0 && (
           <div className="mb-8 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">

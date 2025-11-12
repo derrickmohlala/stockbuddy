@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Sun, Moon } from 'lucide-react'
-import { useTheme } from '../theme/ThemeProvider'
+import { Menu, X } from 'lucide-react'
+
+type NavLinkRender = { isActive: boolean }
 
 interface NavBarProps {
   isOnboarded: boolean
@@ -14,12 +15,11 @@ const navItems = [
   { label: 'Terminology', to: '/terminology' },
   { label: 'Portfolio', to: '/portfolio' },
   { label: 'News', to: '/news' },
-  { label: 'Health', to: '/health' },
+  { label: 'Health', to: '/health' }
 ]
 
 const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const handleStart = () => {
@@ -27,85 +27,65 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
     setMenuOpen(false)
   }
 
-  const renderLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 text-sm font-medium tracking-wide transition-colors ${
-      isActive
-        ? 'text-brand-purple dark:text-white'
-        : 'text-muted hover:text-brand-coral dark:text-white/70 dark:hover:text-white'
+  const renderLinkClass = ({ isActive }: NavLinkRender) =>
+    `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+      isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
     }`
 
   return (
-    <header className="sticky top-0 z-40">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="mt-4 flex h-16 items-center gap-4 rounded-full border border-white/20 bg-white/85 px-4 shadow-[0_18px_38px_rgba(31,38,68,0.18)] backdrop-blur-xl dark:border-white/15 dark:bg-surface-contrast/90">
-          <NavLink to="/" aria-label="StockBuddy home" className="flex-shrink-0">
-            <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-8 w-auto" loading="lazy" />
-          </NavLink>
-          <div className="hidden flex-1 justify-center md:flex">
-            <nav className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/60 px-4 py-2 backdrop-blur-md dark:border-white/15 dark:bg-white/10">
-              {navItems.map((item) => (
-                <NavLink key={item.to} to={item.to} className={renderLinkClass}>
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md">
+      <div className="border-b border-[#e7e9f3]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <NavLink to="/" aria-label="StockBuddy home" className="flex items-center gap-2">
+              <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-9 w-auto" loading="lazy" />
+            </NavLink>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-sm font-semibold text-primary-ink">StockBuddy</span>
+              <span className="text-xs uppercase tracking-[0.4em] text-muted">Investing studio</span>
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+
+          <nav className="hidden items-center gap-2 md:flex">
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} className={renderLinkClass}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
             <button
-              onClick={toggleTheme}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/80 text-brand-purple transition hover:border-brand-purple hover:text-brand-purple dark:border-white/20 dark:bg-white/10 dark:text-brand-gold"
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              onClick={handleStart}
+              className="btn-cta hidden whitespace-nowrap md:inline-flex"
             >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-            <button onClick={handleStart} className="btn-cta hidden whitespace-nowrap md:inline-flex">
               {isOnboarded ? 'View portfolio' : 'Get started'}
             </button>
             <button
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/35 text-brand-purple transition hover:border-brand-purple md:hidden dark:border-white/20 dark:text-white"
+              className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] p-2 text-primary-ink transition hover:border-brand-coral hover:text-brand-coral md:hidden"
               onClick={() => setMenuOpen((prev) => !prev)}
               aria-label="Toggle navigation"
             >
-              <span className="block h-0.5 w-5 bg-current" />
-              <span className="block h-0.5 w-5 bg-current" />
-              <span className="block h-0.5 w-5 bg-current" />
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
       </div>
+
       {menuOpen && (
-        <div className="mx-4 mt-3 rounded-3xl border border-white/30 bg-white/90 p-4 shadow-pop backdrop-blur-xl dark:border-white/15 dark:bg-surface-contrast/90 md:hidden">
-          <nav className="flex flex-col gap-2">
+        <div className="border-b border-[#e7e9f3] bg-white/95">
+          <nav className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-sm">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={renderLinkClass}
+                className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label}
               </NavLink>
             ))}
-            <button
-              onClick={toggleTheme}
-              className="btn-secondary mt-2 inline-flex items-center justify-center gap-2"
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="h-4 w-4" />
-                  Light mode
-                </>
-              ) : (
-                <>
-                  <Moon className="h-4 w-4" />
-                  Dark mode
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleStart}
-              className="btn-cta mt-4 w-full"
-            >
+            <button onClick={handleStart} className="btn-cta mt-2 w-full">
               {isOnboarded ? 'View portfolio' : 'Get started'}
             </button>
           </nav>

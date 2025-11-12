@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, Star, Info } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
-import { useTheme } from '../theme/ThemeProvider'
 import { apiFetch } from '../lib/api'
 import {
   Chart as ChartJS,
@@ -42,7 +41,6 @@ interface Instrument {
 }
 
 const Discover: React.FC = () => {
-  const { theme } = useTheme()
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [filteredInstruments, setFilteredInstruments] = useState<Instrument[]>([])
@@ -164,16 +162,13 @@ const Discover: React.FC = () => {
       ],
     }
 
-    const isDark = theme === 'dark'
-    const tooltipBg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(42,42,42,0.9)'
-
     const options = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: tooltipBg,
+          backgroundColor: 'rgba(42,42,42,0.9)',
           borderColor: 'transparent',
           borderWidth: 0,
           callbacks: {
@@ -225,117 +220,143 @@ const Discover: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-center space-y-4">
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="space-y-4 text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-purple border-t-transparent"></div>
-          <p className="text-muted">Loading instruments...</p>
+          <p className="text-subtle">Loading instruments...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <>
-      <section className="section-surface space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold">Discover instruments</h1>
-          <p className="text-subtle">
-            Explore JSE ETFs, shares, and REITs for your portfolio.
-          </p>
-        </header>
+    <div className="space-y-16">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_120px_-70px_rgba(94,102,135,0.5)]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
+          <div className="space-y-5">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+              Instrument radar
+            </span>
+            <h1 className="text-4xl font-semibold text-primary-ink">
+              Scan the JSE landscape with filters built for South Africans.
+            </h1>
+            <p className="text-lg text-subtle">
+              Slice by ETF, share, or REIT, compare dividend yields, track TERs, and jump straight into a simulated trade.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.4em] text-muted">
+              <span>Live price snapshots</span>
+              <span>Yield &amp; TER visibility</span>
+              <span>Portfolio-ready insights</span>
+            </div>
+          </div>
+          <div className="space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-primary-ink">Market mood board</p>
+              <span className="text-xs text-muted">Auto curated</span>
+            </div>
+            <div className="grid gap-4 text-sm text-subtle">
+              <div className="flex items-center justify-between">
+                <span>Top dividend move today</span>
+                <span className="rounded-full bg-brand-gold/15 px-3 py-1 text-xs font-semibold text-brand-gold">+4.1%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Largest ETF inflow (week)</span>
+                <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">Satrix 40</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Watchlist sentiment</span>
+                <span className="rounded-full bg-brand-coral/10 px-3 py-1 text-xs font-semibold text-brand-coral">Cautiously bullish</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <div className="surface-card p-6 space-y-5">
+      <section className="mx-auto max-w-6xl space-y-12 px-4">
+        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-6 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
           <div className="flex flex-col gap-4 lg:flex-row">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
                 <input
                   type="text"
-                  placeholder="Search instruments..."
+                  placeholder="Search instruments or tickers"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10"
+                  className="w-full rounded-full border border-[#e7e9f3] bg-white px-12 py-3 text-sm text-primary-ink shadow-[0_12px_30px_-20px_rgba(94,102,135,0.45)] focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
                 />
               </div>
             </div>
-            <div className="lg:w-48">
+            <div className="grid gap-3 sm:grid-cols-2 lg:w-[340px]">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="input-field"
+                className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               >
-                <option value="name">Sort by Name</option>
-                <option value="price">Sort by Price</option>
-                <option value="yield">Sort by Yield</option>
-                <option value="sector">Sort by Sector</option>
+                <option value="name">Sort by name</option>
+                <option value="price">Sort by price</option>
+                <option value="yield">Sort by dividend yield</option>
+                <option value="sector">Sort by sector</option>
               </select>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e7e9f3] px-4 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+              >
+                <Filter className="h-4 w-4" />
+                {showFilters ? 'Hide filters' : 'Advanced filters'}
+              </button>
             </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="btn-secondary justify-center"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filters</span>
-            </button>
           </div>
 
           {showFilters && (
-            <div className="border-t border-soft pt-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm font-medium text-subtle">
-                  Sector
-                  <select
-                    value={selectedSector}
-                    onChange={(e) => setSelectedSector(e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">All sectors</option>
-                    {getSectors().map(sector => (
-                      <option key={sector} value={sector}>{sector}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
+            <div className="mt-6 grid gap-4 border-t border-[#e7e9f3] pt-6 md:grid-cols-2">
+              <label className="flex flex-col gap-2 text-sm font-semibold text-primary-ink">
+                Sector
+                <select
+                  value={selectedSector}
+                  onChange={(e) => setSelectedSector(e.target.value)}
+                  className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+                >
+                  <option value="">All sectors</option>
+                  {getSectors().map(sector => (
+                    <option key={sector} value={sector}>{sector}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           )}
         </div>
 
-        <div className="surface-card p-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[
-              { key: 'all', label: 'All', count: instruments.length },
-              { key: 'etf', label: 'ETFs', count: instruments.filter(i => i.type === 'etf').length },
-              { key: 'share', label: 'Shares', count: instruments.filter(i => i.type === 'share').length },
-              { key: 'reit', label: 'REITs', count: instruments.filter(i => i.type === 'reit').length },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                  activeTab === tab.key
-                    ? 'border-brand-purple/40 bg-brand-purple/10 text-primary-ink dark:text-tone-primary shadow-card'
-                    : 'border-soft bg-white/60 text-muted hover:text-primary-ink dark:bg-white/5'
-                }`}
-              >
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { key: 'all', label: 'All', count: instruments.length },
+            { key: 'etf', label: 'ETFs', count: instruments.filter(i => i.type === 'etf').length },
+            { key: 'share', label: 'Shares', count: instruments.filter(i => i.type === 'share').length },
+            { key: 'reit', label: 'REITs', count: instruments.filter(i => i.type === 'reit').length },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                activeTab === tab.key
+                  ? 'border-brand-coral bg-brand-coral text-white shadow-[0_15px_30px_-20px_rgba(233,75,75,0.6)]'
+                  : 'border-[#e7e9f3] bg-white text-muted hover:border-brand-coral/40 hover:text-brand-coral'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredInstruments.map(instrument => (
-            <div key={instrument.id} className="card">
+            <div key={instrument.id} className="rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(94,102,135,0.5)] transition hover:-translate-y-1">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getTypeIcon(instrument.type)}</span>
                   <div>
-                    <h3 className="font-semibold text-primary-ink dark:text-tone-primary">
-                      {instrument.symbol}
-                    </h3>
-                    <p className="text-sm text-subtle">
-                      {instrument.name}
-                    </p>
+                    <h3 className="text-base font-semibold text-primary-ink">{instrument.symbol}</h3>
+                    <p className="text-sm text-subtle">{instrument.name}</p>
                   </div>
                 </div>
                 <button
@@ -353,10 +374,10 @@ const Discover: React.FC = () => {
 
               <div className="mb-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary-ink dark:text-tone-primary">
+                  <span className="text-2xl font-semibold text-primary-ink">
                     {instrument.latest_price ? formatCurrency(instrument.latest_price) : 'N/A'}
                   </span>
-                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${getTypeColor(instrument.type)}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getTypeColor(instrument.type)}`}>
                     {instrument.type.toUpperCase()}
                   </span>
                 </div>
@@ -371,17 +392,17 @@ const Discover: React.FC = () => {
                 {renderMiniChart(instrument)}
               </div>
 
-              <div className="mb-4 grid grid-cols-2 gap-4">
+              <div className="mb-4 grid grid-cols-2 gap-4 text-sm text-subtle">
                 <div>
-                  <p className="text-sm text-subtle">Dividend yield</p>
-                  <p className="font-semibold text-primary-ink dark:text-tone-primary">
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted">Dividend yield</p>
+                  <p className="mt-1 text-base font-semibold text-primary-ink">
                     {instrument.dividend_yield.toFixed(1)}%
                   </p>
                 </div>
                 {instrument.ter > 0 && (
                   <div>
-                    <p className="text-sm text-subtle">TER</p>
-                    <p className="font-semibold text-primary-ink dark:text-tone-primary">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">TER</p>
+                    <p className="mt-1 text-base font-semibold text-primary-ink">
                       {instrument.ter.toFixed(2)}%
                     </p>
                   </div>
@@ -395,7 +416,7 @@ const Discover: React.FC = () => {
                 >
                   Trade
                 </button>
-                <button className="btn-secondary px-3 py-2 text-sm">
+                <button className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-3 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral">
                   <Info className="h-4 w-4" />
                 </button>
               </div>
@@ -404,14 +425,12 @@ const Discover: React.FC = () => {
         </div>
 
         {filteredInstruments.length === 0 && (
-          <div className="rounded-2xl border border-soft bg-white/60 p-10 text-center dark:bg-white/5">
-            <p className="text-subtle">
-              No instruments found matching your criteria.
-            </p>
+          <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-12 text-center shadow-[0_28px_90px_-70px_rgba(94,102,135,0.45)]">
+            <p className="text-subtle">No instruments found matching your criteria.</p>
           </div>
         )}
       </section>
-    </>
+    </div>
   )
 }
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, TrendingDown, Calculator, AlertCircle } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
-import { useTheme } from '../theme/ThemeProvider'
 import { apiFetch } from '../lib/api'
 import {
   Chart as ChartJS,
@@ -46,7 +45,6 @@ interface Instrument {
 }
 
 const Trade: React.FC<TradeProps> = ({ userId }) => {
-  const { theme } = useTheme()
   const { symbol } = useParams<{ symbol: string }>()
   const navigate = useNavigate()
   const [instrument, setInstrument] = useState<Instrument | null>(null)
@@ -166,10 +164,9 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
       ],
     }
 
-    const isDark = theme === 'dark'
-    const axisColor = isDark ? '#dfe6ee' : '#2a2a2a'
-    const gridColor = isDark ? 'rgba(223,230,238,0.08)' : 'rgba(0,0,0,0.05)'
-    const tooltipBg = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(42,42,42,0.9)'
+    const axisColor = '#2a2a2a'
+    const gridColor = 'rgba(0,0,0,0.05)'
+    const tooltipBg = 'rgba(42,42,42,0.9)'
 
     const options = {
       responsive: true,

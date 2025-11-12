@@ -506,9 +506,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan controls</p>
-            <h2 className="text-xl font-semibold text-primary-ink dark:text-tone-primary">Tune your north star</h2>
+            <h2 className="text-xl font-semibold text-primary-ink">Tune your north star</h2>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-soft bg-white/70 px-3 py-1 text-xs text-subtle dark:bg-white/10 dark:text-tone-secondary">
+          <span className="inline-flex items-center gap-2 rounded-full border border-soft bg-white/70 px-3 py-1 text-xs text-subtle">
             <Sparkles className="h-4 w-4 text-brand-purple" /> Live preview
           </span>
         </div>
@@ -574,8 +574,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         )}
 
         {goalType === 'balanced' && (
-          <div className="surface-card space-y-4 bg-white/75 p-5 dark:bg-white/5">
-            <p className="text-sm font-semibold text-primary-ink dark:text-tone-primary">Inflation guardrail</p>
+          <div className="surface-card space-y-4 bg-white/75 p-5">
+            <p className="text-sm font-semibold text-primary-ink">Inflation guardrail</p>
             <div className="flex flex-wrap items-center gap-4 text-sm text-subtle">
               <label className="inline-flex items-center gap-2">
                 <input
@@ -664,7 +664,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             )}
           </button>
         </div>
-        {error && <p className="text-sm text-danger-500 dark:text-danger-300">{error}</p>}
+        {error && <p className="text-sm text-danger-500">{error}</p>}
       </div>
     )
   }
@@ -674,13 +674,13 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       <section className="section-hero space-y-8">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
-            <span className="badge bg-white/80 dark:bg-white/15">{heroContent.badge}</span>
+            <span className="badge bg-white/80">{heroContent.badge}</span>
             <div className="flex items-start gap-4">
               <div className="surface-glass inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-card">
                 {heroContent.icon}
               </div>
               <div className="space-y-2">
-                <p className="text-2xl font-semibold text-primary-ink dark:text-tone-primary">{heroContent.title}</p>
+                <p className="text-2xl font-semibold text-primary-ink">{heroContent.title}</p>
                 <p className="text-lg font-medium text-subtle">{heroContent.primary}</p>
               </div>
             </div>
@@ -701,9 +701,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 accent={heroContent.accent}
               />
             )}
-            <div className="w-full rounded-2xl border border-soft bg-white/70 px-4 py-3 text-sm text-subtle shadow-card dark:bg-white/10">
+            <div className="w-full rounded-2xl border border-soft bg-white/70 px-4 py-3 text-sm text-subtle shadow-card">
               <p className="text-xs uppercase tracking-[0.3em] text-muted">Term length</p>
-              <p className="text-xl font-semibold text-primary-ink dark:text-tone-primary">{termYears} year(s)</p>
+              <p className="text-xl font-semibold text-primary-ink">{termYears} year(s)</p>
             </div>
           </div>
         </div>
@@ -712,7 +712,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       {highlightCards.length > 0 && (
         <section className="section-surface space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-2xl font-semibold text-primary-ink dark:text-tone-primary">Plan checkpoints</h2>
+            <h2 className="text-2xl font-semibold text-primary-ink">Plan checkpoints</h2>
             <span className="text-xs uppercase tracking-[0.3em] text-muted">Live metrics</span>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -738,7 +738,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               </p>
             </div>
           )}
-          {error && <p className="text-sm text-danger-500 dark:text-danger-300">{error}</p>}
+          {error && <p className="text-sm text-danger-500">{error}</p>}
         </div>
       </section>
     </>
@@ -756,8 +756,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status })
   <div className="surface-card relative overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-pop">
     <div className="pointer-events-none absolute -right-12 top-0 h-28 w-28 rounded-full bg-brand-purple/10 blur-3xl opacity-70"></div>
     <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
-    <p className="mt-3 text-2xl font-semibold text-primary-ink dark:text-tone-primary">{value}</p>
-    {status && <p className="mt-1 text-xs font-semibold text-brand-purple dark:text-brand-gold">Status: {status}</p>}
+    <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
+    {status && <p className="mt-1 text-xs font-semibold text-brand-purple">Status: {status}</p>}
     {helper && <p className="mt-3 text-xs text-subtle">{helper}</p>}
   </div>
 )
@@ -775,11 +775,11 @@ const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan'
   return (
     <div className="relative flex flex-col items-center">
       <div className={`absolute inset-0 h-36 w-36 rounded-full ${palette.glow} opacity-40 blur-3xl`}></div>
-      <div className="relative mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-soft bg-white/80 p-1 shadow-card dark:bg-white/10">
+      <div className="relative mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-soft bg-white/80 p-1 shadow-card">
         <div className="relative h-full w-full rounded-full border border-soft" style={{ background: gradient }}>
-          <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white/95 text-center dark:bg-surface-contrast">
-            <p className="text-3xl font-semibold text-primary-ink dark:text-tone-primary">{clamped.toFixed(0)}%</p>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-muted dark:text-tone-secondary">{label}</p>
+          <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white/95 text-center">
+            <p className="text-3xl font-semibold text-primary-ink">{clamped.toFixed(0)}%</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
           </div>
         </div>
       </div>
@@ -814,8 +814,8 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick,
       onClick={onClick}
       className={`group relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-2xl border px-4 py-4 text-left transition-all duration-200 ${
         active
-          ? `${accent.border} ${accent.background} text-white shadow-pop`
-          : 'border-soft bg-white/70 text-subtle hover:-translate-y-0.5 hover:border-brand-purple/30 dark:bg-white/5 dark:text-tone-secondary'
+          ? `${accent.border} ${accent.background} text-primary-ink shadow-pop`
+          : 'border-soft bg-white/70 text-subtle hover:-translate-y-0.5 hover:border-brand-purple/30'
       }`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -824,7 +824,7 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick,
       <span className="flex items-center gap-2 text-sm font-semibold">
         {iconElement || icon} {label}
       </span>
-      <span className="text-xs text-subtle group-hover:text-primary-ink dark:group-hover:text-white">{helper}</span>
+      <span className="text-xs text-subtle group-hover:text-primary-ink">{helper}</span>
     </button>
   )
 }
@@ -850,13 +850,13 @@ interface PlanSectionHeaderProps {
 const PlanSectionHeader: React.FC<PlanSectionHeaderProps> = ({ title, subtitle }) => (
   <div className="space-y-2">
     <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan intel</p>
-    <h3 className="text-xl font-semibold text-primary-ink dark:text-tone-primary">{title}</h3>
+    <h3 className="text-xl font-semibold text-primary-ink">{title}</h3>
     {subtitle && <p className="text-sm text-subtle">{subtitle}</p>}
   </div>
 )
 
 const PlanCallout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-2xl border border-brand-purple/25 bg-brand-purple/10 p-4 text-sm text-primary-ink shadow-inner shadow-brand-purple/20 dark:border-brand-purple/40 dark:bg-brand-purple/20 dark:text-tone-primary">
+  <div className="rounded-2xl border border-brand-purple/25 bg-brand-purple/10 p-4 text-sm text-primary-ink shadow-inner shadow-brand-purple/20">
     {children}
   </div>
 )
@@ -928,15 +928,15 @@ const HighlightCard: React.FC<HighlightCardProps> = ({ label, value, helper, ico
     })
   return (
     <div
-      className={`surface-card relative overflow-hidden border ${accent.border} bg-white/80 p-5 shadow-card transition hover:-translate-y-1 hover:shadow-pop dark:bg-white/10`}
+      className={`surface-card relative overflow-hidden border ${accent.border} bg-white/80 p-5 shadow-card transition hover:-translate-y-1 hover:shadow-pop`}
     >
       <div className={`pointer-events-none absolute -right-14 top-0 h-32 w-32 rounded-full ${accent.glow} blur-3xl opacity-60`}></div>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
-          <p className="mt-3 text-2xl font-semibold text-primary-ink dark:text-tone-primary">{value}</p>
+          <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white/70 dark:bg-white/5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white/70">
           {iconElement || icon}
         </div>
       </div>
