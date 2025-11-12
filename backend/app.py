@@ -501,6 +501,136 @@ def get_portfolio(user_id):
         "current_annual_dividends": round(current_annual_dividends, 2) if current_annual_dividends is not None else None
     })
 
+
+@app.route("/api/health/plan", methods=["POST"])
+def generate_health_plan():
+    data = request.json or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    baseline = aggregate_portfolio_state(user_id)
+    if baseline is None:
+        return jsonify({"error": "User not found"}), 404
+
+    total_value = baseline.get("total_value") or 0.0
+    weighted_yield_pct = baseline.get("weighted_yield_pct") or 0.0
+
+    term_years = data.get('term_years') or 5
+    try:
+        term_years = max(1, float(term_years))
+    except (TypeError, ValueError):
+        term_years = 5.0
+
+    annual_return_pct = derive_return_assumption(user_id, total_value, term_years)
+
+    goal_type = (data.get('goal_type') or 'growth').lower()
+
+    if goal_type == 'growth':
+        target_value = data.get('target_value')
+        if target_value is None:
+            target_value = max(total_value * 1.5, total_value + 50000)
+        try:
+            target_value = float(target_value)
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid target_value"}), 400
+        monthly_budget = data.get('monthly_budget')
+        try:
+            monthly_budget = float(monthly_budget)
+        except (TypeError, ValueError):
+            monthly_budget = None
+
+        progress_pct = (total_value / target_value * 100) if target_value > 0 else 0
+        monthly_required = solve_monthly_contribution(target_value, total_value, annual_return_pct, term_years)
+        lump_sum_gap = max(target_value - total_value, 0.0)
+        timeline_months = solve_timeline_for_budget(monthly_budget, target_value, total_value, annual_return_pct) if monthly_budget else None
+        plan = {
+            "goal_type": "growth",
+            "term_years": term_years,
+            "current_value": round(total_value, 2),
+            "target_value": round(target_value, 2),
+            "progress_pct": round(progress_pct, 2),
+            "annual_return_pct": round(annual_return_pct, 2),
+            "required_monthly_contribution": round(monthly_required, 2),
+            "lump_sum_gap": round(lump_sum_gap, 2),
+            "monthly_budget": round(monthly_budget, 2) if monthly_budget else None,
+            "timeline_for_budget_months": round(timeline_months, 1) if timeline_months is not None else None,
+            "message": "Add contributions or a top-up to reach your growth target." if lump_sum_gap > 0 else "Your growth target is already met."
+        }
+        return jsonify(plan)
+
+    if goal_type == 'balanced':
+        inflation_mode = (data.get('inflation_target_type') or 'sarb').lower()
+        if inflation_mode == 'custom':
+            try:
+                inflation_target_pct = float(data.get('inflation_target_pct'))
+            except (TypeError, ValueError):
+                inflation_target_pct = 6.0
+        else:
+            inflation_target_pct = 6.0
+        real_return_pct = annual_return_pct - inflation_target_pct
+        status = 'ahead' if real_return_pct >= 0 else 'lagging'
+        message = (
+            f"You are beating inflation by {real_return_pct:.1f} pts." if status == 'ahead' else
+            f"Portfolio return trails inflation by {abs(real_return_pct):.1f} pts. Boost contributions or tilt to higher-growth sleeves."
+        )
+        plan = {
+            "goal_type": "balanced",
+            "term_years": term_years,
+            "inflation_target_pct": round(inflation_target_pct, 2),
+            "nominal_return_pct": round(annual_return_pct, 2),
+            "real_return_pct": round(real_return_pct, 2),
+            "current_value": round(total_value, 2),
+            "status": status,
+            "message": message
+        }
+        return jsonify(plan)
+
+    # Income goal (default)
+    income_goal_amount = data.get('income_goal_amount')
+    if income_goal_amount is None:
+        income_goal_amount = 12000.0
+    try:
+        income_goal_amount = float(income_goal_amount)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid income_goal_amount"}), 400
+
+    income_frequency = (data.get('income_frequency') or 'monthly').lower()
+    if income_frequency not in {'monthly', 'annual'}:
+        income_frequency = 'monthly'
+
+    monthly_budget = data.get('monthly_budget')
+    try:
+        monthly_budget = float(monthly_budget)
+    except (TypeError, ValueError):
+        monthly_budget = None
+
+    effective_yield = max(weighted_yield_pct, 0.5)
+    current_annual_income = total_value * (effective_yield / 100.0)
+    current_monthly_income = current_annual_income / 12.0
+    target_annual_income = income_goal_amount * 12 if income_frequency == 'monthly' else income_goal_amount
+    target_monthly_income = target_annual_income / 12.0
+    target_capital = target_annual_income / (effective_yield / 100.0)
+    monthly_required = solve_monthly_contribution(target_capital, total_value, annual_return_pct, term_years)
+    lump_sum_gap = max(target_capital - total_value, 0.0)
+    timeline_months = solve_timeline_for_budget(monthly_budget, target_capital, total_value, annual_return_pct) if monthly_budget else None
+
+    plan = {
+        "goal_type": "income",
+        "term_years": term_years,
+        "current_monthly_income": round(current_monthly_income, 2),
+        "current_annual_income": round(current_annual_income, 2),
+        "target_monthly_income": round(target_monthly_income, 2),
+        "target_annual_income": round(target_annual_income, 2),
+        "dividend_yield_pct": round(effective_yield, 2),
+        "required_monthly_contribution": round(monthly_required, 2),
+        "lump_sum_gap": round(lump_sum_gap, 2),
+        "monthly_budget": round(monthly_budget, 2) if monthly_budget else None,
+        "timeline_for_budget_months": round(timeline_months, 1) if timeline_months is not None else None,
+        "message": "Scale contributions or increase yield to reach your income goal." if target_annual_income > current_annual_income else "Your income goal is already covered."
+    }
+    return jsonify(plan)
+
 # Baskets endpoint
 @app.route("/api/baskets")
 def get_baskets():
@@ -1415,6 +1545,115 @@ def calculate_weighted_dividend_yield(user_id):
     if total_value <= 0:
         return 3.5
     return weighted_yield / total_value
+
+
+def aggregate_portfolio_state(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return None
+
+    positions = UserPosition.query.filter_by(user_id=user_id).all()
+    if not positions:
+        return {
+            "user": user,
+            "positions": [],
+            "total_value": 0.0,
+            "total_cost": 0.0,
+            "weighted_yield_pct": calculate_weighted_dividend_yield(user_id)
+        }
+
+    holdings = []
+    total_value = 0.0
+    total_cost = 0.0
+    for position in positions:
+        instrument = Instrument.query.filter_by(symbol=position.symbol).first()
+        if not instrument:
+            continue
+        latest_price = Price.query.filter_by(instrument_id=instrument.id).order_by(Price.date.desc()).first()
+        if not latest_price:
+            continue
+        current_value = position.quantity * latest_price.close
+        cost_basis = position.quantity * position.avg_price
+        total_value += current_value
+        total_cost += cost_basis
+        holdings.append({
+            "symbol": position.symbol,
+            "name": instrument.name,
+            "quantity": position.quantity,
+            "current_price": latest_price.close,
+            "current_value": current_value
+        })
+
+    return {
+        "user": user,
+        "positions": holdings,
+        "total_value": total_value,
+        "total_cost": total_cost,
+        "weighted_yield_pct": calculate_weighted_dividend_yield(user_id)
+    }
+
+
+def derive_return_assumption(user_id, total_value, term_years):
+    months = max(int(term_years * 12), 12)
+    start_date = date.today() - relativedelta(months=months - 1)
+    simulation = run_performance_simulation(
+        user_id=user_id,
+        months=months,
+        start_date=start_date,
+        investment_mode='lump_sum',
+        initial_investment=max(total_value, 1.0),
+        monthly_contribution=0.0,
+        timeframe_key='custom',
+        benchmark_symbol=None,
+        inflation_adjust=False,
+        distribution_policy='reinvest',
+        contribution_frequency='monthly',
+        annual_month=None
+    )
+    annual_return = simulation.get('annual_return') if isinstance(simulation, dict) else None
+    if annual_return is None:
+        return 8.0
+    return annual_return
+
+
+def solve_monthly_contribution(target_value, current_value, annual_return_pct, term_years):
+    if target_value <= 0:
+        return 0.0
+    if current_value >= target_value:
+        return 0.0
+    months = max(int(term_years * 12), 1)
+    rate = max(annual_return_pct / 100.0, 0.0)
+    monthly_rate = math.pow(1 + rate, 1 / 12) - 1 if rate > 0 else 0.0
+    if monthly_rate <= 0:
+        return max((target_value - current_value) / months, 0.0)
+    factor = math.pow(1 + monthly_rate, months)
+    numerator = target_value - current_value * factor
+    if numerator <= 0:
+        return 0.0
+    denominator = factor - 1
+    if denominator == 0:
+        return 0.0
+    payment = (numerator * monthly_rate) / denominator
+    return max(payment, 0.0)
+
+
+def solve_timeline_for_budget(budget, target_value, current_value, annual_return_pct):
+    budget = max(budget, 0.0)
+    if budget <= 0:
+        return None
+    if current_value >= target_value:
+        return 0.0
+    rate = max(annual_return_pct / 100.0, 0.0)
+    monthly_rate = math.pow(1 + rate, 1 / 12) - 1 if rate > 0 else 0.0
+    if monthly_rate <= 0:
+        months = (target_value - current_value) / budget
+        return max(months, 0.0)
+    numerator = budget + monthly_rate * target_value
+    denominator = budget + monthly_rate * current_value
+    if denominator <= 0 or numerator <= denominator:
+        return None
+    months = math.log(numerator / denominator, 1 + monthly_rate)
+    return max(months, 0.0)
 
 
 def resolve_target_weight(replacement_symbol, candidate_weight, sleeves):

@@ -1,1095 +1,359 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { PieChart, TrendingUp, Target, Calendar, TrendingDown } from 'lucide-react'
-import OnboardingCard from '../components/OnboardingCard'
+import React, { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../lib/api'
 
-interface GoalInput {
-  label: string
-  value: number
-  helper: string
-}
-
-type GoalType = 'lump_sum' | 'dividend_growth' | 'passive_income'
-
-interface ProjectionSummary {
-  current: number
-  target: number
-  currentProgress: number
-  projectedProgress: number
-  status: string
-}
+type GoalType = 'growth' | 'balanced' | 'income'
 
 interface HealthProps {
   userId: number | null
 }
 
-const goalOptions: Array<{ key: GoalType; title: string; description: string; icon: React.ReactNode }> = [
-  {
-    key: 'lump_sum',
-    title: 'Portfolio growth',
-    description: 'Track progress toward a rand value goal over a chosen horizon.',
-    icon: <Target className="w-6 h-6 text-brand-purple" />
-  },
-  {
-    key: 'dividend_growth',
-    title: 'Dividend growth',
-    description: 'Aim for an inflation beating increase in annual distributions.',
-    icon: <TrendingUp className="w-6 h-6 text-brand-mint" />
-  },
-  {
-    key: 'passive_income',
-    title: 'Passive income',
-    description: 'Monitor monthly income potential versus your living costs.',
-    icon: <PieChart className="w-6 h-6 text-brand-gold" />
-  },
-]
-
-const PROFILE_GOAL_TO_TYPE: Record<string, GoalType> = {
-  growth: 'lump_sum',
-  balanced: 'dividend_growth',
-  income: 'passive_income',
-  fallback: 'lump_sum'
+interface HealthPlanResponse {
+  goal_type: GoalType
+  term_years?: number
+  current_value?: number
+  target_value?: number
+  progress_pct?: number
+  annual_return_pct?: number
+  required_monthly_contribution?: number
+  lump_sum_gap?: number
+  monthly_budget?: number | null
+  timeline_for_budget_months?: number | null
+  message?: string
+  inflation_target_pct?: number
+  nominal_return_pct?: number
+  real_return_pct?: number
+  status?: string
+  current_monthly_income?: number
+  current_annual_income?: number
+  target_monthly_income?: number
+  target_annual_income?: number
+  dividend_yield_pct?: number
 }
 
-const GOAL_TYPE_TO_PROFILE: Record<GoalType, string> = {
-  lump_sum: 'growth',
-  dividend_growth: 'balanced',
-  passive_income: 'income'
+const PROFILE_GOAL_TO_HEALTH: Record<string, GoalType> = {
+  growth: 'growth',
+  balanced: 'balanced',
+  income: 'income',
+  fallback: 'balanced'
 }
 
-const HEALTH_DEFAULTS: Record<GoalType, GoalInput[]> = {
-  lump_sum: [
-    { label: 'Current portfolio value (ZAR)', value: 2959, helper: 'Latest value pulled from your holdings.' },
-    { label: 'Target value (ZAR)', value: 500000, helper: 'Rand amount you want the portfolio to reach.' },
-    { label: 'Term in years', value: 5, helper: 'Timeline for the goal. We project progress over this period.' },
-  ],
-  dividend_growth: [
-    { label: 'Current annual dividends (ZAR)', value: 12000, helper: 'Present distributions from your holdings.' },
-    { label: 'Target annual dividends (ZAR)', value: 24000, helper: 'Income stream you want to reach.' },
-    { label: 'Term in years', value: 4, helper: 'Years you are budgeting to reach that payout.' },
-  ],
-  passive_income: [
-    { label: 'Current monthly income (ZAR)', value: 6000, helper: 'What your portfolio generates today.' },
-    { label: 'Monthly income goal (ZAR)', value: 15000, helper: 'Living cost you want the portfolio to cover.' },
-    { label: 'Term in years', value: 3, helper: 'Target timeline to get your income stream match-fit.' },
-  ],
-}
-
-const formatRand = (value: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0 }).format(Math.round(value));
+const sarbInflationTarget = 6
 
 const Health: React.FC<HealthProps> = ({ userId }) => {
-  const navigate = useNavigate()
-  const [hasPortfolio, setHasPortfolio] = useState<boolean | null>(null)
-  const [goalType, setGoalType] = useState<GoalType>('lump_sum')
-  const [goalInputs, setGoalInputs] = useState<Record<string, number>>(() => {
-    const defaults = HEALTH_DEFAULTS['lump_sum']
-    return defaults.reduce<Record<string, number>>((acc, item) => {
-      acc[item.label] = item.value
-      return acc
-    }, {})
-  })
-  const currentPortfolioValueInput = goalInputs['Current portfolio value (ZAR)'] ?? 1000
-  const [preferenceSynced, setPreferenceSynced] = useState(false)
-  const [portfolioNominalReturn, setPortfolioNominalReturn] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null
-    const storedPayload = localStorage.getItem('stockbuddy_performance_payload_nominal')
-    if (storedPayload) {
-      try {
-        const parsed = JSON.parse(storedPayload)
-        const nominal = typeof parsed?.annual_return === 'number' ? parsed.annual_return : null
-        return nominal !== null && Number.isFinite(nominal) ? nominal : null
-      } catch {
-        // fall through
-      }
-    }
-    const stored = localStorage.getItem('stockbuddy_annualised_return_nominal') ?? localStorage.getItem('stockbuddy_annualised_return')
-    const parsed = stored !== null ? Number(stored) : null
-    return parsed !== null && Number.isFinite(parsed) ? parsed : null
-  })
-  const [portfolioRealReturn, setPortfolioRealReturn] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null
-    const storedPayload = localStorage.getItem('stockbuddy_performance_payload_real')
-    if (storedPayload) {
-      try {
-        const parsed = JSON.parse(storedPayload)
-        const real = typeof parsed?.annual_return_real === 'number' ? parsed.annual_return_real : null
-        return real !== null && Number.isFinite(real) ? real : null
-      } catch {
-        // fall through
-      }
-    }
-    const stored = localStorage.getItem('stockbuddy_annualised_return_real')
-    const parsed = stored !== null ? Number(stored) : null
-    return parsed !== null && Number.isFinite(parsed) ? parsed : null
-  })
-  const [yieldLoading, setYieldLoading] = useState(false)
-  const [yieldError, setYieldError] = useState<string | null>(null)
-  const [portfolioWeightedYield, setPortfolioWeightedYield] = useState<number | null>(null)
-  const [portfolioTotalValue, setPortfolioTotalValue] = useState<number | null>(null)
-  const [useCustomYield, setUseCustomYield] = useState<boolean>(false)
-  const [customYieldPct, setCustomYieldPct] = useState<string>('')
-  const [useCustomReturn, setUseCustomReturn] = useState<boolean>(false)
-  const [customReturnPct, setCustomReturnPct] = useState<string>('')
-  const [startingCapital, setStartingCapital] = useState<number | null>(null)
+  const [goalType, setGoalType] = useState<GoalType>('growth')
+  const [termYears, setTermYears] = useState<number>(5)
+  const [targetValue, setTargetValue] = useState<number>(250000)
   const [monthlyBudget, setMonthlyBudget] = useState<string>('')
-  const [baselineMode, setBaselineMode] = useState<'holdings' | 'plan'>('holdings')
-  const [useRealReturns, setUseRealReturns] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('stockbuddy_inflation_adjust') === '1'
-  })
+  const [inflationMode, setInflationMode] = useState<'sarb' | 'custom'>('sarb')
+  const [customInflation, setCustomInflation] = useState<string>(String(sarbInflationTarget))
+  const [incomeGoal, setIncomeGoal] = useState<string>('15000')
+  const [incomeFrequency, setIncomeFrequency] = useState<'monthly' | 'annual'>('monthly')
+  const [plan, setPlan] = useState<HealthPlanResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const applyDefaultsForType = useCallback((type: GoalType) => {
-    const defaults = HEALTH_DEFAULTS[type]
-    const mapped = defaults.reduce<Record<string, number>>((acc, item) => {
-      acc[item.label] = item.value
-      return acc
-    }, {})
-    setGoalInputs(mapped)
-  }, [])
+  useEffect(() => {
+    const loadGoalPreference = async () => {
+      if (!userId) return
+      try {
+        const resp = await apiFetch(`/api/users/${userId}`)
+        if (!resp.ok) return
+        const profile = await resp.json()
+        const mapped = PROFILE_GOAL_TO_HEALTH[(profile.goal || '').toLowerCase()] || 'growth'
+        setGoalType(mapped)
+      } catch {
+        // ignore
+      }
+    }
+    loadGoalPreference()
+  }, [userId])
 
-  const persistGoalPreference = useCallback(async (type: GoalType) => {
-    if (!userId) return
-    const profileGoal = GOAL_TYPE_TO_PROFILE[type]
+  const parsedMonthlyBudget = useMemo(() => {
+    const parsed = Number(monthlyBudget)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+  }, [monthlyBudget])
+
+  const buildPayload = () => {
+    if (!userId) return null
+    const payload: any = {
+      user_id: userId,
+      goal_type: goalType,
+      term_years: termYears
+    }
+    if (goalType === 'growth') {
+      payload.target_value = targetValue
+      if (parsedMonthlyBudget) payload.monthly_budget = parsedMonthlyBudget
+    } else if (goalType === 'balanced') {
+      payload.inflation_target_type = inflationMode
+      if (inflationMode === 'custom') {
+        const customValue = Number(customInflation)
+        if (Number.isFinite(customValue)) payload.inflation_target_pct = customValue
+      }
+    } else {
+      const goalAmount = Number(incomeGoal)
+      payload.income_goal_amount = Number.isFinite(goalAmount) ? goalAmount : 0
+      payload.income_frequency = incomeFrequency
+      if (parsedMonthlyBudget) payload.monthly_budget = parsedMonthlyBudget
+    }
+    return payload
+  }
+
+  const fetchPlan = async () => {
+    const payload = buildPayload()
+    if (!payload) return
+    setLoading(true)
+    setError(null)
     try {
-      await apiFetch('/api/onboarding', {
+      const response = await apiFetch('/api/health/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, goal: profileGoal })
+        body: JSON.stringify(payload)
       })
-    } catch (error) {
-      console.error('Failed to update goal preference', error)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'Unable to generate health plan right now.')
+      }
+      const data = await response.json()
+      setPlan(data)
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong.')
+      setPlan(null)
+    } finally {
+      setLoading(false)
     }
-  }, [userId])
-
-  const handleGoalSelection = useCallback((type: GoalType, options?: { persist?: boolean }) => {
-    setGoalType(type)
-    applyDefaultsForType(type)
-    if (options?.persist === false) {
-      return
-    }
-    void persistGoalPreference(type)
-  }, [applyDefaultsForType, persistGoalPreference])
-
-  const handleInputChange = (label: string, value: string) => {
-    const parsed = Number(value.replace(/[^0-9.]/g, ''))
-    if (!Number.isFinite(parsed)) return
-    setGoalInputs(prev => ({ ...prev, [label]: parsed }))
   }
 
-  // Check if the user actually has a portfolio before running simulations
   useEffect(() => {
-    const loadPortfolioPresence = async () => {
-      if (!userId) {
-        setHasPortfolio(false)
-        return
-      }
-      try {
-        const response = await apiFetch(`/api/portfolio/${userId}`)
-        if (!response.ok) {
-          setHasPortfolio(false)
-          return
-        }
-        const data = await response.json()
-        const hasHoldings = Array.isArray(data?.holdings) && data.holdings.length > 0
-        setHasPortfolio(hasHoldings)
-        // If we have a portfolio, sync the current value input with backend total_value for better defaults
-        if (hasHoldings && typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
-          const tv = Math.max(0, Math.round(data.total_value))
-          setPortfolioTotalValue(tv)
-          setGoalInputs(prev => ({ ...prev, 'Current portfolio value (ZAR)': tv }))
-        }
-        // For dividend growth goals, align current annual dividends with backend weighted yield snapshot
-        if (hasHoldings) {
-          const wy = typeof data.weighted_dividend_yield_pct === 'number' ? data.weighted_dividend_yield_pct : null
-          const currentAnnual = typeof data.current_annual_dividends === 'number' ? data.current_annual_dividends : null
-          if (wy !== null && Number.isFinite(wy)) {
-            setPortfolioWeightedYield(wy)
-          }
-          if (currentAnnual !== null && Number.isFinite(currentAnnual)) {
-            setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': Math.max(0, Math.round(currentAnnual)) }))
-          }
-          // Use total portfolio value as the default starting capital
-          if (typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
-            setStartingCapital(Math.max(0, Math.round(data.total_value)))
-          } else if (currentAnnual !== null && Number.isFinite(currentAnnual) && wy && wy > 0) {
-            setStartingCapital(Math.round(currentAnnual / (wy / 100)))
-          }
-        }
-      } catch {
-        setHasPortfolio(false)
-      }
+    if (userId) {
+      fetchPlan()
     }
-    loadPortfolioPresence()
-  }, [userId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, goalType])
 
-  // Initialise baseline from the last Portfolio simulation if available (novice-friendly)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('stockbuddy_last_simulation_plan')
-      if (!raw) return
-      const plan = JSON.parse(raw)
-      // Prefer plan baseline: simple “I invest X now” matches Portfolio
-      const start = Number(plan?.starting_investment)
-      if (Number.isFinite(start) && start > 0) {
-        setBaselineMode('plan')
-        setStartingCapital(Math.round(start))
-      }
-      const months = Number(plan?.months)
-      if (Number.isFinite(months) && months > 0) {
-        const years = Math.max(1, Math.round(months / 12))
-        setGoalInputs(prev => ({ ...prev, 'Term in years': years }))
-      }
-      const planYield = Number(plan?.average_dividend_yield)
-      if (Number.isFinite(planYield) && planYield > 0) {
-        setUseCustomYield(true)
-        setCustomYieldPct(String(planYield.toFixed(1)))
-      }
-      const planReturn = Number(plan?.annual_return)
-      if (Number.isFinite(planReturn)) {
-        setUseCustomReturn(true)
-        setCustomReturnPct(String(planReturn.toFixed(2)))
-      }
-    } catch {}
-  }, [])
-
-  // Derive effective yield (%) and return (%) from portfolio or custom overrides
-  const effectiveYieldPct = useMemo(() => {
-    const override = useCustomYield ? Number(customYieldPct) : null
-    if (override !== null && Number.isFinite(override) && override > 0) return override
-    if (portfolioWeightedYield !== null && Number.isFinite(portfolioWeightedYield) && portfolioWeightedYield > 0) return portfolioWeightedYield
-    return 3.5
-  }, [useCustomYield, customYieldPct, portfolioWeightedYield])
-
-  const effectiveReturnPct = useMemo(() => {
-    const override = useCustomReturn ? Number(customReturnPct) : null
-    if (override !== null && Number.isFinite(override)) return override
-    const base = useRealReturns ? portfolioRealReturn : portfolioNominalReturn
-    if (base !== null && Number.isFinite(base)) return base
-    return 8.0
-  }, [useCustomReturn, customReturnPct, useRealReturns, portfolioNominalReturn, portfolioRealReturn])
-
-  // Keep Current annual dividends aligned to starting capital × yield for dividend growth
-  useEffect(() => {
-    if (goalType !== 'dividend_growth') return
-    const cap = startingCapital ?? 0
-    const c = Math.max(0, Math.round(cap * (effectiveYieldPct / 100)))
-    setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': c }))
-  }, [goalType, startingCapital, effectiveYieldPct])
-
-  // Keep Current monthly income aligned to baseline × yield/12 for passive income
-  useEffect(() => {
-    if (goalType !== 'passive_income') return
-    const baseCap = baselineMode === 'plan' ? (startingCapital ?? 0) : (portfolioTotalValue ?? 0)
-    const monthly = Math.max(0, Math.round((baseCap * (effectiveYieldPct / 100)) / 12))
-    setGoalInputs(prev => ({ ...prev, 'Current monthly income (ZAR)': monthly }))
-  }, [goalType, baselineMode, startingCapital, portfolioTotalValue, effectiveYieldPct])
-
-  useEffect(() => {
-    if (!userId || preferenceSynced) return
-
-    const loadGoalPreference = async () => {
-      try {
-        const response = await apiFetch(`/api/users/${userId}`)
-        if (!response.ok) return
-        const profile = await response.json()
-        const mapped = PROFILE_GOAL_TO_TYPE[(profile.goal || '').toLowerCase()] ?? null
-        if (mapped) {
-          handleGoalSelection(mapped, { persist: false })
-        }
-      } catch (error) {
-        console.error('Failed to load goal preference', error)
-      } finally {
-        setPreferenceSynced(true)
-      }
-    }
-
-    loadGoalPreference()
-  }, [userId, preferenceSynced, handleGoalSelection])
-
-  const loadStoredPerformance = useCallback(() => {
-    if (typeof window === 'undefined') return false
-    const payloadKey = useRealReturns ? 'stockbuddy_performance_payload_real' : 'stockbuddy_performance_payload_nominal'
-    const storedPayload = localStorage.getItem(payloadKey)
-    if (!storedPayload) return false
-    try {
-      const parsed = JSON.parse(storedPayload)
-      const nominal = typeof parsed?.annual_return === 'number' ? parsed.annual_return : null
-      const real = typeof parsed?.annual_return_real === 'number' ? parsed.annual_return_real : null
-      if (nominal !== null && Number.isFinite(nominal)) {
-        setPortfolioNominalReturn(nominal)
-        localStorage.setItem('stockbuddy_annualised_return_nominal', nominal.toString())
-      }
-      if (real !== null && Number.isFinite(real)) {
-        setPortfolioRealReturn(real)
-        localStorage.setItem('stockbuddy_annualised_return_real', real.toString())
-      }
-      return true
-    } catch {
-      return false
-    }
-  }, [useRealReturns])
-
-  useEffect(() => {
-    const handler = (event: StorageEvent) => {
-      if (!event.key) return
-      if (event.key === 'stockbuddy_performance_payload_nominal' || event.key === 'stockbuddy_performance_payload_real') {
-        loadStoredPerformance()
-      }
-      if (event.key === 'stockbuddy_annualised_return_nominal' || event.key === 'stockbuddy_annualised_return') {
-        const parsed = event.newValue !== null ? Number(event.newValue) : null
-        setPortfolioNominalReturn(parsed !== null && Number.isFinite(parsed) ? parsed : null)
-      }
-      if (event.key === 'stockbuddy_annualised_return_real') {
-        const parsed = event.newValue !== null ? Number(event.newValue) : null
-        setPortfolioRealReturn(parsed !== null && Number.isFinite(parsed) ? parsed : null)
-      }
-    }
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [loadStoredPerformance])
-
-  useEffect(() => {
-    const loadPreference = () => {
-      if (typeof window === 'undefined') return
-      setUseRealReturns(localStorage.getItem('stockbuddy_inflation_adjust') === '1')
-    }
-    loadPreference()
-    const handler = (event: StorageEvent) => {
-      if (event.key === 'stockbuddy_inflation_adjust') {
-        setUseRealReturns(event.newValue === '1')
-      }
-    }
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [])
-
-  useEffect(() => {
-    if (loadStoredPerformance()) {
-      setYieldLoading(false)
-      setYieldError(null)
-      return
-    }
-    if (!userId || hasPortfolio !== true) return
-    let cancelled = false
-    const controller = new AbortController()
-    const fetchYield = async () => {
-      setYieldLoading(true)
-      setYieldError(null)
-      try {
-        // Fall back to a one-shot performance fetch using current portfolio input and
-        // the same distribution policy stored by Portfolio (if available), so numbers align better.
-        const storedPolicy = (typeof window !== 'undefined' ? (localStorage.getItem('stockbuddy_distribution_policy') as 'reinvest' | 'cash_out' | null) : null) || 'reinvest'
-        const response = await apiFetch('/api/simulate/performance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            timeframe: '5y',
-            investment_mode: 'lump_sum',
-            initial_investment: currentPortfolioValueInput,
-            monthly_contribution: 0,
-            inflation_adjust: useRealReturns,
-            distribution_policy: storedPolicy
-          }),
-          signal: controller.signal
-        })
-        if (!response.ok) {
-          throw new Error(`Status ${response.status}`)
-        }
-        const data = await response.json()
-        const payload = data?.baseline ?? data
-        if (!cancelled) {
-          const payloadKey = useRealReturns ? 'stockbuddy_performance_payload_real' : 'stockbuddy_performance_payload_nominal'
-          try {
-            localStorage.setItem(payloadKey, JSON.stringify(payload))
-          } catch {
-            // ignore
-          }
-          const nominal = typeof payload?.annual_return === 'number' ? payload.annual_return : null
-          const real = typeof payload?.annual_return_real === 'number' ? payload.annual_return_real : null
-          setPortfolioNominalReturn(nominal !== null && Number.isFinite(nominal) ? nominal : null)
-          setPortfolioRealReturn(real !== null && Number.isFinite(real) ? real : null)
-          if (nominal !== null && Number.isFinite(nominal)) {
-            localStorage.setItem('stockbuddy_annualised_return_nominal', nominal.toString())
-          }
-          if (real !== null && Number.isFinite(real)) {
-            localStorage.setItem('stockbuddy_annualised_return_real', real.toString())
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setYieldError('Unable to load portfolio return.')
-        }
-      } finally {
-        if (!cancelled) {
-          setYieldLoading(false)
-        }
-      }
-    }
-    fetchYield()
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [userId, useRealReturns, currentPortfolioValueInput, loadStoredPerformance, hasPortfolio])
-
-  const marginBand = useMemo(() => (goalType === 'dividend_growth' ? 0.08 : goalType === 'passive_income' ? 0.12 : 0.1), [goalType])
-
-
-  const projection = useMemo<ProjectionSummary>(() => {
-    const labels = Object.keys(goalInputs)
-    const current = goalInputs[labels[0]] ?? 0
-    const target = goalInputs[labels[1]] ?? 0
-    const ratio = target > 0 ? Math.min(current / target, 1) : 0
-    const projectedCompletion = Math.min(ratio + marginBand, 1)
-    const status =
-      ratio >= 1
-        ? 'Goal achieved'
-        : projectedCompletion >= 1
-          ? 'On track'
-          : ratio < 0.6
-            ? 'Needs focus'
-            : 'Making progress'
-
-    return {
-      current,
-      target,
-      currentProgress: ratio,
-      projectedProgress: projectedCompletion,
-      status,
-    }
-  }, [goalInputs, goalType, marginBand])
-
-
-  const termYears = goalInputs['Term in years'] ?? (goalType === 'passive_income' ? 3 : goalType === 'dividend_growth' ? 4 : 5)
-  const projectedYearsToGoal = useMemo(() => {
-    if (projection.projectedProgress >= 1 || termYears <= 0) {
-      return termYears
-    }
-    const effectiveProgress = Math.max(projection.projectedProgress, 0.05)
-    return Math.ceil(termYears / effectiveProgress)
-  }, [projection.projectedProgress, termYears])
-
-  const shortfall = useMemo(() => {
-    const projectedValueAtTerm = projection.target * projection.projectedProgress
-    return Math.max(projection.target - projectedValueAtTerm, 0)
-  }, [projection.target, projection.projectedProgress])
-
-  const additionalContributionPlan = useMemo(() => {
-    if (shortfall <= 0) {
-      return {
-        amount: 0,
-        cadence: '',
-        message:
-          goalType === 'dividend_growth'
-            ? 'You are on course to exceed your dividend target within the selected term.'
-          : goalType === 'passive_income'
-            ? 'Portfolio income is trending ahead of the goal for this timeline.'
-            : 'Your lump sum target is within reach on the current trajectory.'
-      }
-    }
-
-    if (goalType === 'dividend_growth') {
-      // Compounding-aware plan
-      const y = Math.max(effectiveYieldPct / 100, 0.0001)
-      const r = Math.max(effectiveReturnPct / 100, 0)
-      const A = projection.target
-      const C = goalInputs['Current annual dividends (ZAR)'] ?? 0
-      const dividendShortfallNow = Math.max(A - C, 0)
-      const Ktarget = A / y
-      const K0 = (startingCapital ?? 0)
-      const N = Math.max(1, Math.round(termYears * 12))
-      const rm = Math.pow(1 + r, 1 / 12) - 1
-      let monthly: number
-      if (rm > 0) {
-        const factor = Math.pow(1 + rm, N)
-        monthly = ((Ktarget - K0 * factor) * rm) / (factor - 1)
-      } else {
-        monthly = (Ktarget - K0) / N
-      }
-      const lump = Math.max(0, Ktarget - K0)
-      return {
-        amount: Math.max(0, Math.round(monthly)),
-        cadence: 'p/m',
-        message: `To lift dividends by ~${formatRand(dividendShortfallNow)}/yr at ~${(y*100).toFixed(1)}% yield with ${(effectiveReturnPct).toFixed(1)}% return, invest about ${formatRand(Math.max(0, Math.round(monthly)))} per month for ${termYears} year(s) — or a once‑off ~${formatRand(Math.round(lump))}.`
-      }
-    }
-
-    if (goalType === 'passive_income') {
-      const amount = shortfall
-      return {
-        amount,
-        cadence: 'p/m',
-        message: `Boost monthly income by roughly ${formatRand(amount)} to cover the gap within ${termYears} years.`
-      }
-    }
-
-    const amount = termYears > 0 ? shortfall / (termYears * 12) : shortfall / 12
-    return {
-      amount,
-      cadence: 'p/m',
-      message: `Setting aside about ${formatRand(amount)} per month keeps the plan on track.`
-    }
-  }, [goalType, shortfall, termYears])
-
-  const [topUpShare, setTopUpShare] = useState<number>(0)
-  const [acceptedShare, setAcceptedShare] = useState<number>(0)
-
-  useEffect(() => {
-    if (additionalContributionPlan.amount === 0) {
-      setTopUpShare(0)
-      setAcceptedShare(0)
-    }
-  }, [additionalContributionPlan.amount])
-
-  const acceptedTopUpAmount = useMemo(
-    () => additionalContributionPlan.amount * (topUpShare / 100),
-    [additionalContributionPlan.amount, topUpShare]
-  )
-  const committedTopUpAmount = useMemo(
-    () => additionalContributionPlan.amount * (acceptedShare / 100),
-    [additionalContributionPlan.amount, acceptedShare]
-  )
-
-  const confirmTopUpShare = useCallback(() => {
-    if (topUpShare > 0) {
-      setAcceptedShare(topUpShare)
-    }
-  }, [topUpShare])
-
-  const timelineContext = useMemo(() => {
-    const gapYears = Math.max(projectedYearsToGoal - termYears, 0)
-    if (projectedYearsToGoal <= termYears) {
-      if (goalType === 'lump_sum') {
-        return `Your lump sum target of ${formatRand(projection.target)} stays within the ${termYears}-year horizon.`
-      }
-      if (goalType === 'dividend_growth') {
-        return `Dividend flow is on pace to reach ${formatRand(projection.target)} a year inside the timeline.`
-      }
-      return `Portfolio income should cover ${formatRand(projection.target)} per month within the timeline.`
-    }
-    if (goalType === 'lump_sum') {
-      return `Expect roughly ${gapYears} extra year(s) to grow the portfolio to ${formatRand(projection.target)}.`
-    }
-    if (goalType === 'dividend_growth') {
-      return `Expect roughly ${gapYears} extra year(s) to lift payouts to ${formatRand(projection.target)} a year.`
-    }
-    return `Expect roughly ${gapYears} extra year(s) to reach ${formatRand(projection.target)} in monthly income.`
-  }, [goalType, projectedYearsToGoal, termYears, projection.target])
-
-  const bufferProgress = useMemo(
-    () => Math.min(Math.max(projection.projectedProgress + 0.05, projection.currentProgress + 0.1), 1),
-    [projection.currentProgress, projection.projectedProgress]
-  )
-
-  const formatGoalValue = useCallback((amount: number) => {
-    if (goalType === 'dividend_growth') {
-      return `${formatRand(amount)} per year`
-    }
-    if (goalType === 'passive_income') {
-      return `${formatRand(amount)} per month`
-    }
-    return formatRand(amount)
-  }, [goalType])
-
-  const ringData = useMemo(() => {
-    const projectedValue = projection.target * projection.projectedProgress
-    const bufferValue = projection.target * bufferProgress
-
-    const currentSummary =
-      goalType === 'lump_sum'
-        ? `Current capital sits at ${formatGoalValue(projection.current)} of the ${formatGoalValue(projection.target)} target.`
-        : goalType === 'dividend_growth'
-          ? `The portfolio delivers about ${formatGoalValue(projection.current)} in distributions right now.`
-          : `Current income stream is ${formatGoalValue(projection.current)} against your goal.`
-
-    const projectedSummary =
-      goalType === 'lump_sum'
-        ? `Staying with the plan could grow the portfolio to around ${formatGoalValue(projectedValue)} within ${termYears} year(s).`
-        : goalType === 'dividend_growth'
-          ? `On the present growth pace, dividends could reach ${formatGoalValue(projectedValue)} by year ${termYears}.`
-          : `Income could compound to ${formatGoalValue(projectedValue)} in ${termYears} year(s) if markets behave as expected.`
-
-    const bufferSummary = `We leave ${Math.max(Math.round((bufferProgress - projection.projectedProgress) * 100), 0)}% headroom — planning for about ${formatGoalValue(
-      bufferValue
-    )} so the goal survives market swings.`
-
-    return [
-      { label: 'Current', value: projection.currentProgress, color: '#7a3ff2', summary: currentSummary },
-      { label: 'Projected', value: projection.projectedProgress, color: '#3fd0c9', summary: projectedSummary },
-      { label: 'Buffer', value: bufferProgress, color: '#ffc943', summary: bufferSummary },
-    ]
-  }, [bufferProgress, goalType, projection, termYears, formatGoalValue])
-
-  const selectedGoalOption = useMemo(
-    () => goalOptions.find(option => option.key === goalType),
-    [goalType]
-  )
-
-  const renderYieldAssumptions = () => {
-    if (goalType !== 'dividend_growth' && goalType !== 'passive_income') return null
-    const effectivePortfolioYield = portfolioWeightedYield !== null && Number.isFinite(portfolioWeightedYield)
-      ? `${portfolioWeightedYield.toFixed(1)}%`
-      : 'n/a'
-    return (
-      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
-        <div className="mb-2 flex items-center gap-3">
-          <label className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Baseline</label>
-          <div className="inline-flex rounded-full bg-gray-100 p-1 text-xs dark:bg-slate-800">
-            <button
-              type="button"
-              onClick={() => setBaselineMode('plan')}
-              className={`px-3 py-1 rounded-full ${baselineMode === 'plan' ? 'bg-primary-600 text-white' : 'text-muted dark:text-gray-300'}`}
-            >
-              Last plan (simple)
-            </button>
-            <button
-              type="button"
-              onClick={() => setBaselineMode('holdings')}
-              className={`px-3 py-1 rounded-full ${baselineMode === 'holdings' ? 'bg-primary-600 text-white' : 'text-muted dark:text-gray-300'}`}
-            >
-              Current holdings
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Dividend yield assumption</p>
-            <p className="text-brand-ink dark:text-gray-100">Portfolio weighted yield: <span className="font-semibold">{effectivePortfolioYield}</span></p>
-          </div>
-          <label className="inline-flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              className="accent-brand-purple"
-              checked={useCustomYield}
-              onChange={(e) => setUseCustomYield(e.target.checked)}
-            />
-            Use custom
-          </label>
-        </div>
-        {useCustomYield && (
-          <div className="mt-3 flex items-center gap-3">
-            <input
-              type="number"
-              min={0}
-              step={0.1}
-              placeholder="e.g. 5.5"
-              value={customYieldPct}
-              onChange={(e) => setCustomYieldPct(e.target.value)}
-              className="input-field w-32"
-            />
-            <span className="text-xs text-muted dark:text-gray-400">% p.a.</span>
-            <span className="text-xs text-muted dark:text-gray-400">We’ll use this for the suggestion math above.</span>
-          </div>
-        )}
-      </div>
-    )
+  const handleUpdate = () => {
+    if (userId) fetchPlan()
   }
 
-  const renderReturnAssumptions = () => {
-    const effectivePortfolioReturn = (() => {
-      const base = useRealReturns ? portfolioRealReturn : portfolioNominalReturn
-      return base !== null && Number.isFinite(base) ? `${base.toFixed(2)}%` : 'n/a'
-    })()
-    return (
-      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Capital return assumption</p>
-            <p className="text-brand-ink dark:text-gray-100">Portfolio return (annualised): <span className="font-semibold">{effectivePortfolioReturn}</span></p>
-          </div>
-          <label className="inline-flex items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              className="accent-brand-purple"
-              checked={useCustomReturn}
-              onChange={(e) => setUseCustomReturn(e.target.checked)}
-            />
-            Use custom
-          </label>
-        </div>
-        {useCustomReturn && (
-          <div className="mt-3 flex items-center gap-3">
-            <input
-              type="number"
-              step={0.1}
-              placeholder="e.g. 10.0"
-              value={customReturnPct}
-              onChange={(e) => setCustomReturnPct(e.target.value)}
-              className="input-field w-32"
-            />
-            <span className="text-xs text-muted dark:text-gray-400">% p.a.</span>
-            <span className="text-xs text-muted dark:text-gray-400">We’ll use this for compounding in the plan.</span>
-          </div>
-        )}
-      </div>
-    )
-  }
+  const renderPlanSummary = () => {
+    if (!plan || plan.goal_type !== goalType) return null
 
-  const renderStartingCapital = () => {
-    if (goalType !== 'dividend_growth') return null
-    return (
-      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
-        <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Starting capital</p>
-        <div className="mt-2 flex items-center gap-3">
-          <input
-            type="number"
-            min={0}
-            value={startingCapital ?? 0}
-            onChange={(e) => setStartingCapital(Math.max(0, Math.round(Number(e.target.value || '0'))))}
-            className="input-field w-48"
-          />
-          <span className="text-xs text-muted dark:text-gray-400">We infer current dividends as start × yield.</span>
+    if (goalType === 'growth') {
+      const timelineYears = plan.timeline_for_budget_months ? plan.timeline_for_budget_months / 12 : null
+      return (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ResultCard label="Current value" value={`R ${plan.current_value?.toLocaleString() ?? '0'}`} />
+            <ResultCard label="Target value" value={`R ${plan.target_value?.toLocaleString() ?? '0'}`} />
+            <ResultCard label="Progress" value={`${plan.progress_pct?.toFixed(1) ?? '0'}%`} helper="How close you are to the growth goal." />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ResultCard label="Annual return assumption" value={`${plan.annual_return_pct?.toFixed(2) ?? '0'}% p.a.`} />
+            <ResultCard label="Monthly needed" value={`R ${plan.required_monthly_contribution?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} helper="Projected contribution to land the target within the chosen term." />
+            <ResultCard label="Once-off gap" value={`R ${plan.lump_sum_gap?.toLocaleString() ?? '0'}`} helper="Capital boost required if you prefer a lump sum." />
+          </div>
+          {plan.monthly_budget && (
+            <ResultCard
+              label="Budget timeline"
+              value={plan.timeline_for_budget_months ? `${(timelineYears ?? 0).toFixed(1)} yrs` : 'n/a'}
+              helper={`With a monthly budget of R ${plan.monthly_budget?.toLocaleString()}, this is how long it could take.`}
+            />
+          )}
+          <p className="text-sm text-muted dark:text-gray-300">{plan.message}</p>
         </div>
-        <div className="mt-2 text-xs text-muted dark:text-gray-400">
-          Tip: If you’ve just run a plan in Portfolio (e.g. R1,000 lump sum), choose “Last plan (simple)” above — we’ll preload that amount here so Health answers “what dividend do I expect from this plan?”
-        </div>
-      </div>
-    )
-  }
-
-  const renderBudgetTimeCalc = () => {
-    if (goalType !== 'dividend_growth') return null
-    const y = Math.max(effectiveYieldPct / 100, 0.0001)
-    const r = Math.max(effectiveReturnPct / 100, 0)
-    const Ktarget = projection.target / y
-    const K0 = (startingCapital ?? 0)
-    const m = Math.max(0, Math.round(Number(monthlyBudget || '0')))
-    let monthsNeeded: number | null = null
-    if (m > 0 && Ktarget > K0) {
-      const rm = Math.pow(1 + r, 1 / 12) - 1
-      if (rm > 0) {
-        const num = m + rm * Ktarget
-        const den = m + rm * K0
-        if (num > 0 && den > 0 && num > den) {
-          monthsNeeded = Math.ceil(Math.log(num / den) / Math.log(1 + rm))
-        }
-      } else {
-        monthsNeeded = Math.ceil((Ktarget - K0) / m)
-      }
+      )
     }
-    const yearsPart = monthsNeeded !== null ? Math.floor(monthsNeeded / 12) : null
-    const monthsPart = monthsNeeded !== null ? (monthsNeeded % 12) : null
-    return (
-      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
-        <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Have a monthly budget?</p>
-        <div className="mt-2 flex items-center gap-3">
-          <input
-            type="number"
-            min={0}
-            value={monthlyBudget}
-            onChange={(e) => setMonthlyBudget(e.target.value)}
-            className="input-field w-48"
-            placeholder="e.g. 3000"
-          />
-          <span className="text-xs text-muted dark:text-gray-400">ZAR per month</span>
+
+    if (goalType === 'balanced') {
+      return (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ResultCard label="Nominal return" value={`${plan.nominal_return_pct?.toFixed(2) ?? '0'}% p.a.`} />
+            <ResultCard label="Inflation target" value={`${plan.inflation_target_pct?.toFixed(2) ?? '0'}% p.a.`} helper={inflationMode === 'sarb' ? 'SARB upper target' : 'Custom target selected'} />
+            <ResultCard label="Real return" value={`${plan.real_return_pct?.toFixed(2) ?? '0'} pts`} helper="Return minus inflation target." status={plan.status} />
+          </div>
+          <p className="text-sm text-muted dark:text-gray-300">{plan.message}</p>
         </div>
-        <div className="mt-3 text-sm text-brand-ink dark:text-gray-200">
-          {monthsNeeded !== null ? (
-            <span>
-              Estimated time to target: <span className="font-semibold">{yearsPart} yr</span>{' '}
-              {monthsPart ? <><span className="font-semibold">{monthsPart}</span> mo</> : null}
-            </span>
-          ) : (
-            <span className="text-muted dark:text-gray-400">Enter a monthly amount to estimate time to target.</span>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <ResultCard label="Current monthly income" value={`R ${plan.current_monthly_income?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
+          <ResultCard label="Target monthly income" value={`R ${plan.target_monthly_income?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
+          <ResultCard label="Yield" value={`${plan.dividend_yield_pct?.toFixed(2) ?? '0'}%`} helper="Weighted dividend yield from your holdings." />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <ResultCard label="Monthly needed" value={`R ${plan.required_monthly_contribution?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
+          <ResultCard label="Once-off gap" value={`R ${plan.lump_sum_gap?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
+          {plan.monthly_budget && (
+            <ResultCard
+              label="Budget timeline"
+              value={plan.timeline_for_budget_months ? `${(plan.timeline_for_budget_months / 12).toFixed(1)} yrs` : 'n/a'}
+              helper={`With a monthly budget of R ${plan.monthly_budget?.toLocaleString()}, this is how long to hit the goal.`}
+            />
           )}
         </div>
+        <p className="text-sm text-muted dark:text-gray-300">{plan.message}</p>
       </div>
     )
   }
 
-  const ringStyles = (radius: number, index: number, value: number, color: string) => {
-    const circumference = 2 * Math.PI * radius
-    const offset = circumference * (1 - value)
-    return {
-      className: `stroke-[12] transition-all duration-700 ease-out`,
-      style: {
-        strokeDasharray: `${circumference} ${circumference}`,
-        strokeDashoffset: offset,
-        stroke: color,
-        opacity: 1 - index * 0.15,
-      },
-    }
-  }
-
-  // While we verify portfolio presence, show a neutral loader to avoid flicker
-  if (hasPortfolio === null) {
+  const renderInputs = () => {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mx-auto mb-4"></div>
-          <p className="text-muted dark:text-gray-300">Loading…</p>
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => setGoalType('growth')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'growth' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          >
+            Growth target
+          </button>
+          <button
+            type="button"
+            onClick={() => setGoalType('balanced')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'balanced' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          >
+            Balanced (beat inflation)
+          </button>
+          <button
+            type="button"
+            onClick={() => setGoalType('income')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'income' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          >
+            Income (dividends)
+          </button>
         </div>
-      </div>
-    )
-  }
 
-  // Empty state if there is no portfolio yet
-  if (hasPortfolio === false) {
-    return (
-      <OnboardingCard
-        title="Finish onboarding"
-        message="Health projections use your current holdings. Finish onboarding or add your first instruments to get personalised progress rings and timelines."
-        primaryLabel="Start onboarding"
-        onPrimary={() => navigate('/onboarding')}
-        secondaryLabel="Go to portfolio"
-        onSecondary={() => navigate('/portfolio')}
-        maxWidth="lg"
-      />
+        <label className="flex flex-col gap-2 text-sm text-slate-200">
+          <span className="text-xs uppercase tracking-wide text-slate-400">Term (years)</span>
+          <input
+            type="number"
+            min={1}
+            value={termYears}
+            onChange={(e) => setTermYears(Number(e.target.value) || 1)}
+            className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          />
+        </label>
+
+        {goalType === 'growth' && (
+          <>
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Target portfolio value (ZAR)</span>
+              <input
+                type="number"
+                min={1}
+                value={targetValue}
+                onChange={(e) => setTargetValue(Number(e.target.value) || 0)}
+                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Monthly budget (optional)</span>
+              <input
+                type="number"
+                min={0}
+                value={monthlyBudget}
+                onChange={(e) => setMonthlyBudget(e.target.value)}
+                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+              />
+            </label>
+          </>
+        )}
+
+        {goalType === 'balanced' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-4">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="radio" checked={inflationMode === 'sarb'} onChange={() => setInflationMode('sarb')} />
+                Use SARB upper target (6%)
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="radio" checked={inflationMode === 'custom'} onChange={() => setInflationMode('custom')} />
+                Custom
+              </label>
+            </div>
+            {inflationMode === 'custom' && (
+              <label className="flex flex-col gap-2 text-sm text-slate-200">
+                <span className="text-xs uppercase tracking-wide text-slate-400">Custom inflation target (% p.a.)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={customInflation}
+                  onChange={(e) => setCustomInflation(e.target.value)}
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                />
+              </label>
+            )}
+          </div>
+        )}
+
+        {goalType === 'income' && (
+          <>
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Income goal</span>
+              <input
+                type="number"
+                min={0}
+                value={incomeGoal}
+                onChange={(e) => setIncomeGoal(e.target.value)}
+                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Frequency</span>
+              <select
+                value={incomeFrequency}
+                onChange={(e) => setIncomeFrequency(e.target.value as 'monthly' | 'annual')}
+                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+              >
+                <option value="monthly">Per month</option>
+                <option value="annual">Per year</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Monthly budget (optional)</span>
+              <input
+                type="number"
+                min={0}
+                value={monthlyBudget}
+                onChange={(e) => setMonthlyBudget(e.target.value)}
+                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+              />
+            </label>
+          </>
+        )}
+
+        <button type="button" onClick={handleUpdate} className="btn-cta" disabled={loading}>
+          {loading ? 'Updating…' : 'Update health plan'}
+        </button>
+        {error && <p className="text-sm text-danger-600 dark:text-danger-400">{error}</p>}
+      </div>
     )
   }
 
   return (
-    <div className="min-h-screen py-12">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4">
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-brand-ink dark:text-gray-100">Portfolio health</h1>
-            <p className="text-muted dark:text-gray-300">
-              Check how your StockBuddy plan lines up against the goals that matter: rand targets, dividend growth, or steady income.
-            </p>
-          </div>
-          <button onClick={() => navigate('/portfolio')} className="btn-secondary">
-            Back to portfolio
-          </button>
+    <div className="min-h-screen bg-slate-950 py-10 text-white">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
+        <header className="space-y-2">
+          <p className="text-sm uppercase tracking-wide text-cyan-400">Health check</p>
+          <h1 className="text-3xl font-semibold">Keep your plan on target</h1>
+          <p className="text-sm text-slate-300">
+            Tell us the outcome you’re chasing and we’ll translate it into plain-language actions. Growth focuses on rand targets, balanced keeps you ahead of inflation, and income maps out dividend goals.
+          </p>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-          <div className="card space-y-6">
-            {selectedGoalOption && (
-              <div className="flex flex-col gap-4 rounded-3xl border border-white/30 bg-white/85 px-5 py-4 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/70">
-                <div className="flex items-center gap-4">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-inner dark:bg-slate-900/80">
-                    {selectedGoalOption.icon}
-                  </span>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Portfolio goal</p>
-                    <p className="text-lg font-semibold text-brand-ink dark:text-white">{selectedGoalOption.title}</p>
-                    <p className="text-sm text-muted dark:text-gray-300">{selectedGoalOption.description}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted dark:text-gray-400">
-                  Update this focus in your profile or onboarding preferences to shift the health projection.
-                </p>
-              </div>
-            )}
-
-            <MetricInputs
-              goalType={goalType}
-              goalInputs={goalInputs}
-              handleInputChange={handleInputChange}
-              formatRand={formatRand}
-              portfolioNominalReturn={portfolioNominalReturn}
-              yieldLoading={yieldLoading}
-              yieldError={yieldError}
-              useRealReturns={useRealReturns}
-              portfolioRealReturn={portfolioRealReturn}
-            />
-
-            {renderYieldAssumptions()}
-            {renderReturnAssumptions()}
-            {renderStartingCapital()}
-            {renderBudgetTimeCalc()}
-
-            <div className="rounded-3xl bg-brand-purple/5 p-6 text-sm text-brand-ink dark:text-gray-200">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-purple">
-                <TrendingUp className="w-4 h-4" />
-                Goal insight
-              </div>
-              <p className="mt-3 leading-relaxed">
-                Based on current holdings we estimate you are{' '}
-                <span className="font-semibold">{Math.round(projection.currentProgress * 100)}%</span> of the way there.
-                Keeping your baseline plan on autopilot could push that to{' '}
-                <span className="font-semibold">{Math.round(projection.projectedProgress * 100)}%</span> within the term.
-              </p>
-            </div>
+        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl bg-slate-900/70 p-6 shadow-xl">
+            {renderInputs()}
           </div>
-
-          <div className="card space-y-8 md:p-8">
-            <div className="flex flex-col items-center gap-10 md:flex-row md:justify-center md:gap-16">
-              <div className="w-full max-w-xs p-6 text-center md:max-w-sm">
-                <div className="mb-6 flex flex-nowrap items-center justify-center gap-6 text-xs sm:text-sm">
-                  {ringData.map((ring) => (
-                    <div
-                      key={ring.label}
-                      className="group relative flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ring.color }} />
-                      <span className="font-semibold text-brand-ink dark:text-gray-100">{ring.label}</span>
-                      <span className="text-muted dark:text-gray-400">{Math.round(ring.value * 100)}%</span>
-                      <div
-                        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 max-w-[14rem] -translate-x-1/2 rounded-2xl border border-brand-purple/30 bg-white px-3 py-2 text-center text-[11px] text-brand-ink opacity-0 transition duration-150 group-hover:opacity-100 dark:border-slate-700/60 dark:bg-slate-900/90 dark:text-gray-100"
-                        style={{ boxShadow: '0 14px 34px rgba(122,63,242,0.12)' }}
-                      >
-                        {ring.label === 'Current'
-                          ? 'Current value ÷ target.'
-                          : ring.label === 'Projected'
-                            ? 'Projected value by end of term.'
-                            : 'Extra buffer to absorb market swings.'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="relative mx-auto h-72 w-72">
-                  <svg viewBox="0 0 220 220" className="h-full w-full">
-                    <g transform="translate(110,110)">
-                      {ringData.map((ring, index) => {
-                        const radius = 90 - index * 12
-                      return (
-                      <circle
-                        key={ring.label}
-                        r={radius}
-                        cx="0"
-                        cy="0"
-                        fill="transparent"
-                        {...ringStyles(radius, index, ring.value, ring.color)}
-                      />
-                    )})}
-                      <circle r="54" cx="0" cy="0" fill="white" className="dark:fill-slate-900" />
-                    </g>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white dark:bg-slate-900">
-                      <span className="text-[11px] uppercase tracking-wide text-muted dark:text-gray-400">Projected</span>
-                      <span className="text-3xl font-bold text-brand-ink dark:text-white">
-                        {Math.round(projection.projectedProgress * 100)}%
-                      </span>
-                      <span
-                        className={`text-xs font-semibold ${
-                          projection.status === 'Needs focus' ? 'text-danger-600' : 'text-brand-mint dark:text-brand-mint'
-                        }`}
-                      >
-                        {projection.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="grid gap-4 text-left text-sm">
-              <div className="rounded-2xl bg-brand-purple/5 px-4 py-3 space-y-3">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-purple">
-                  <Calendar className="w-4 h-4" />
-                  Timeline
-                </div>
-                <div>
-                  <div className="relative h-3 rounded-full bg-brand-purple/10">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-brand-purple/60"
-                      style={{ width: `${Math.min(termYears / Math.max(projectedYearsToGoal, termYears), 1) * 100}%` }}
-                    />
-                  </div>
-                  <div className="mt-1 flex justify-between text-[11px] uppercase tracking-wide text-muted dark:text-gray-400">
-                    <span>Your term · {termYears} yrs</span>
-                    <span>Projected · {projectedYearsToGoal} yrs</span>
-                  </div>
-                </div>
-                <p className="text-brand-ink dark:text-gray-200">
-                  {timelineContext}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-brand-mint/10 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-mint">
-                  <TrendingDown className="w-4 h-4" />
-                  Margin of error
-                </div>
-                <p className="mt-2 text-brand-ink dark:text-gray-200">
-                  We apply a ±{goalType === 'dividend_growth' ? 8 : goalType === 'passive_income' ? 12 : 10}% confidence band around the projection to cover market drift.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-brand-gold/10 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-gold">
-                  <TrendingUp className="w-4 h-4" />
-                  Next step
-                </div>
-                <p className="mt-2 text-brand-ink dark:text-gray-200">
-                  {additionalContributionPlan.message}
-                </p>
-                {additionalContributionPlan.amount > 0 && (
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted dark:text-gray-400">
-                        <span>Commitment level</span>
-                        <span>{topUpShare}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={topUpShare}
-                        onChange={(event) => setTopUpShare(Number(event.target.value))}
-                        className="mt-2 w-full accent-brand-purple"
-                      />
-                    </div>
-                    <div className="w-full rounded-2xl bg-white/80 px-4 py-3 text-sm tabular-nums dark:bg-slate-800/60">
-                      <div className="grid gap-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Selected</span>
-                          <span className="inline-flex w-[120px] justify-end font-semibold text-brand-ink dark:text-gray-100">
-                            {formatRand(acceptedTopUpAmount)} {additionalContributionPlan.cadence}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Gap after top-up</span>
-                          <span className="inline-flex w-[120px] justify-end font-semibold text-brand-ink dark:text-gray-100">
-                            {formatRand(Math.max(additionalContributionPlan.amount - acceptedTopUpAmount, 0))} {additionalContributionPlan.cadence}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="min-h-[30px]">
-                      <div
-                        className={`rounded-full bg-brand-purple/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand-purple tabular-nums transition-opacity dark:bg-brand-purple/20 dark:text-brand-purple/90 ${
-                          acceptedShare > 0 ? 'opacity-100' : 'opacity-0'
-                        }`}
-                      >
-                        Committed {acceptedShare}% · {formatRand(committedTopUpAmount)} {additionalContributionPlan.cadence}
-                      </div>
-                    </div>
-                    <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-                      <button
-                        type="button"
-                        onClick={confirmTopUpShare}
-                        disabled={topUpShare === 0 || topUpShare === acceptedShare}
-                        className={`btn-cta px-4 py-2 text-sm whitespace-nowrap ${topUpShare === 0 || topUpShare === acceptedShare ? 'opacity-60 pointer-events-none' : ''}`}
-                      >
-                        Confirm selection
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTopUpShare(100)}
-                        className="btn-cta px-4 py-2 text-sm whitespace-nowrap"
-                      >
-                        Accept full top-up
-                      </button>
-                      <div className="inline-flex">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (topUpShare === 0) {
-                              setTopUpShare(50)
-                            } else {
-                              setTopUpShare(0)
-                              setAcceptedShare(0)
-                            }
-                          }}
-                          className="btn-secondary px-4 py-2 text-sm whitespace-nowrap"
-                        >
-                          <span className="block min-w-[72px] text-center">
-                            {topUpShare === 0 ? 'Set 50%' : 'Clear'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted dark:text-gray-400">
-                      Adjusting this slider lets you bank a portion of the suggested top-up without overwriting your plan. Confirmed amounts are tracked above.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="rounded-3xl bg-slate-900/60 p-6 shadow-xl">
+            {loading && <p className="text-sm text-slate-300">Crunching the numbers…</p>}
+            {!loading && plan && renderPlanSummary()}
+            {!loading && !plan && !error && (
+              <p className="text-sm text-slate-400">Enter your goal details and we’ll project the required steps.</p>
+            )}
           </div>
         </section>
       </div>
@@ -1097,104 +361,20 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   )
 }
 
+interface ResultCardProps {
+  label: string
+  value: string
+  helper?: string
+  status?: string
+}
+
+const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status }) => (
+  <div className="rounded-2xl border border-white/10 bg-slate-800/60 p-4">
+    <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+    {status && <p className="text-xs text-cyan-300">Status: {status}</p>}
+    {helper && <p className="text-xs text-slate-400">{helper}</p>}
+  </div>
+)
+
 export default Health
-
-interface MetricInputsProps {
-  goalType: GoalType
-  goalInputs: Record<string, number>
-  handleInputChange: (label: string, value: string) => void
-  formatRand: (value: number) => string
-  portfolioNominalReturn: number | null
-  yieldLoading: boolean
-  yieldError: string | null
-  useRealReturns: boolean
-  portfolioRealReturn: number | null
-}
-
-const MetricInputs: React.FC<MetricInputsProps> = ({
-  goalType,
-  goalInputs,
-  handleInputChange,
-  formatRand,
-  portfolioNominalReturn,
-  yieldLoading,
-  yieldError,
-  useRealReturns,
-  portfolioRealReturn
-}) => {
-  const [currentField, targetField, termField] = HEALTH_DEFAULTS[goalType]
-
-  const currentValue = goalInputs[currentField.label] ?? currentField.value
-  const targetValue = goalInputs[targetField.label] ?? targetField.value
-  const termValue = goalInputs[termField.label] ?? termField.value
-
-  const yieldValue = useRealReturns ? portfolioRealReturn : portfolioNominalReturn
-  const yieldDisplay = yieldLoading
-    ? 'Loading...'
-    : yieldValue !== null && Number.isFinite(yieldValue)
-      ? `${yieldValue.toFixed(2)}% p.a.`
-      : 'Not available'
-  const yieldModeLabel = useRealReturns ? 'Real' : 'Nominal'
-  const yieldHelper = yieldLoading
-    ? 'Fetching your latest return.'
-      : yieldError
-        ? yieldError
-        : yieldValue !== null
-          ? `${yieldModeLabel} annualised return from your live portfolio.`
-          : `Open your portfolio to sync the ${yieldModeLabel.toLowerCase()} annualised return.`
-
-  return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">
-            {currentField.label}
-            {currentField.label.includes('Current annual dividends') && (
-              <span
-                className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-200"
-                title="Calculated as current portfolio value × weighted dividend yield."
-              >
-                i
-              </span>
-            )}
-          </span>
-          <div className="rounded-2xl border border-white/40 bg-white/70 px-4 py-3 text-sm font-semibold text-brand-ink shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-gray-200">
-            {formatRand(currentValue)}
-          </div>
-          <span className="text-xs text-muted dark:text-gray-400">{currentField.helper}</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Portfolio return (annualised)</span>
-          <div className="rounded-2xl border border-white/40 bg-white/90 px-4 py-3 text-sm font-semibold text-brand-ink shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-gray-100">
-            {yieldDisplay}
-          </div>
-          <span className="text-xs text-muted dark:text-gray-400">
-            {yieldHelper}
-          </span>
-        </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">{targetField.label}</span>
-          <input
-            type="number"
-            value={targetValue}
-            onChange={(event) => handleInputChange(targetField.label, event.target.value)}
-            className="input-field rounded-2xl bg-white/90 dark:bg-slate-800/80"
-          />
-          <span className="text-xs text-muted dark:text-gray-400">{targetField.helper}</span>
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">{termField.label}</span>
-          <input
-            type="number"
-            value={termValue}
-            onChange={(event) => handleInputChange(termField.label, event.target.value)}
-            className="input-field rounded-2xl bg-white/90 dark:bg-slate-800/80"
-          />
-          <span className="text-xs text-muted dark:text-gray-400">{termField.helper}</span>
-        </label>
-      </div>
-    </>
-  )
-}

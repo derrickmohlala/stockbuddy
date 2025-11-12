@@ -25,3 +25,11 @@
   user = User.query.get(user_id)
 127.0.0.1 - - [12/Nov/2025 19:18:28] "[33mGET /api/users/22 HTTP/1.1[0m" 404 -
 127.0.0.1 - - [12/Nov/2025 19:18:28] "[33mGET /api/users/22 HTTP/1.1[0m" 404 -
+ * Detected change in '/Users/derrickmohlala/stockbuddy/backend/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 209-547-634
+ * Detected change in '/Users/derrickmohlala/stockbuddy/backend/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 209-547-634
