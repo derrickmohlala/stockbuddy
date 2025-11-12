@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { TrendingUp, Gauge, Coins, ShieldCheck, Target, ArrowUpRight, Wallet, BarChart3 } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 
 type GoalType = 'growth' | 'balanced' | 'income'
@@ -44,6 +45,27 @@ const currencyFormatter = new Intl.NumberFormat('en-ZA', {
   currency: 'ZAR',
   maximumFractionDigits: 0
 })
+
+const GOAL_META: Record<GoalType, { title: string; tone: string; icon: React.ReactNode; helper: string }> = {
+  growth: {
+    title: 'Growth runway',
+    tone: 'Aim higher without guesswork.',
+    icon: <TrendingUp className="text-cyan-300" />,
+    helper: 'Keep rand targets in sight by translating them into monthly actions.'
+  },
+  balanced: {
+    title: 'Inflation shield',
+    tone: 'Stay safely ahead of rising prices.',
+    icon: <ShieldCheck className="text-amber-200" />,
+    helper: 'Track whether your rand return is beating the inflation line you care about.'
+  },
+  income: {
+    title: 'Income engine',
+    tone: 'Let dividends carry everyday costs.',
+    icon: <Coins className="text-emerald-300" />,
+    helper: 'See how today’s yield converts into tomorrow’s paycheck and what to do next.'
+  }
+}
 
 const Health: React.FC<HealthProps> = ({ userId }) => {
   const [goalType, setGoalType] = useState<GoalType>('growth')
@@ -159,37 +181,42 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   }, [plan, goalType])
 
   const heroContent = useMemo(() => {
+    const meta = GOAL_META[goalType]
     if (!plan) {
       return {
-        title: 'Select a focus',
-        primary: 'Tell us your target',
-        detail: 'Pick growth, balanced, or income and we will translate it into concrete actions.',
-        badge: 'Setup pending'
+        title: meta.title,
+        primary: meta.tone,
+        detail: meta.helper,
+        badge: 'Setup pending',
+        icon: meta.icon
       }
     }
     if (goalType === 'growth') {
       return {
-        title: 'Growth runway',
+        title: meta.title,
         primary: `Aim for ${currencyFormatter.format(plan.target_value || targetValue)}`,
-        detail: plan.message || 'Increase contributions or rebalance to stay on track.',
-        badge: `${(plan.progress_pct ?? 0).toFixed(1)}% complete`
+        detail: plan.message || meta.helper,
+        badge: `${(plan.progress_pct ?? 0).toFixed(1)}% complete`,
+        icon: meta.icon
       }
     }
     if (goalType === 'balanced') {
       const real = plan.real_return_pct ?? 0
       const status = real >= 0 ? 'Ahead of inflation' : 'Lagging inflation'
       return {
-        title: 'Inflation radar',
+        title: meta.title,
         primary: `${real.toFixed(2)} pts real return`,
-        detail: plan.message || 'Keep nominal returns comfortably above the inflation target.',
-        badge: status
+        detail: plan.message || meta.helper,
+        badge: status,
+        icon: meta.icon
       }
     }
     return {
-      title: 'Income engine',
+      title: meta.title,
       primary: `${currencyFormatter.format(plan.current_monthly_income || 0)} / mo now`,
-      detail: plan.message || 'Channel contributions or hunt for higher-yield sleeves to cover living costs.',
-      badge: `Goal: ${currencyFormatter.format(plan.target_monthly_income || 0)} / mo`
+      detail: plan.message || meta.helper,
+      badge: `Goal: ${currencyFormatter.format(plan.target_monthly_income || 0)} / mo`,
+      icon: meta.icon
     }
   }, [plan, goalType, targetValue])
 
@@ -262,27 +289,27 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     return (
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
-          <button
-            type="button"
+          <GoalTab
+            label="Growth target"
+            active={goalType === 'growth'}
+            icon={<TrendingUp className="h-4 w-4" />}
             onClick={() => setGoalType('growth')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'growth' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
-          >
-            Growth target
-          </button>
-          <button
-            type="button"
+            helper="Chase a rand milestone"
+          />
+          <GoalTab
+            label="Balanced (beat inflation)"
+            active={goalType === 'balanced'}
+            icon={<Gauge className="h-4 w-4" />}
             onClick={() => setGoalType('balanced')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'balanced' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
-          >
-            Balanced (beat inflation)
-          </button>
-          <button
-            type="button"
+            helper="Stay ahead of CPI"
+          />
+          <GoalTab
+            label="Income (dividends)"
+            active={goalType === 'income'}
+            icon={<Wallet className="h-4 w-4" />}
             onClick={() => setGoalType('income')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${goalType === 'income' ? 'bg-cyan-400 text-slate-900 shadow' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
-          >
-            Income (dividends)
-          </button>
+            helper="Cover living costs"
+          />
         </div>
 
         <label className="flex flex-col gap-2 text-sm text-slate-200">
@@ -395,22 +422,41 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 py-12 text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.4em] text-cyan-300">Health check</p>
-          <h1 className="text-4xl font-semibold">Stay on plan, the easy way</h1>
-          <p className="text-sm text-slate-300">
-            Set a rand goal, inflation target, or dividend income objective. We’ll translate it into monthly contributions, timelines, and plain-language actions.
-          </p>
+        <header className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-1 text-[11px] uppercase tracking-[0.35em] text-cyan-300">
+            <BarChart3 className="h-3 w-3" /> Health desk
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-4xl font-semibold">Stay on plan, the easy way</h1>
+              <p className="text-sm text-slate-300">
+                Translate goals into contributions, see if inflation is catching up, and keep dividend targets honest — without spreadsheets.
+              </p>
+            </div>
+            <button
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-400/20 px-4 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/30"
+              onClick={() => goalType !== 'growth' && setGoalType('growth')}
+            >
+              <ArrowUpRight className="h-4 w-4" /> Start fresh goal
+            </button>
+          </div>
         </header>
 
         <section className="rounded-3xl bg-white/5 p-6 shadow-2xl backdrop-blur">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-cyan-200">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-wide text-cyan-200">
                 {heroContent.badge}
               </div>
-              <p className="text-2xl font-semibold text-white">{heroContent.title}</p>
-              <p className="text-4xl font-bold text-cyan-200">{heroContent.primary}</p>
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-white/10 p-3">
+                  {heroContent.icon}
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-white">{heroContent.title}</p>
+                  <p className="text-sm text-slate-300">{heroContent.primary}</p>
+                </div>
+              </div>
               <p className="text-sm text-slate-200 max-w-2xl">{heroContent.detail}</p>
             </div>
             <div className="flex items-center gap-6">
@@ -483,3 +529,21 @@ const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label }) => {
 }
 
 export default Health
+interface GoalTabProps {
+  label: string
+  helper: string
+  icon: React.ReactNode
+  active: boolean
+  onClick: () => void
+}
+
+const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex flex-col gap-1 rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-cyan-300 bg-cyan-400/20 text-cyan-50 shadow-lg' : 'border-white/5 bg-slate-900/40 text-slate-200 hover:border-cyan-300/40'}`}
+  >
+    <span className="flex items-center gap-2 text-sm font-semibold">{icon} {label}</span>
+    <span className="text-xs text-slate-400">{helper}</span>
+  </button>
+)
