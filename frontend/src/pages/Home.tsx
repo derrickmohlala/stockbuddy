@@ -173,11 +173,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
 
   return (
     <div className="space-y-20">
-      <section className="relative overflow-hidden rounded-[48px] border border-[#e7e9f3] bg-white px-8 py-14 shadow-[0_45px_120px_-60px_rgba(94,102,135,0.45)]">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-28 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-purple/10 blur-3xl"></div>
-          <div className="absolute bottom-[-120px] right-[-80px] h-64 w-64 rounded-full bg-brand-mint/15 blur-3xl"></div>
-        </div>
+      <section className="rounded-[44px] border border-[#e7e9f3] bg-white px-8 py-14">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center">
           <div className="space-y-8">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -218,7 +214,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
             </div>
           </div>
           <div className="grid gap-4">
-            <div className="rounded-3xl border border-[#e7e9f3] bg-white/80 p-6 shadow-[0_30px_80px_-50px_rgba(94,102,135,0.55)] backdrop-blur">
+            <div className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase tracking-[0.3em] text-muted">Navigator growth</span>
                 <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">Live</span>
@@ -242,9 +238,9 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
                 </div>
               </div>
             </div>
-            <div className="grid gap-4 rounded-3xl border border-[#e7e9f3] bg-white/90 p-6 shadow-[0_25px_70px_-50px_rgba(94,102,135,0.55)]">
+            <div className="grid gap-4 rounded-3xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-[0.3em] text-muted">Daily rhythm</span>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted">Daily rhythm</p>
                 <span className="text-xs font-medium text-brand-purple">Auto curated</span>
               </div>
               <div className="space-y-3 text-sm text-subtle">
@@ -283,7 +279,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
         ].map((feature) => (
           <div
             key={feature.title}
-            className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_30px_80px_-60px_rgba(94,102,135,0.45)]"
+            className="rounded-3xl border border-[#e7e9f3] bg-white px-6 py-8"
           >
             <h3 className="text-xl font-semibold text-primary-ink">{feature.title}</h3>
             <p className="mt-3 text-subtle">{feature.copy}</p>
@@ -291,7 +287,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
         ))}
       </section>
 
-      <section className="mx-auto max-w-6xl rounded-[40px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+      <section className="mx-auto max-w-6xl rounded-[40px] border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 md:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-5">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -347,12 +343,12 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
             Local insight feed
           </div>
         </div>
-        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
+        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8">
           <FlashcardCarousel cards={flashcards} perPage={6} />
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 text-center shadow-[0_40px_120px_-70px_rgba(94,102,135,0.5)]">
+      <section className="mx-auto max-w-5xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 text-center">
         <h2 className="text-3xl font-semibold text-primary-ink">Launch your investing era with clarity.</h2>
         <p className="mt-3 text-lg text-subtle">
           Join thousands of South Africans who now understand their risk, their inflation gap, and their dividend runway.
@@ -388,16 +384,16 @@ const Flashcard: React.FC<FlashcardProps> = ({ term, analogy }) => {
       aria-label={`Flashcard for ${term}`}
     >
       <div className={`relative h-52 w-full transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? 'rotate-y-180' : ''}`}>
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 p-px shadow-lg [backface-visibility:hidden]">
-          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[inherit] bg-slate-950/95 px-6 py-6 text-center">
-            <Wallet className="h-8 w-8 text-primary-100" />
-            <p className="text-lg font-semibold text-white tracking-wide">{term}</p>
-            <p className="text-xs uppercase text-primary-200/80 tracking-[0.25em]">Tap to flip</p>
+        <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6 [backface-visibility:hidden]">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <Wallet className="h-8 w-8 text-brand-purple" />
+            <p className="text-lg font-semibold text-primary-ink tracking-wide">{term}</p>
+            <p className="text-xs uppercase text-muted tracking-[0.25em]">Tap to flip</p>
           </div>
         </div>
-        <div className="absolute inset-0 rounded-2xl bg-slate-900/90 px-6 py-6 text-left text-sm text-primary-100 shadow-lg [backface-visibility:hidden] rotate-y-180">
-          <p className="font-semibold text-primary-200 mb-3">{term} in plain language</p>
-          <p className="leading-relaxed text-slate-100 text-sm">{analogy}</p>
+        <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6 text-left text-sm text-subtle [backface-visibility:hidden] rotate-y-180">
+          <p className="font-semibold text-primary-ink mb-3">{term} in plain language</p>
+          <p className="leading-relaxed">{analogy}</p>
         </div>
       </div>
     </button>

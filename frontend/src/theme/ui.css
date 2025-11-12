@@ -1,64 +1,56 @@
-.hero-gradient { background: linear-gradient(135deg,#7a3ff2 0%,#3fd0c9 60%,#ffc943 100%); }
-.card-sheen { background: linear-gradient(180deg,rgba(122,63,242,.18) 0%,rgba(63,208,201,.10) 100%); }
+.hero-gradient { background: none; }
+.card-sheen { background: none; }
 
 .btn-cta {
-  @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight transition-all duration-200 ease-out;
-  background: linear-gradient(120deg, var(--brand-coral) 0%, var(--brand-purple) 45%, var(--brand-mint) 100%);
-  color: var(--surface-contrast-text);
-  padding: 0.8rem 1.8rem;
-  box-shadow: 0 18px 38px rgba(233, 75, 75, 0.28);
+  @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight transition-colors duration-200 ease-out;
+  background: var(--brand-coral);
+  color: #ffffff;
+  padding: 0.85rem 1.9rem;
 }
 .btn-cta:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
+  filter: brightness(1.04);
 }
 .btn-cta:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-full border font-semibold transition-all duration-200 ease-out;
+  @apply inline-flex items-center justify-center gap-2 rounded-full border font-semibold transition-colors duration-200 ease-out;
   border-color: var(--border-strong);
-  background: rgba(255,255,255,0.72);
+  background: #ffffff;
   color: var(--text-primary);
-  padding: 0.75rem 1.6rem;
-  backdrop-filter: blur(14px);
+  padding: 0.8rem 1.7rem;
 }
 .btn-secondary:hover {
-  border-color: var(--brand-purple);
-  color: var(--brand-purple);
+  border-color: rgba(233, 75, 75, 0.35);
+  color: var(--brand-coral);
 }
 
 .badge {
   @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em];
   border-color: var(--border-soft);
   color: var(--text-secondary);
-  background: rgba(255,255,255,0.6);
+  background: #ffffff;
 }
 
 .surface-panel {
   position: relative;
-  border-radius: 24px;
+  border-radius: 28px;
   border: 1px solid var(--border-soft);
-  background: var(--surface-raised);
-  box-shadow: 0 18px 45px rgba(16, 20, 40, 0.16);
-  backdrop-filter: blur(18px);
+  background: var(--surface-base);
 }
 
 .surface-card {
   border-radius: 24px;
   border: 1px solid var(--border-soft);
-  background: var(--surface-card);
-  box-shadow: 0 24px 60px rgba(15, 18, 35, 0.22);
+  background: var(--surface-base);
 }
 
 .surface-glass {
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.1) 100%);
-  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-soft);
+  background: rgba(255,255,255,0.92);
 }
 
 .chip {
@@ -70,7 +62,7 @@
 .stat-stack {
   @apply flex flex-col gap-2 rounded-2xl border p-4;
   border-color: var(--border-soft);
-  background: rgba(255,255,255,0.65);
+  background: #ffffff;
 }
 
 .headline-gradient {

@@ -231,7 +231,7 @@ const Discover: React.FC = () => {
 
   return (
     <div className="space-y-16">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_120px_-70px_rgba(94,102,135,0.5)]">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div className="space-y-5">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -273,7 +273,7 @@ const Discover: React.FC = () => {
       </section>
 
       <section className="mx-auto max-w-6xl space-y-12 px-4">
-        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-6 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
+        <div className="rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-6">
           <div className="flex flex-col gap-4 lg:flex-row">
             <div className="flex-1">
               <div className="relative">
@@ -283,7 +283,7 @@ const Discover: React.FC = () => {
                   placeholder="Search instruments or tickers"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-full border border-[#e7e9f3] bg-white px-12 py-3 text-sm text-primary-ink shadow-[0_12px_30px_-20px_rgba(94,102,135,0.45)] focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+                  className="w-full rounded-full border border-[#e7e9f3] bg-white px-12 py-3 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
                 />
               </div>
             </div>
@@ -339,7 +339,7 @@ const Discover: React.FC = () => {
               onClick={() => setActiveTab(tab.key as any)}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 activeTab === tab.key
-                  ? 'border-brand-coral bg-brand-coral text-white shadow-[0_15px_30px_-20px_rgba(233,75,75,0.6)]'
+                  ? 'border-brand-coral bg-brand-coral text-white'
                   : 'border-[#e7e9f3] bg-white text-muted hover:border-brand-coral/40 hover:text-brand-coral'
               }`}
             >
@@ -350,7 +350,7 @@ const Discover: React.FC = () => {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredInstruments.map(instrument => (
-            <div key={instrument.id} className="rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6 shadow-[0_28px_90px_-70px_rgba(94,102,135,0.5)] transition hover:-translate-y-1">
+            <div key={instrument.id} className="rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6">
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getTypeIcon(instrument.type)}</span>
@@ -425,7 +425,7 @@ const Discover: React.FC = () => {
         </div>
 
         {filteredInstruments.length === 0 && (
-          <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-12 text-center shadow-[0_28px_90px_-70px_rgba(94,102,135,0.45)]">
+          <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-12 text-center">
             <p className="text-subtle">No instruments found matching your criteria.</p>
           </div>
         )}
