@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { TrendingUp, Gauge, Coins, ShieldCheck, Target, ArrowUpRight, Wallet, BarChart3 } from 'lucide-react'
+import { TrendingUp, Gauge, Coins, ShieldCheck, ArrowUpRight, Wallet, BarChart3 } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 
 type GoalType = 'growth' | 'balanced' | 'income'
