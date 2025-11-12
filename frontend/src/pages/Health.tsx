@@ -227,12 +227,12 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       const timelineYears = plan.timeline_for_budget_months ? plan.timeline_for_budget_months / 12 : null
       return (
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 auto-rows-fr">
             <ResultCard label="Current value" value={`R ${plan.current_value?.toLocaleString() ?? '0'}`} />
             <ResultCard label="Target value" value={`R ${plan.target_value?.toLocaleString() ?? '0'}`} />
             <ResultCard label="Progress" value={`${plan.progress_pct?.toFixed(1) ?? '0'}%`} helper="How close you are to the growth goal." />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 auto-rows-fr">
             <ResultCard label="Annual return assumption" value={`${plan.annual_return_pct?.toFixed(2) ?? '0'}% p.a.`} />
             <ResultCard label="Monthly needed" value={`R ${plan.required_monthly_contribution?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} helper="Projected contribution to land the target within the chosen term." />
             <ResultCard label="Once-off gap" value={`R ${plan.lump_sum_gap?.toLocaleString() ?? '0'}`} helper="Capital boost required if you prefer a lump sum." />
@@ -252,7 +252,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     if (goalType === 'balanced') {
       return (
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 auto-rows-fr">
             <ResultCard label="Nominal return" value={`${plan.nominal_return_pct?.toFixed(2) ?? '0'}% p.a.`} />
             <ResultCard label="Inflation target" value={`${plan.inflation_target_pct?.toFixed(2) ?? '0'}% p.a.`} helper={inflationMode === 'sarb' ? 'SARB upper target' : 'Custom target selected'} />
             <ResultCard label="Real return" value={`${plan.real_return_pct?.toFixed(2) ?? '0'} pts`} helper="Return minus inflation target." status={plan.status} />
@@ -264,12 +264,12 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
 
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3 auto-rows-fr">
           <ResultCard label="Current monthly income" value={`R ${plan.current_monthly_income?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
           <ResultCard label="Target monthly income" value={`R ${plan.target_monthly_income?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
           <ResultCard label="Yield" value={`${plan.dividend_yield_pct?.toFixed(2) ?? '0'}%`} helper="Weighted dividend yield from your holdings." />
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3 auto-rows-fr">
           <ResultCard label="Monthly needed" value={`R ${plan.required_monthly_contribution?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
           <ResultCard label="Once-off gap" value={`R ${plan.lump_sum_gap?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '0'}`} />
           {plan.monthly_budget && (
@@ -319,7 +319,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             min={1}
             value={termYears}
             onChange={(e) => setTermYears(Number(e.target.value) || 1)}
-            className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-cyan-400"
           />
         </label>
 
@@ -332,7 +332,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={1}
                 value={targetValue}
                 onChange={(e) => setTargetValue(Number(e.target.value) || 0)}
-                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-slate-200">
@@ -342,7 +342,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={monthlyBudget}
                 onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
               />
             </label>
           </>
@@ -368,7 +368,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                   min={0}
                   value={customInflation}
                   onChange={(e) => setCustomInflation(e.target.value)}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                  className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
                 />
               </label>
             )}
@@ -384,7 +384,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={incomeGoal}
                 onChange={(e) => setIncomeGoal(e.target.value)}
-                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-slate-200">
@@ -392,7 +392,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               <select
                 value={incomeFrequency}
                 onChange={(e) => setIncomeFrequency(e.target.value as 'monthly' | 'annual')}
-                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
               >
                 <option value="monthly">Per month</option>
                 <option value="annual">Per year</option>
@@ -405,7 +405,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={monthlyBudget}
                 onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-2 text-white focus:ring-2 focus:ring-cyan-400"
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-white shadow-inner focus:ring-2 focus:ring-cyan-400"
               />
             </label>
           </>
@@ -541,7 +541,7 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick 
   <button
     type="button"
     onClick={onClick}
-    className={`flex flex-col gap-1 rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-cyan-300 bg-cyan-400/20 text-cyan-50 shadow-lg' : 'border-white/5 bg-slate-900/40 text-slate-200 hover:border-cyan-300/40'}`}
+    className={`flex min-h-[110px] flex-col justify-between rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-cyan-300 bg-gradient-to-br from-cyan-500/20 to-cyan-300/10 text-cyan-50 shadow-lg' : 'border-white/5 bg-slate-900/50 text-slate-200 hover:border-cyan-300/40'}`}
   >
     <span className="flex items-center gap-2 text-sm font-semibold">{icon} {label}</span>
     <span className="text-xs text-slate-400">{helper}</span>
