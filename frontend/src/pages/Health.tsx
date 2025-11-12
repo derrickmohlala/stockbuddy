@@ -889,8 +889,6 @@ const PlanCallout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 )
 
-type AccentKey = 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia'
-
 const ACCENT_TOKENS: Record<
   AccentKey,
   {
