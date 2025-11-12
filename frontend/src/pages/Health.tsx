@@ -511,7 +511,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       <div className="space-y-6">
         <div className="space-y-2">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Plan controls</p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             {goalOptions.map(({ value, label, helper }) => {
               const active = goalType === value
               return (
@@ -519,14 +519,16 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                   key={value}
                   type="button"
                   onClick={() => setGoalType(value)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    active ? 'border-brand-purple bg-brand-purple text-white' : 'border-soft bg-white text-subtle hover:border-brand-purple hover:text-brand-purple'
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    active ? 'border-brand-purple bg-brand-purple text-white' : 'border-soft bg-white text-primary-ink hover:border-brand-purple hover:text-brand-purple'
                   }`}
                 >
-                  <span className="block text-left leading-tight">
-                    <span>{label}</span>
+                  <span className="block text-sm font-semibold">{label}</span>
+                  {active ? (
+                    <span className="block text-xs font-normal text-white/80">{helper}</span>
+                  ) : (
                     <span className="block text-xs font-normal text-muted">{helper}</span>
-                  </span>
+                  )}
                 </button>
               )
             })}

@@ -143,8 +143,6 @@ const MONTH_NAMES = [
 ]
 
 const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
-  const isDark = false
-  const isDarkMode = false
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [scenarioData, setScenarioData] = useState<any>(null)
@@ -1441,17 +1439,6 @@ const handleResetScenario = async () => {
   const sortedAlerts = useMemo(() => {
     return [...goalAlerts].sort((a, b) => (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3))
   }, [goalAlerts])
-  const alertStyles: Record<GoalAlert['severity'], string> = useMemo(() => ({
-    critical: isDark
-      ? 'border border-rose-500/60 bg-rose-500/15 text-rose-100'
-      : 'border border-rose-400/60 bg-rose-50 text-rose-800',
-    warning: isDark
-      ? 'border border-amber-500/60 bg-amber-500/18 text-amber-100'
-      : 'border border-amber-400/60 bg-amber-50 text-amber-800',
-    info: isDark
-      ? 'border border-sky-500/50 bg-sky-500/15 text-sky-100'
-      : 'border border-sky-400/60 bg-sky-50 text-sky-800'
-  }), [isDark])
   const criticalCount = sortedAlerts.filter(alert => alert.severity === 'critical').length
   const warningCount = sortedAlerts.filter(alert => alert.severity === 'warning').length
 
@@ -1650,9 +1637,9 @@ const handleResetScenario = async () => {
     ? ((inflationAdjust && performanceData.total_return_real !== null ? performanceData.total_return_real : performanceData.total_return) / Math.max(performanceData.total_invested || 1, 1)) * 100
     : 0
 
-  const axisColor = isDarkMode ? '#dfe6ee' : '#2a2a2a'
-  const gridColor = isDarkMode ? 'rgba(223,230,238,0.08)' : 'rgba(0,0,0,0.05)'
-  const tooltipBg = isDarkMode ? 'rgba(15,23,42,0.92)' : 'rgba(42,42,42,0.9)'
+  const axisColor = '#2a2a2a'
+  const gridColor = 'rgba(0,0,0,0.05)'
+  const tooltipBg = 'rgba(42,42,42,0.9)'
 
   const chartOptions = {
     responsive: true,
@@ -1752,7 +1739,7 @@ const handleResetScenario = async () => {
 
   return (
     <div className="space-y-16">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
+      <section className="mx-auto max-w-6xl rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
           <div className="space-y-6">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -1765,22 +1752,22 @@ const handleResetScenario = async () => {
               {portfolio.plan_summary || 'Track progress, contributions, and inflation headroom without wrestling spreadsheets.'}
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.4em] text-muted">Total value</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalValue)}</p>
               </div>
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.4em] text-muted">Total return</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalReturn)}</p>
                 <p className="text-sm text-brand-mint">{formatPercentage(displayedTotalReturnPct)}</p>
               </div>
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
+              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.4em] text-muted">Weighted yield</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{portfolioWeightedYield !== null ? `${portfolioWeightedYield.toFixed(2)}%` : '--'}</p>
               </div>
             </div>
           </div>
-          <div className="space-y-5 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
+          <div className="space-y-5 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-primary-ink">Plan quick actions</p>
               <PiggyBank className="h-5 w-5 text-brand-purple" />
@@ -1804,75 +1791,70 @@ const handleResetScenario = async () => {
 
       <div className="max-w-7xl mx-auto px-4 space-y-12">
         {sortedAlerts.length > 0 && (
-          <div className="mb-8 space-y-3">
+          <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <h2 className={`text-lg font-semibold ${isDark ? 'text-slate-100' : 'text-brand-ink'}`}>Goal tracking alerts</h2>
-              <div className={`flex flex-wrap items-center gap-3 ${isDark ? 'text-slate-300' : 'text-brand-ink/70'}`}>
-                {criticalCount > 0 && <span className={isDark ? 'text-rose-300' : 'text-rose-600'}>Critical: {criticalCount}</span>}
-                {warningCount > 0 && <span className={isDark ? 'text-amber-200' : 'text-amber-600'}>Warnings: {warningCount}</span>}
-                <span className={isDark ? 'text-sky-200' : 'text-sky-600'}>{sortedAlerts.length} total</span>
+              <h2 className="text-lg font-semibold text-brand-ink">Goal tracking alerts</h2>
+              <div className="flex flex-wrap items-center gap-3 text-brand-ink/70">
+                {criticalCount > 0 && <span className="text-brand-coral">Critical: {criticalCount}</span>}
+                {warningCount > 0 && <span className="text-amber-600">Warnings: {warningCount}</span>}
+                <span className="text-brand-purple">{sortedAlerts.length} total</span>
               </div>
             </div>
             <div className="space-y-3">
               {sortedAlerts.map((alert) => {
-                const severityTone =
+                const severityBadge =
                   alert.severity === 'critical'
-                    ? (isDark ? 'bg-rose-500/20 text-rose-100' : 'bg-rose-100 text-rose-700')
+                    ? 'bg-brand-coral text-white'
                     : alert.severity === 'warning'
-                      ? (isDark ? 'bg-amber-500/20 text-amber-100' : 'bg-amber-100 text-amber-700')
-                      : (isDark ? 'bg-sky-500/20 text-sky-100' : 'bg-sky-100 text-sky-700')
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-brand-mint text-white'
 
-                const neutralChipTone = isDark
-                  ? 'bg-slate-900/40 text-slate-200'
-                  : 'bg-white text-brand-ink border border-brand-ink/10 shadow-sm'
+                const iconTint =
+                  alert.severity === 'critical'
+                    ? 'text-brand-coral'
+                    : alert.severity === 'warning'
+                      ? 'text-amber-600'
+                      : 'text-brand-mint'
 
-                const triggerChipTone = isDark
-                  ? 'bg-slate-900/50 text-slate-200'
-                  : 'bg-brand-ink/5 text-brand-ink'
-
-                const triggerLabelTone = isDark ? 'text-slate-400' : 'text-brand-ink/60'
-                const actionTone = isDark ? 'text-slate-200' : 'text-brand-ink/75'
-                const timestampTone = isDark ? 'text-slate-400' : 'text-brand-ink/60'
-                const iconWrapperTone = isDark ? 'bg-slate-950/40 text-slate-200' : 'bg-brand-ink/10 text-brand-ink'
-                const messageTone = isDark ? 'text-slate-100' : 'text-brand-ink'
+                const metaBadge = 'rounded-full border border-[#e7e9f3] bg-white px-2 py-1 text-[11px] font-semibold text-primary-ink'
 
                 return (
                   <div
                     key={alert.id}
-                    className={`rounded-2xl px-4 py-4 shadow-sm backdrop-blur ${alertStyles[alert.severity]}`}
+                    className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4"
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full shadow-inner ${iconWrapperTone}`}>
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full border border-[#e7e9f3] bg-white ${iconTint}`}>
                         {renderAlertIcon(alert.severity)}
                       </div>
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide font-semibold">
-                          <span className={`rounded-full px-2 py-1 ${severityTone}`}>{alert.severity}</span>
+                          <span className={`rounded-full px-2 py-1 ${severityBadge}`}>{alert.severity}</span>
                           {alert.symbol && (
-                            <span className={`rounded-full px-2 py-1 ${neutralChipTone}`}>{alert.symbol}</span>
+                            <span className={metaBadge}>{alert.symbol}</span>
                           )}
                           {alert.metric && (
-                            <span className={`rounded-full px-2 py-1 ${neutralChipTone}`}>{alert.metric.replace(/_/g, ' ')}</span>
+                            <span className={metaBadge}>{alert.metric.replace(/_/g, ' ')}</span>
                           )}
                         </div>
-                        <p className={`text-sm leading-relaxed ${messageTone}`}>{alert.message}</p>
+                        <p className="text-sm leading-relaxed text-primary-ink">{alert.message}</p>
                         {alert.trigger && (
                           <div className="flex flex-wrap items-center gap-2 text-[11px]">
                             {Object.entries(alert.trigger).map(([key, value]) => (
-                              <span key={key} className={`rounded-full px-2 py-1 ${triggerChipTone}`}>
-                                <span className={`${triggerLabelTone}`}>{key.replace(/_/g, ' ')}:</span>{' '}
+                              <span key={key} className={metaBadge}>
+                                <span className="text-muted">{key.replace(/_/g, ' ')}:</span>{' '}
                                 {formatTriggerValue(key, value)}
                               </span>
                             ))}
                           </div>
                         )}
                         {alert.suggested_action && (
-                          <p className={`text-xs ${actionTone}`}>
+                          <p className="text-xs text-subtle">
                             Suggested action: {alert.suggested_action}
                           </p>
                         )}
                         {alert.created_at && (
-                          <p className={`text-[11px] ${timestampTone}`}>
+                          <p className="text-[11px] text-muted">
                             Flagged {new Date(alert.created_at).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         )}

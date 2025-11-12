@@ -226,7 +226,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
 
   return (
     <div className="space-y-16">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12">
+      <section className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
@@ -253,7 +253,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               </div>
             </div>
           </div>
-          <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
+          <div className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-primary-ink">Next earnings checkpoint</p>
               <CalendarDays className="h-5 w-5 text-brand-purple" />
@@ -298,7 +298,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         {(anchorHeadline || benchmarkHeadline) && (
           <div className="grid gap-6 md:grid-cols-2">
             {anchorHeadline && (
-              <div className="space-y-4 rounded-[30px] border border-brand-purple/30 bg-white px-5 py-6">
+              <div className="space-y-4 rounded-2xl border border-brand-purple/30 bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.4em] text-brand-purple">Anchor watch</p>
@@ -310,7 +310,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               </div>
             )}
             {benchmarkHeadline && (
-              <div className="space-y-4 rounded-[30px] border border-[#e7e9f3] bg-white px-5 py-6">
+              <div className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.4em] text-muted">Benchmark pulse</p>
@@ -336,7 +336,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
           </div>
 
           {holdingNews.length === 0 ? (
-            <div className="rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle">
+            <div className="rounded-2xl border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle">
               Your watchlist is quiet. We’ll surface stories as soon as your holdings hit the news cycle.
             </div>
           ) : (
@@ -362,7 +362,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         </div>
 
         {shouldRenderScheduleCard && (
-          <section className="space-y-6 rounded-[32px] border border-[#e7e9f3] bg-white px-6 py-8">
+          <section className="space-y-6 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-semibold text-primary-ink">Upcoming earnings checkpoints</h2>
@@ -374,7 +374,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               {scheduleSections.map(({ key, label, helper }) => {
                 const grouped = earningsSchedule[key] ?? []
                 return (
-                  <div key={key} className="space-y-4 rounded-[24px] border border-[#e7e9f3] bg-white px-5 py-5">
+                  <div key={key} className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-5">
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-primary-ink">{label}</p>
                       <p className="text-xs text-subtle">{helper}</p>
