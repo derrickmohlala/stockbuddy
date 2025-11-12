@@ -132,6 +132,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   const [customReturnPct, setCustomReturnPct] = useState<string>('')
   const [startingCapital, setStartingCapital] = useState<number | null>(null)
   const [monthlyBudget, setMonthlyBudget] = useState<string>('')
+  const [baselineMode, setBaselineMode] = useState<'holdings' | 'plan'>('holdings')
   const [useRealReturns, setUseRealReturns] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('stockbuddy_inflation_adjust') === '1'
@@ -218,6 +219,36 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     }
     loadPortfolioPresence()
   }, [userId])
+
+  // Initialise baseline from the last Portfolio simulation if available (novice-friendly)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('stockbuddy_last_simulation_plan')
+      if (!raw) return
+      const plan = JSON.parse(raw)
+      // Prefer plan baseline: simple “I invest X now” matches Portfolio
+      const start = Number(plan?.starting_investment)
+      if (Number.isFinite(start) && start > 0) {
+        setBaselineMode('plan')
+        setStartingCapital(Math.round(start))
+      }
+      const months = Number(plan?.months)
+      if (Number.isFinite(months) && months > 0) {
+        const years = Math.max(1, Math.round(months / 12))
+        setGoalInputs(prev => ({ ...prev, 'Term in years': years }))
+      }
+      const planYield = Number(plan?.average_dividend_yield)
+      if (Number.isFinite(planYield) && planYield > 0) {
+        setUseCustomYield(true)
+        setCustomYieldPct(String(planYield.toFixed(1)))
+      }
+      const planReturn = Number(plan?.annual_return)
+      if (Number.isFinite(planReturn)) {
+        setUseCustomReturn(true)
+        setCustomReturnPct(String(planReturn.toFixed(2)))
+      }
+    } catch {}
+  }, [])
 
   // Derive effective yield (%) and return (%) from portfolio or custom overrides
   const effectiveYieldPct = useMemo(() => {
@@ -592,6 +623,25 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       : 'n/a'
     return (
       <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
+        <div className="mb-2 flex items-center gap-3">
+          <label className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Baseline</label>
+          <div className="inline-flex rounded-full bg-gray-100 p-1 text-xs dark:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => setBaselineMode('plan')}
+              className={`px-3 py-1 rounded-full ${baselineMode === 'plan' ? 'bg-primary-600 text-white' : 'text-muted dark:text-gray-300'}`}
+            >
+              Last plan (simple)
+            </button>
+            <button
+              type="button"
+              onClick={() => setBaselineMode('holdings')}
+              className={`px-3 py-1 rounded-full ${baselineMode === 'holdings' ? 'bg-primary-600 text-white' : 'text-muted dark:text-gray-300'}`}
+            >
+              Current holdings
+            </button>
+          </div>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Dividend yield assumption</p>
@@ -680,6 +730,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             className="input-field w-48"
           />
           <span className="text-xs text-muted dark:text-gray-400">We infer current dividends as start × yield.</span>
+        </div>
+        <div className="mt-2 text-xs text-muted dark:text-gray-400">
+          Tip: If you’ve just run a plan in Portfolio (e.g. R1,000 lump sum), choose “Last plan (simple)” above — we’ll preload that amount here so Health answers “what dividend do I expect from this plan?”
         </div>
       </div>
     )

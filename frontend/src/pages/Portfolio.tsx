@@ -626,6 +626,22 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           } else {
             localStorage.removeItem('stockbuddy_annualised_return_real')
           }
+          // Persist a simple last-simulation plan for Health to consume directly
+          try {
+            const plan = {
+              starting_investment: Number(baselinePayload.__inputs?.initial_investment) || 0,
+              investment_mode: String(baselinePayload.__inputs?.investment_mode || ''),
+              timeframe: String(baselinePayload.__inputs?.timeframe || ''),
+              months: Number(baselinePayload?.months) || null,
+              distribution_policy: String(baselinePayload.__inputs?.distribution_policy || ''),
+              inflation_adjust: Boolean(baselinePayload.__inputs?.inflation_adjust),
+              annual_return: Number(baselinePayload?.annual_return) || null,
+              average_dividend_yield: Number(baselinePayload?.average_dividend_yield) || null,
+              ending_value: Number(baselinePayload?.ending_value) || null,
+              total_dividends: Number(baselinePayload?.total_dividends) || null
+            }
+            localStorage.setItem('stockbuddy_last_simulation_plan', JSON.stringify(plan))
+          } catch {}
         }
         setScenarioData(scenarioPayloadResponse || null)
         setMetrics(computeMetrics(baselinePayload, distributionPolicy))
