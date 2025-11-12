@@ -49,13 +49,34 @@ export default {
           mint: '#3fd0c9',
           gold: '#ffc943',
           ink: '#2a2a2a',
+        },
+        surface: {
+          base: 'var(--surface-base)',
+          raised: 'var(--surface-raised)',
+          card: 'var(--surface-card)',
+          contrast: 'var(--surface-contrast)',
+        },
+        tone: {
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+        },
+        stroke: {
+          soft: 'var(--border-soft)',
+          strong: 'var(--border-strong)',
         }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: { '2xl': '24px' },
-      boxShadow: { card: '0 10px 24px rgba(0,0,0,0.15)' },
+      boxShadow: {
+        card: '0 18px 42px rgba(21,27,53,0.18)',
+        pop: '0 25px 60px rgba(122,63,242,0.25)',
+      },
+      backgroundImage: {
+        'brand-hero': 'linear-gradient(135deg, #7a3ff2 0%, #3fd0c9 60%, #ffc943 100%)',
+      },
     },
   },
   plugins: [],

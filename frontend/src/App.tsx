@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import Home from './pages/Home'
 import { apiFetch } from './lib/api'
 import Onboarding from './pages/Onboarding'
@@ -16,6 +16,19 @@ import News from './pages/News'
 import Health from './pages/Health'
 import NavBar from './components/NavBar'
 import Footer from './components/Footer'
+
+interface PageLayoutProps {
+  children: ReactNode
+  fullBleed?: boolean
+}
+
+const PageLayout: React.FC<PageLayoutProps> = ({ children, fullBleed = false }) => (
+  <div className="page-shell">
+    <div className={fullBleed ? 'page-shell-inner-full' : 'page-shell-inner'}>
+      {children}
+    </div>
+  </div>
+)
 
 function App() {
   const [userId, setUserId] = useState<number | null>(null)
@@ -64,7 +77,7 @@ function App() {
 
   return (
     <Router>
-      <div className="app-shell min-h-screen flex flex-col">
+      <div className="app-shell">
         <NavBar isOnboarded={isOnboarded} />
 
         <main className="flex-1">
@@ -72,37 +85,41 @@ function App() {
             <Route 
               path="/" 
               element={
-                <Home
-                  onGetStarted={() => {
-                    if (!isOnboarded) {
-                      setIsOnboarded(false)
-                    }
-                  }}
-                  ctaPath={isOnboarded ? '/portfolio' : '/onboarding'}
-                  ctaLabel={isOnboarded ? 'View Portfolio' : "Get Started - It's Free"}
-                />
+                <PageLayout>
+                  <Home
+                    onGetStarted={() => {
+                      if (!isOnboarded) {
+                        setIsOnboarded(false)
+                      }
+                    }}
+                    ctaPath={isOnboarded ? '/portfolio' : '/onboarding'}
+                    ctaLabel={isOnboarded ? 'View Portfolio' : "Get Started - It's Free"}
+                  />
+                </PageLayout>
               } 
             />
             <Route 
               path="/onboarding" 
               element={
-                <Onboarding 
-                  onComplete={handleOnboardingComplete}
-                  userId={userId}
-                />
+                <PageLayout fullBleed>
+                  <Onboarding 
+                    onComplete={handleOnboardingComplete}
+                    userId={userId}
+                  />
+                </PageLayout>
               } 
             />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/portfolio" element={<Portfolio userId={userId} />} />
-            <Route path="/news" element={<News userId={userId} />} />
-            <Route path="/baskets" element={<Baskets userId={userId} />} />
-            <Route path="/trade/:symbol" element={<Trade userId={userId} />} />
-            <Route path="/learn" element={<Learn />} />
-            <Route path="/profile" element={<Profile userId={userId} />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/archetypes" element={<Archetypes />} />
-            <Route path="/terminology" element={<Terminology />} />
-            <Route path="/health" element={<Health userId={userId} />} />
+            <Route path="/discover" element={<PageLayout><Discover /></PageLayout>} />
+            <Route path="/portfolio" element={<PageLayout><Portfolio userId={userId} /></PageLayout>} />
+            <Route path="/news" element={<PageLayout><News userId={userId} /></PageLayout>} />
+            <Route path="/baskets" element={<PageLayout><Baskets userId={userId} /></PageLayout>} />
+            <Route path="/trade/:symbol" element={<PageLayout fullBleed><Trade userId={userId} /></PageLayout>} />
+            <Route path="/learn" element={<PageLayout><Learn /></PageLayout>} />
+            <Route path="/profile" element={<PageLayout><Profile userId={userId} /></PageLayout>} />
+            <Route path="/about" element={<PageLayout><About /></PageLayout>} />
+            <Route path="/archetypes" element={<PageLayout><Archetypes /></PageLayout>} />
+            <Route path="/terminology" element={<PageLayout><Terminology /></PageLayout>} />
+            <Route path="/health" element={<PageLayout><Health userId={userId} /></PageLayout>} />
           </Routes>
         </main>
         <Footer />
