@@ -125,6 +125,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   })
   const [yieldLoading, setYieldLoading] = useState(false)
   const [yieldError, setYieldError] = useState<string | null>(null)
+  const [portfolioWeightedYield, setPortfolioWeightedYield] = useState<number | null>(null)
+  const [useCustomYield, setUseCustomYield] = useState<boolean>(false)
+  const [customYieldPct, setCustomYieldPct] = useState<string>('')
   const [useRealReturns, setUseRealReturns] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('stockbuddy_inflation_adjust') === '1'
@@ -187,6 +190,17 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         // If we have a portfolio, sync the current value input with backend total_value for better defaults
         if (hasHoldings && typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
           setGoalInputs(prev => ({ ...prev, 'Current portfolio value (ZAR)': Math.max(0, Math.round(data.total_value)) }))
+        }
+        // For dividend growth goals, align current annual dividends with backend weighted yield snapshot
+        if (hasHoldings) {
+          const wy = typeof data.weighted_dividend_yield_pct === 'number' ? data.weighted_dividend_yield_pct : null
+          const currentAnnual = typeof data.current_annual_dividends === 'number' ? data.current_annual_dividends : null
+          if (wy !== null && Number.isFinite(wy)) {
+            setPortfolioWeightedYield(wy)
+          }
+          if (currentAnnual !== null && Number.isFinite(currentAnnual)) {
+            setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': Math.max(0, Math.round(currentAnnual)) }))
+          }
         }
       } catch {
         setHasPortfolio(false)
@@ -401,11 +415,24 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     }
 
     if (goalType === 'dividend_growth') {
-      const amount = termYears > 0 ? shortfall / termYears : shortfall
+      // Translate dividend shortfall into the capital required at current portfolio yield,
+      // then suggest an equivalent monthly contribution to reach that capital within the term.
+      const override = useCustomYield ? Number(customYieldPct) : null
+      const y = (override !== null && Number.isFinite(override) && override > 0
+        ? override / 100
+        : Math.max((portfolioWeightedYield ?? 0) / 100, 0))
+      const effectiveYield = y > 0 ? y : 0.035 // fallback 3.5% if yield unknown
+      const capitalNeeded = shortfall / effectiveYield
+      const monthly = termYears > 0 ? capitalNeeded / (termYears * 12) : capitalNeeded / 12
+      const yieldPctLabel = (
+        override !== null && Number.isFinite(override) && override > 0
+          ? override
+          : (portfolioWeightedYield ?? (effectiveYield * 100))
+      ).toFixed?.(1) ?? ((effectiveYield * 100).toFixed(1))
       return {
-        amount,
-        cadence: 'p/a',
-        message: `Increase annual distributions by about ${formatRand(amount)} each year to stay on schedule.`
+        amount: monthly,
+        cadence: 'p/m',
+        message: `To lift dividends by ~${formatRand(shortfall)}/yr at ~${yieldPctLabel}% yield, invest about ${formatRand(monthly)} per month for ${termYears} year(s) — or a once‑off ~${formatRand(capitalNeeded)}.`
       }
     }
 
@@ -520,6 +547,47 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     [goalType]
   )
 
+  const renderYieldAssumptions = () => {
+    if (goalType !== 'dividend_growth') return null
+    const effectivePortfolioYield = portfolioWeightedYield !== null && Number.isFinite(portfolioWeightedYield)
+      ? `${portfolioWeightedYield.toFixed(1)}%`
+      : 'n/a'
+    return (
+      <div className="rounded-3xl border border-white/40 bg-white/80 px-5 py-4 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Dividend yield assumption</p>
+            <p className="text-brand-ink dark:text-gray-100">Portfolio weighted yield: <span className="font-semibold">{effectivePortfolioYield}</span></p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              className="accent-brand-purple"
+              checked={useCustomYield}
+              onChange={(e) => setUseCustomYield(e.target.checked)}
+            />
+            Use custom
+          </label>
+        </div>
+        {useCustomYield && (
+          <div className="mt-3 flex items-center gap-3">
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              placeholder="e.g. 5.5"
+              value={customYieldPct}
+              onChange={(e) => setCustomYieldPct(e.target.value)}
+              className="input-field w-32"
+            />
+            <span className="text-xs text-muted dark:text-gray-400">% p.a.</span>
+            <span className="text-xs text-muted dark:text-gray-400">We’ll use this for the suggestion math above.</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const ringStyles = (radius: number, index: number, value: number, color: string) => {
     const circumference = 2 * Math.PI * radius
     const offset = circumference * (1 - value)
@@ -607,6 +675,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               useRealReturns={useRealReturns}
               portfolioRealReturn={portfolioRealReturn}
             />
+
+            {renderYieldAssumptions()}
 
             <div className="rounded-3xl bg-brand-purple/5 p-6 text-sm text-brand-ink dark:text-gray-200">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-brand-purple">
@@ -856,21 +926,31 @@ const MetricInputs: React.FC<MetricInputsProps> = ({
       : yieldError
         ? yieldError
         : yieldValue !== null
-          ? `${yieldModeLabel} CAGR from your live portfolio.`
-          : `Open your portfolio to sync the ${yieldModeLabel.toLowerCase()} return.`
+          ? `${yieldModeLabel} annualised return from your live portfolio.`
+          : `Open your portfolio to sync the ${yieldModeLabel.toLowerCase()} annualised return.`
 
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">{currentField.label}</span>
+          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">
+            {currentField.label}
+            {currentField.label.includes('Current annual dividends') && (
+              <span
+                className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                title="Calculated as current portfolio value × weighted dividend yield."
+              >
+                i
+              </span>
+            )}
+          </span>
           <div className="rounded-2xl border border-white/40 bg-white/70 px-4 py-3 text-sm font-semibold text-brand-ink shadow-sm dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-gray-200">
             {formatRand(currentValue)}
           </div>
           <span className="text-xs text-muted dark:text-gray-400">{currentField.helper}</span>
         </div>
         <div className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Portfolio yield</span>
+          <span className="text-xs uppercase tracking-wide text-muted dark:text-gray-400">Portfolio return (annualised)</span>
           <div className="rounded-2xl border border-white/40 bg-white/90 px-4 py-3 text-sm font-semibold text-brand-ink shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-gray-100">
             {yieldDisplay}
           </div>

@@ -188,20 +188,48 @@ def onboarding():
         user.literacy_level = data.get('literacy_level', user.literacy_level)
         user.interests = json.dumps(data.get('interests', json.loads(user.interests or '[]')))
     else:
+        # Validate required fields for first-time profile creation
+        required = [
+            'first_name', 'age_band', 'experience', 'goal', 'risk', 'horizon', 'anchor_stock', 'literacy_level'
+        ]
+        missing = [key for key in required if not data.get(key) and data.get(key) != 0]
+        if missing:
+            return jsonify({
+                "error": "Missing required fields",
+                "missing": missing
+            }), 400
+
+        try:
+            risk_value = int(data.get('risk'))
+        except Exception:
+            return jsonify({"error": "Invalid risk value; expected integer 0-100"}), 400
+
+        interests_value = data.get('interests')
+        if interests_value is None:
+            interests_value = []
+        elif not isinstance(interests_value, list):
+            # Defensive: coerce scalar to list
+            interests_value = [str(interests_value)]
+
         user = User(
-            first_name=data.get('first_name'),
-            age_band=data.get('age_band'),
-            experience=data.get('experience'),
-            goal=data.get('goal'),
-            risk=data.get('risk'),
-            horizon=data.get('horizon'),
-            anchor_stock=data.get('anchor_stock'),
-            literacy_level=data.get('literacy_level'),
-            interests=json.dumps(data.get('interests', []))
+            first_name=str(data.get('first_name')).strip(),
+            age_band=str(data.get('age_band')).strip(),
+            experience=str(data.get('experience')).strip(),
+            goal=str(data.get('goal')).strip(),
+            risk=risk_value,
+            horizon=str(data.get('horizon')).strip(),
+            anchor_stock=str(data.get('anchor_stock')).strip(),
+            literacy_level=str(data.get('literacy_level')).strip(),
+            interests=json.dumps(interests_value)
         )
         db.session.add(user)
 
-    db.session.commit()
+    # Commit profile changes safely
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Unable to save profile", "detail": str(e)}), 400
 
     # Generate archetype and starter basket
     archetype = generate_archetype(user)
@@ -220,11 +248,19 @@ def onboarding():
         )
         db.session.add(portfolio)
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Unable to create portfolio", "detail": str(e)}), 400
 
     # Seed starter positions so portfolio view has holdings immediately
     create_initial_positions(user.id, allocations)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Unable to create baseline", "detail": str(e)}), 400
 
     baseline = PortfolioBaseline.query.filter_by(user_id=user.id).first()
     baseline_payload = json.dumps(allocations)
@@ -421,6 +457,18 @@ def get_portfolio(user_id):
 
     alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value)
 
+    # Dividend yield snapshot for Health page
+    weighted_dividend_yield_pct = None
+    current_annual_dividends = None
+    try:
+        wy = calculate_weighted_dividend_yield(user_id)
+        if wy is not None:
+            weighted_dividend_yield_pct = float(wy)
+            if total_value and total_value > 0:
+                current_annual_dividends = (total_value * weighted_dividend_yield_pct / 100.0)
+    except Exception:
+        pass
+
     baseline = PortfolioBaseline.query.filter_by(user_id=user_id).first()
     baseline_allocations = {}
     if baseline and baseline.allocations:
@@ -448,7 +496,9 @@ def get_portfolio(user_id):
         "suggestions": suggestions,
         "applied_suggestions": applied_suggestions,
         "baseline_allocations": baseline_allocations,
-        "alerts": alerts
+        "alerts": alerts,
+        "weighted_dividend_yield_pct": round(weighted_dividend_yield_pct, 2) if weighted_dividend_yield_pct is not None else None,
+        "current_annual_dividends": round(current_annual_dividends, 2) if current_annual_dividends is not None else None
     })
 
 # Baskets endpoint
@@ -1345,6 +1395,18 @@ def calculate_weighted_dividend_yield(user_id):
             continue
         current_value = position.quantity * latest_price.close
         dividend_yield_pct = normalize_dividend_yield(instrument.dividend_yield)
+        # If static yield is missing, approximate a trailing 12-month yield from Price.dividend
+        if dividend_yield_pct is None or dividend_yield_pct == 0:
+            try:
+                cutoff = latest_price.date - relativedelta(years=1)
+                ttm_div = db.session.query(db.func.sum(Price.dividend)).filter(
+                    Price.instrument_id == instrument.id,
+                    Price.date >= cutoff
+                ).scalar() or 0.0
+                if latest_price.close > 0 and ttm_div > 0:
+                    dividend_yield_pct = (ttm_div / latest_price.close) * 100.0
+            except Exception:
+                pass
         if dividend_yield_pct is None:
             continue
         total_value += current_value

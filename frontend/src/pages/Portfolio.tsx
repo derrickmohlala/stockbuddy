@@ -179,6 +179,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const [processingSuggestion, setProcessingSuggestion] = useState<string | null>(null)
   const [appliedSuggestions, setAppliedSuggestions] = useState<PortfolioData['applied_suggestions']>([])
   const [baselineAllocations, setBaselineAllocations] = useState<Record<string, number>>({})
+  const [portfolioWeightedYield, setPortfolioWeightedYield] = useState<number | null>(null)
+  const [portfolioAnnualDividends, setPortfolioAnnualDividends] = useState<number | null>(null)
   const [instrumentOptions, setInstrumentOptions] = useState<{ symbol: string; label: string }[]>([])
   const [starterBaskets, setStarterBaskets] = useState<Array<{ id: number; name: string; goal?: string }>>([])
   const [selectedBasketId, setSelectedBasketId] = useState<number | ''>('')
@@ -452,6 +454,12 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           holdingsValue: data.total_value,
           distributionPolicy
         })
+        if (typeof data.weighted_dividend_yield_pct === 'number') {
+          setPortfolioWeightedYield(data.weighted_dividend_yield_pct)
+        }
+        if (typeof data.current_annual_dividends === 'number') {
+          setPortfolioAnnualDividends(data.current_annual_dividends)
+        }
       }
     } catch (error) {
       console.error('Error fetching portfolio:', error)
@@ -2463,7 +2471,13 @@ const handleResetScenario = async () => {
                       <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className="text-lg font-semibold text-success-600">{formatCurrency(totalDividends)}</p>
                       {typeof averageDividendYield === 'number' && (
-                        <p className="text-xs text-muted dark:text-gray-300">Yield {averageDividendYield.toFixed(2)}% p.a.</p>
+                        <p className="text-xs text-muted dark:text-gray-300">Simulated yield {averageDividendYield.toFixed(2)}% p.a.</p>
+                      )}
+                      {typeof portfolioWeightedYield === 'number' && (
+                        <p className="text-xs text-muted dark:text-gray-300">Current weighted yield {portfolioWeightedYield.toFixed(2)}% p.a.</p>
+                      )}
+                      {typeof portfolioAnnualDividends === 'number' && portfolioAnnualDividends > 0 && (
+                        <p className="text-xs text-muted dark:text-gray-300">Current annual dividends ≈ {formatCurrency(Math.round(portfolioAnnualDividends))}</p>
                       )}
                     </div>
                     {showBenchmarkStats && (

@@ -9,3 +9,15 @@
  * Debugger is active!
  * Debugger PIN: 209-547-634
 127.0.0.1 - - [12/Nov/2025 17:45:10] "POST /api/simulate/performance HTTP/1.1" 200 -
+ * Detected change in '/Users/derrickmohlala/stockbuddy/backend/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 209-547-634
+ * Detected change in '/Users/derrickmohlala/stockbuddy/backend/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 209-547-634
+ * Detected change in '/Users/derrickmohlala/stockbuddy/backend/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 209-547-634

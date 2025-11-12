@@ -104,7 +104,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
         navigate('/portfolio')
         setSubmitError(null)
       } else {
-        setSubmitError('We could not save your preferences. Please try again.')
+        let message = 'We could not save your preferences. Please review your inputs.'
+        try {
+          const err = await response.json()
+          if (err?.error) {
+            if (Array.isArray(err.missing) && err.missing.length) {
+              message = `Missing: ${err.missing.join(', ')}`
+            } else {
+              message = String(err.error)
+            }
+          }
+        } catch {}
+        setSubmitError(message)
       }
     } catch (error) {
       console.error('Error during onboarding:', error)
