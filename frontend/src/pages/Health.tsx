@@ -287,6 +287,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       setYieldLoading(true)
       setYieldError(null)
       try {
+        // Fall back to a one-shot performance fetch using current portfolio input and
+        // the same distribution policy stored by Portfolio (if available), so numbers align better.
+        const storedPolicy = (typeof window !== 'undefined' ? (localStorage.getItem('stockbuddy_distribution_policy') as 'reinvest' | 'cash_out' | null) : null) || 'reinvest'
         const response = await apiFetch('/api/simulate/performance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -297,7 +300,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             initial_investment: currentPortfolioValueInput,
             monthly_contribution: 0,
             inflation_adjust: useRealReturns,
-            distribution_policy: 'reinvest'
+            distribution_policy: storedPolicy
           }),
           signal: controller.signal
         })

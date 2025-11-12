@@ -150,6 +150,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [scenarioData, setScenarioData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [portfolioLoaded, setPortfolioLoaded] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [timeframe, setTimeframe] = useState('5y')
   const [investmentMode, setInvestmentMode] = useState<'lump_sum' | 'monthly'>('lump_sum')
@@ -388,6 +389,14 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     localStorage.setItem('stockbuddy_inflation_adjust', inflationAdjust ? '1' : '0')
   }, [inflationAdjust])
 
+  // Keep distribution policy in sync so Health can mirror the same assumption
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem('stockbuddy_distribution_policy', distributionPolicy)
+    } catch {}
+  }, [distributionPolicy])
+
   useEffect(() => {
     if (!userId) return
     if (initialRealToggleSync.current) {
@@ -446,6 +455,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       }
     } catch (error) {
       console.error('Error fetching portfolio:', error)
+    } finally {
+      setPortfolioLoaded(true)
     }
   }
 
@@ -496,7 +507,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         Number(inputs.initial_investment) === Number(initialInvestment) &&
         Number(inputs.monthly_contribution) === Number(monthlyContribution) &&
         inputs.inflation_adjust === inflationAdjust &&
-        inputs.distribution_policy === distributionPolicy
+        inputs.distribution_policy === distributionPolicy &&
+        inputs.benchmark === (benchmark || null)
       ) {
         return parsed
       }
@@ -504,7 +516,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       return null
     }
     return null
-  }, [timeframe, investmentMode, initialInvestment, monthlyContribution, inflationAdjust, distributionPolicy])
+  }, [timeframe, investmentMode, initialInvestment, monthlyContribution, inflationAdjust, distributionPolicy, benchmark])
 
   const fetchPerformanceData = async (includeScenario: boolean = scenarioEnabled, forceRefresh: boolean = false) => {
     setIsFetching(true)
@@ -581,7 +593,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           initial_investment: initialInvestment,
           monthly_contribution: monthlyContribution,
           inflation_adjust: inflationAdjust,
-          distribution_policy: distributionPolicy
+          distribution_policy: distributionPolicy,
+          benchmark: benchmark || null
         }
         const scenarioPayloadResponse = data?.baseline ? data?.scenario : null
         setPerformanceData(baselinePayload)
@@ -1486,7 +1499,9 @@ const handleResetScenario = async () => {
     )
   }
 
-  if (loading) {
+  const initialLoading = loading || !portfolioLoaded
+
+  if (initialLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
