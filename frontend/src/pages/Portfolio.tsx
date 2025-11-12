@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Coins, BarChart3, PiggyBank, ArrowRightLeft, AlertTriangle, ShieldAlert, Info, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
 import { useTheme } from '../theme/ThemeProvider'
+import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
 import {
   Chart as ChartJS,
@@ -1474,17 +1475,14 @@ const handleResetScenario = async () => {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="card max-w-md text-center space-y-4">
-          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">No portfolio yet</h2>
-          <p className="text-muted dark:text-gray-300">
-            Complete onboarding to generate your personalised allocation and start tracking simulated returns.
-          </p>
-          <button onClick={() => navigate('/onboarding')} className="btn-cta">
-            Start onboarding
-          </button>
-        </div>
-      </div>
+      <OnboardingCard
+        icon={<BarChart3 className="w-10 h-10 text-primary-500" />}
+        title="Finish onboarding"
+        message="Complete onboarding to generate your personalised allocation and start tracking simulated returns."
+        primaryLabel="Start onboarding"
+        onPrimary={() => navigate('/onboarding')}
+        maxWidth="md"
+      />
     )
   }
 

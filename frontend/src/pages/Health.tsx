@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, TrendingUp, Target, Calendar, TrendingDown } from 'lucide-react'
+import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
 
 interface GoalInput {
@@ -545,18 +546,15 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   // Empty state if there is no portfolio yet
   if (hasPortfolio === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="card max-w-lg text-center space-y-4">
-          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">Create a portfolio to see health</h2>
-          <p className="text-muted dark:text-gray-300">
-            Health projections use your current holdings. Finish onboarding or add your first instruments to get personalised progress rings and timelines.
-          </p>
-          <div className="flex justify-center gap-3">
-            <button className="btn-cta" onClick={() => navigate('/onboarding')}>Start onboarding</button>
-            <button className="btn-secondary" onClick={() => navigate('/portfolio')}>Go to portfolio</button>
-          </div>
-        </div>
-      </div>
+      <OnboardingCard
+        title="Finish onboarding"
+        message="Health projections use your current holdings. Finish onboarding or add your first instruments to get personalised progress rings and timelines."
+        primaryLabel="Start onboarding"
+        onPrimary={() => navigate('/onboarding')}
+        secondaryLabel="Go to portfolio"
+        onSecondary={() => navigate('/portfolio')}
+        maxWidth="lg"
+      />
     )
   }
 

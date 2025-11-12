@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Newspaper, RefreshCw, ExternalLink, AlertCircle, CalendarDays } from 'lucide-react'
 import { useTheme } from '../theme/ThemeProvider'
+import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
 
 interface NewsProps {
@@ -160,18 +161,14 @@ const News: React.FC<NewsProps> = ({ userId }) => {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="card max-w-md text-center space-y-4">
-          <Newspaper className="w-10 h-10 text-primary-500 mx-auto" />
-          <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">Portfolio first</h2>
-          <p className="text-brand-ink dark:text-gray-300">
-            Complete the onboarding journey so we can tailor daily news to the shares and ETFs you actually hold.
-          </p>
-          <button onClick={() => navigate('/onboarding')} className="btn-cta">
-            Start onboarding
-          </button>
-        </div>
-      </div>
+      <OnboardingCard
+        icon={<Newspaper className="w-10 h-10 text-primary-500" />}
+        title="Finish onboarding"
+        message="Complete the onboarding journey so we can tailor daily news to the shares and ETFs you actually hold."
+        primaryLabel="Start onboarding"
+        onPrimary={() => navigate('/onboarding')}
+        maxWidth="md"
+      />
     )
   }
 

@@ -211,7 +211,8 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
             continue
         url = normalised.get("url")
         if not (isinstance(url, str) and url.startswith("http")):
-            continue
+            # Fallback to Yahoo symbol news page if article link missing
+            normalised["url"] = f"https://finance.yahoo.com/quote/{symbol}/news"
         normalised["published_at"] = published_at
         collected.append(normalised)
         if len(collected) >= limit:
