@@ -28,21 +28,21 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   }
 
   const renderLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 text-sm font-medium tracking-wide transition ${
+    `px-3 py-2 text-sm font-medium tracking-wide transition-colors ${
       isActive
-        ? 'text-brand-purple'
-        : 'text-muted hover:text-brand-coral dark:text-tone-secondary dark:hover:text-brand-mint'
+        ? 'text-brand-purple dark:text-white'
+        : 'text-muted hover:text-brand-coral dark:text-white/70 dark:hover:text-white'
     }`
 
   return (
     <header className="sticky top-0 z-40">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="mt-4 flex h-16 items-center gap-4 rounded-full border border-white/20 bg-white/65 px-4 shadow-[0_18px_38px_rgba(31,38,68,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-base/70">
+        <div className="mt-4 flex h-16 items-center gap-4 rounded-full border border-white/20 bg-white/85 px-4 shadow-[0_18px_38px_rgba(31,38,68,0.18)] backdrop-blur-xl dark:border-white/15 dark:bg-surface-contrast/90">
           <NavLink to="/" aria-label="StockBuddy home" className="flex-shrink-0">
             <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-8 w-auto" loading="lazy" />
           </NavLink>
           <div className="hidden flex-1 justify-center md:flex">
-            <nav className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/40 px-4 py-2 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+            <nav className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/60 px-4 py-2 backdrop-blur-md dark:border-white/15 dark:bg-white/10">
               {navItems.map((item) => (
                 <NavLink key={item.to} to={item.to} className={renderLinkClass}>
                   {item.label}
@@ -53,7 +53,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/70 text-brand-purple transition hover:border-brand-purple hover:text-brand-purple dark:border-white/10 dark:bg-white/10 dark:text-brand-gold"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/80 text-brand-purple transition hover:border-brand-purple hover:text-brand-purple dark:border-white/20 dark:bg-white/10 dark:text-brand-gold"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -62,7 +62,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
               {isOnboarded ? 'View portfolio' : 'Get started'}
             </button>
             <button
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/40 text-brand-purple transition hover:border-brand-purple md:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/35 text-brand-purple transition hover:border-brand-purple md:hidden dark:border-white/20 dark:text-white"
               onClick={() => setMenuOpen((prev) => !prev)}
               aria-label="Toggle navigation"
             >
@@ -74,7 +74,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
         </div>
       </div>
       {menuOpen && (
-        <div className="mx-4 mt-3 rounded-3xl border border-white/25 bg-white/85 p-4 shadow-pop backdrop-blur-xl dark:border-white/10 dark:bg-surface-base/80 md:hidden">
+        <div className="mx-4 mt-3 rounded-3xl border border-white/30 bg-white/90 p-4 shadow-pop backdrop-blur-xl dark:border-white/15 dark:bg-surface-contrast/90 md:hidden">
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => (
               <NavLink

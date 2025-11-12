@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   ArrowUpRight,
   Wallet,
-  BarChart3,
   Sparkles,
   Target,
   CircleDot,
@@ -506,11 +505,11 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-slate-400">Plan controls</p>
-            <h2 className="text-lg font-semibold text-white">Tune your north star</h2>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan controls</p>
+            <h2 className="text-xl font-semibold text-primary-ink dark:text-tone-primary">Tune your north star</h2>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-            <Sparkles className="h-4 w-4 text-cyan-300" /> Live preview
+          <span className="inline-flex items-center gap-2 rounded-full border border-soft bg-white/70 px-3 py-1 text-xs text-subtle dark:bg-white/10 dark:text-tone-secondary">
+            <Sparkles className="h-4 w-4 text-brand-purple" /> Live preview
           </span>
         </div>
 
@@ -541,17 +540,15 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FieldShell label="Term (years)">
-            <input
-              type="number"
-              min={1}
-              value={termYears}
-              onChange={(e) => setTermYears(Number(e.target.value) || 1)}
-              className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
-            />
-          </FieldShell>
-        </div>
+        <FieldShell label="Term (years)">
+          <input
+            type="number"
+            min={1}
+            value={termYears}
+            onChange={(e) => setTermYears(Number(e.target.value) || 1)}
+            className="input-field"
+          />
+        </FieldShell>
 
         {goalType === 'growth' && (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -561,7 +558,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={1}
                 value={targetValue}
                 onChange={(e) => setTargetValue(Number(e.target.value) || 0)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                className="input-field"
               />
             </FieldShell>
             <FieldShell label="Monthly budget (optional)">
@@ -570,22 +567,22 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={monthlyBudget}
                 onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                className="input-field"
               />
             </FieldShell>
           </div>
         )}
 
         {goalType === 'balanced' && (
-          <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/50 p-5">
-            <p className="text-sm font-semibold text-white">Inflation guardrail</p>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
+          <div className="surface-card space-y-4 bg-white/75 p-5 dark:bg-white/5">
+            <p className="text-sm font-semibold text-primary-ink dark:text-tone-primary">Inflation guardrail</p>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-subtle">
               <label className="inline-flex items-center gap-2">
                 <input
                   type="radio"
                   checked={inflationMode === 'sarb'}
                   onChange={() => setInflationMode('sarb')}
-                  className="h-4 w-4 accent-cyan-400"
+                  className="h-4 w-4 accent-brand-purple"
                 />
                 SARB upper target (6%)
               </label>
@@ -594,7 +591,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                   type="radio"
                   checked={inflationMode === 'custom'}
                   onChange={() => setInflationMode('custom')}
-                  className="h-4 w-4 accent-cyan-400"
+                  className="h-4 w-4 accent-brand-purple"
                 />
                 Custom line
               </label>
@@ -606,7 +603,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                   min={0}
                   value={customInflation}
                   onChange={(e) => setCustomInflation(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                  className="input-field"
                 />
               </FieldShell>
             )}
@@ -621,14 +618,14 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={incomeGoal}
                 onChange={(e) => setIncomeGoal(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                className="input-field"
               />
             </FieldShell>
             <FieldShell label="Frequency">
               <select
                 value={incomeFrequency}
                 onChange={(e) => setIncomeFrequency(e.target.value as 'monthly' | 'annual')}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                className="input-field"
               >
                 <option value="monthly">Per month</option>
                 <option value="annual">Per year</option>
@@ -640,18 +637,18 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 min={0}
                 value={monthlyBudget}
                 onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white shadow-inner focus:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                className="input-field"
               />
             </FieldShell>
           </div>
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-400">Update any slider or input and refresh for an instant recalculation.</p>
+          <p className="text-xs text-muted">Update any slider or input and refresh for an instant recalculation.</p>
           <button
             type="button"
             onClick={handleUpdate}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-cta px-5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             disabled={loading}
           >
             {loading ? (
@@ -667,109 +664,86 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             )}
           </button>
         </div>
-        {error && <p className="text-sm text-rose-400">{error}</p>}
+        {error && <p className="text-sm text-danger-500 dark:text-danger-300">{error}</p>}
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <DecorativeBackdrop />
-      <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 lg:py-20">
-        <header className="space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.35em] text-cyan-200">
-            <BarChart3 className="h-3 w-3" /> Health desk
-          </div>
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-            <div className="space-y-3">
-              <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Stay on plan, the modern way
-              </h1>
-              <p className="max-w-2xl text-base text-slate-300">
-                Translate your ambitions into contributions, see if inflation is catching up, and keep dividend targets honest — all without spreadsheets.
-              </p>
+    <>
+      <section className="section-hero space-y-8">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
+          <div className="flex-1 space-y-6">
+            <span className="badge bg-white/80 dark:bg-white/15">{heroContent.badge}</span>
+            <div className="flex items-start gap-4">
+              <div className="surface-glass inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-card">
+                {heroContent.icon}
+              </div>
+              <div className="space-y-2">
+                <p className="text-2xl font-semibold text-primary-ink dark:text-tone-primary">{heroContent.title}</p>
+                <p className="text-lg font-medium text-subtle">{heroContent.primary}</p>
+              </div>
             </div>
+            <p className="text-subtle max-w-3xl">{heroContent.detail}</p>
             <button
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-400/50 hover:bg-cyan-500/10"
+              className="btn-secondary"
               onClick={() => goalType !== 'growth' && setGoalType('growth')}
             >
-              <ArrowUpRight className="h-4 w-4" /> Start fresh goal
+              <ArrowUpRight className="h-4 w-4" />
+              Start fresh goal
             </button>
           </div>
-        </header>
-
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-cyan-950/40 p-8 shadow-[0_40px_80px_-40px_rgba(34,211,238,0.4)]">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-wide text-cyan-200">
-                {heroContent.badge}
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 shadow-inner shadow-cyan-500/20">
-                  {heroContent.icon}
-                </div>
-                <div>
-                  <p className="text-xl font-semibold text-white sm:text-2xl">{heroContent.title}</p>
-                  <p className="text-base text-slate-200">{heroContent.primary}</p>
-                </div>
-              </div>
-              <p className="max-w-2xl text-sm text-slate-300">{heroContent.detail}</p>
-            </div>
-            <div className="flex flex-shrink-0 items-center gap-8">
-              {derivedProgressPct !== null && (
-                <ProgressOrb
-                  value={derivedProgressPct}
-                  label={goalType === 'balanced' ? 'Real return gauge' : goalType === 'income' ? 'Income coverage' : 'Plan progress'}
-                  accent={heroContent.accent}
-                />
-              )}
-              <div className="hidden shrink-0 text-sm text-slate-300 sm:block">
-                <p className="text-xs uppercase tracking-wide text-slate-400">Term</p>
-                <p className="text-xl font-semibold text-white">{termYears} year(s)</p>
-              </div>
+          <div className="flex flex-col items-start gap-4 lg:w-72">
+            {derivedProgressPct !== null && (
+              <ProgressOrb
+                value={derivedProgressPct}
+                label={goalType === 'balanced' ? 'Real return gauge' : goalType === 'income' ? 'Income coverage' : 'Plan progress'}
+                accent={heroContent.accent}
+              />
+            )}
+            <div className="w-full rounded-2xl border border-soft bg-white/70 px-4 py-3 text-sm text-subtle shadow-card dark:bg-white/10">
+              <p className="text-xs uppercase tracking-[0.3em] text-muted">Term length</p>
+              <p className="text-xl font-semibold text-primary-ink dark:text-tone-primary">{termYears} year(s)</p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {highlightCards.length > 0 && (
-          <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {highlightCards.length > 0 && (
+        <section className="section-surface space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-2xl font-semibold text-primary-ink dark:text-tone-primary">Plan checkpoints</h2>
+            <span className="text-xs uppercase tracking-[0.3em] text-muted">Live metrics</span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {highlightCards.map((card) => (
               <HighlightCard key={card.id} {...card} />
             ))}
-          </section>
-        )}
-
-        <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-8 shadow-[0_40px_80px_-50px_rgba(15,118,110,0.6)] backdrop-blur">
-            {renderInputs()}
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-8 shadow-[0_40px_80px_-50px_rgba(8,145,178,0.6)] backdrop-blur">
-            {loading && <p className="text-sm text-slate-300">Crunching the numbers…</p>}
-            {!loading && plan && renderPlanSummary()}
-            {!loading && !plan && !error && (
-              <div className="space-y-4 text-sm text-slate-300">
-                <p>Enter your goal details and we’ll project the required steps.</p>
-                <p className="text-slate-400">
-                  Tip: Save a snapshot once you like the configuration so you can compare what-if scenarios.
-                </p>
-              </div>
-            )}
-            {error && <p className="text-sm text-rose-400">{error}</p>}
           </div>
         </section>
-      </div>
-    </div>
+      )}
+
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
+        <div className="surface-card p-6">
+          {renderInputs()}
+        </div>
+        <div className="surface-panel space-y-6 p-6">
+          {loading && <p className="text-sm text-subtle">Crunching the numbers…</p>}
+          {!loading && plan && renderPlanSummary()}
+          {!loading && !plan && !error && (
+            <div className="space-y-3 text-sm text-subtle">
+              <p>Enter your goal details and we’ll project the required steps.</p>
+              <p className="text-muted">
+                Tip: Save a snapshot once you like the configuration so you can compare what-if scenarios.
+              </p>
+            </div>
+          )}
+          {error && <p className="text-sm text-danger-500 dark:text-danger-300">{error}</p>}
+        </div>
+      </section>
+    </>
   )
 }
-
-const DecorativeBackdrop = () => (
-  <div className="pointer-events-none absolute inset-0">
-    <div className="absolute left-1/2 top-[-180px] h-[460px] w-[460px] -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[140px]"></div>
-    <div className="absolute right-[-160px] top-[240px] h-[360px] w-[360px] rounded-full bg-violet-500/20 blur-[160px]"></div>
-    <div className="absolute bottom-[-180px] left-[-140px] h-[320px] w-[320px] rounded-full bg-emerald-500/10 blur-[160px]"></div>
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.06),_transparent_60%)]"></div>
-  </div>
-)
 
 interface ResultCardProps {
   label: string
@@ -779,12 +753,12 @@ interface ResultCardProps {
 }
 
 const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status }) => (
-  <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 p-5 shadow-lg transition-all hover:border-cyan-400/30 hover:shadow-cyan-500/20">
-    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-3xl transition-all group-hover:bg-cyan-400/20"></div>
-    <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">{label}</p>
-    <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
-    {status && <p className="mt-1 text-xs text-cyan-300">Status: {status}</p>}
-    {helper && <p className="mt-3 text-xs text-slate-400">{helper}</p>}
+  <div className="surface-card relative overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-pop">
+    <div className="pointer-events-none absolute -right-12 top-0 h-28 w-28 rounded-full bg-brand-purple/10 blur-3xl opacity-70"></div>
+    <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
+    <p className="mt-3 text-2xl font-semibold text-primary-ink dark:text-tone-primary">{value}</p>
+    {status && <p className="mt-1 text-xs font-semibold text-brand-purple dark:text-brand-gold">Status: {status}</p>}
+    {helper && <p className="mt-3 text-xs text-subtle">{helper}</p>}
   </div>
 )
 
@@ -799,15 +773,13 @@ const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan'
   const palette = ACCENT_TOKENS[accent]
   const gradient = `conic-gradient(${palette.conic} ${clamped}%, rgba(255,255,255,0.08) ${clamped}% 100%)`
   return (
-    <div className="relative text-center">
-      <div className={`absolute inset-2 rounded-full ${palette.glow} blur-3xl opacity-70`}></div>
-      <div className="relative mx-auto h-32 w-32 rounded-full bg-slate-950/60 p-1 shadow-inner shadow-black/40">
-        <div className="relative h-full w-full rounded-full border border-white/10" style={{ background: gradient }}>
-          <div className="absolute inset-3 flex items-center justify-center rounded-full bg-slate-950/90">
-            <div>
-              <p className="text-3xl font-semibold text-white">{clamped.toFixed(0)}%</p>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">{label}</p>
-            </div>
+    <div className="relative flex flex-col items-center">
+      <div className={`absolute inset-0 h-36 w-36 rounded-full ${palette.glow} opacity-40 blur-3xl`}></div>
+      <div className="relative mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-soft bg-white/80 p-1 shadow-card dark:bg-white/10">
+        <div className="relative h-full w-full rounded-full border border-soft" style={{ background: gradient }}>
+          <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white/95 text-center dark:bg-surface-contrast">
+            <p className="text-3xl font-semibold text-primary-ink dark:text-tone-primary">{clamped.toFixed(0)}%</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-muted dark:text-tone-secondary">{label}</p>
           </div>
         </div>
       </div>
@@ -832,7 +804,7 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick,
     React.isValidElement(icon) &&
     React.cloneElement(icon, {
       className: `${icon.props.className ?? ''} ${
-        active ? accent.icon : 'text-slate-300'
+        active ? accent.icon : 'text-muted'
       } transition-colors duration-200`
     })
 
@@ -840,10 +812,10 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick,
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-2xl border px-4 py-4 text-left transition ${
+      className={`group relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-2xl border px-4 py-4 text-left transition-all duration-200 ${
         active
-          ? `${accent.border} ${accent.background} text-white shadow-lg shadow-cyan-500/10`
-          : 'border-white/5 bg-slate-950/40 text-slate-200 hover:border-cyan-300/30'
+          ? `${accent.border} ${accent.background} text-white shadow-pop`
+          : 'border-soft bg-white/70 text-subtle hover:-translate-y-0.5 hover:border-brand-purple/30 dark:bg-white/5 dark:text-tone-secondary'
       }`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -852,7 +824,7 @@ const GoalTab: React.FC<GoalTabProps> = ({ label, helper, icon, active, onClick,
       <span className="flex items-center gap-2 text-sm font-semibold">
         {iconElement || icon} {label}
       </span>
-      <span className="text-xs text-slate-400 group-hover:text-slate-300">{helper}</span>
+      <span className="text-xs text-subtle group-hover:text-primary-ink dark:group-hover:text-white">{helper}</span>
     </button>
   )
 }
@@ -865,7 +837,7 @@ interface FieldShellProps {
 
 const FieldShell: React.FC<FieldShellProps> = ({ label, children, className }) => (
   <label className={`flex flex-col gap-3 ${className ?? ''}`}>
-    <span className="text-[11px] uppercase tracking-[0.3em] text-slate-400">{label}</span>
+    <span className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</span>
     {children}
   </label>
 )
@@ -877,14 +849,14 @@ interface PlanSectionHeaderProps {
 
 const PlanSectionHeader: React.FC<PlanSectionHeaderProps> = ({ title, subtitle }) => (
   <div className="space-y-2">
-    <p className="text-[11px] uppercase tracking-[0.35em] text-slate-400">Plan intel</p>
-    <h3 className="text-xl font-semibold text-white">{title}</h3>
-    {subtitle && <p className="text-sm text-slate-300">{subtitle}</p>}
+    <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan intel</p>
+    <h3 className="text-xl font-semibold text-primary-ink dark:text-tone-primary">{title}</h3>
+    {subtitle && <p className="text-sm text-subtle">{subtitle}</p>}
   </div>
 )
 
 const PlanCallout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-sm text-cyan-100 shadow-inner shadow-cyan-500/10">
+  <div className="rounded-2xl border border-brand-purple/25 bg-brand-purple/10 p-4 text-sm text-primary-ink shadow-inner shadow-brand-purple/20 dark:border-brand-purple/40 dark:bg-brand-purple/20 dark:text-tone-primary">
     {children}
   </div>
 )
@@ -956,19 +928,19 @@ const HighlightCard: React.FC<HighlightCardProps> = ({ label, value, helper, ico
     })
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border border-white/10 ${accent.background} p-5 shadow-lg shadow-black/30 backdrop-blur transition hover:border-cyan-400/40`}
+      className={`surface-card relative overflow-hidden border ${accent.border} bg-white/80 p-5 shadow-card transition hover:-translate-y-1 hover:shadow-pop dark:bg-white/10`}
     >
-      <div className={`pointer-events-none absolute -right-14 top-1 h-32 w-32 rounded-full ${accent.glow} blur-3xl`}></div>
+      <div className={`pointer-events-none absolute -right-14 top-0 h-32 w-32 rounded-full ${accent.glow} blur-3xl opacity-60`}></div>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-200">{label}</p>
-          <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
+          <p className="mt-3 text-2xl font-semibold text-primary-ink dark:text-tone-primary">{value}</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white/70 dark:bg-white/5">
           {iconElement || icon}
         </div>
       </div>
-      <p className="mt-3 text-xs text-slate-200">{helper}</p>
+      <p className="mt-3 text-xs text-subtle">{helper}</p>
     </div>
   )
 }
