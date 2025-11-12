@@ -467,7 +467,7 @@ const Terminology: React.FC = () => {
               <div className="space-y-4">
                 {searchResults.map(({ category, entry }) => (
                   <div key={`${category.key}-${entry.term}`} className="card space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-300">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary-600 dark:text-primary-300">
                       <span>{category.title}</span>
                       <span className="text-gray-400 dark:text-subtle dark:text-gray-400">•</span>
                       <span>{entry.term}</span>

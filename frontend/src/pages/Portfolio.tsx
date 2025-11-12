@@ -1742,7 +1742,7 @@ const handleResetScenario = async () => {
       <section className="mx-auto max-w-6xl rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
           <div className="space-y-6">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
               Portfolio control room
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">
@@ -1753,16 +1753,16 @@ const handleResetScenario = async () => {
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Total value</p>
+                <p className="text-xs font-semibold text-muted">Total value</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalValue)}</p>
               </div>
               <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Total return</p>
+                <p className="text-xs font-semibold text-muted">Total return</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalReturn)}</p>
                 <p className="text-sm text-brand-mint">{formatPercentage(displayedTotalReturnPct)}</p>
               </div>
               <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Weighted yield</p>
+                <p className="text-xs font-semibold text-muted">Weighted yield</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{portfolioWeightedYield !== null ? `${portfolioWeightedYield.toFixed(2)}%` : '--'}</p>
               </div>
             </div>
@@ -1828,7 +1828,7 @@ const handleResetScenario = async () => {
                         {renderAlertIcon(alert.severity)}
                       </div>
                       <div className="flex-1 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide font-semibold">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
                           <span className={`rounded-full px-2 py-1 ${severityBadge}`}>{alert.severity}</span>
                           {alert.symbol && (
                             <span className={metaBadge}>{alert.symbol}</span>
@@ -1876,17 +1876,17 @@ const handleResetScenario = async () => {
             <div className="space-y-4 text-muted dark:text-gray-300">
               <div className="flex flex-wrap gap-2">
                 {portfolio.plan_goal && (
-                  <span className="badge bg-white/90 text-brand-purple uppercase tracking-wide text-[11px] font-semibold">
+                  <span className="badge bg-white/90 text-brand-purple text-[11px] font-semibold">
                     Goal: {formatLabel(portfolio.plan_goal)}
                   </span>
                 )}
                 {portfolio.plan_risk_band && (
-                  <span className="badge bg-brand-mint/20 text-brand-mint uppercase tracking-wide text-[11px] font-semibold">
+                  <span className="badge bg-brand-mint/20 text-brand-mint text-[11px] font-semibold">
                     Risk: {formatLabel(portfolio.plan_risk_band)}
                   </span>
                 )}
                 {portfolio.plan_anchor_cap_pct && (
-                  <span className="badge bg-brand-gold/20 text-brand-gold uppercase tracking-wide text-[11px] font-semibold">
+                  <span className="badge bg-brand-gold/20 text-brand-gold text-[11px] font-semibold">
                     Anchor cap {portfolio.plan_anchor_cap_pct}%
                   </span>
                 )}
@@ -2004,7 +2004,7 @@ const handleResetScenario = async () => {
               </div>
               <div className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
                 <div className="flex flex-col gap-1">
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Timeframe</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Timeframe</p>
                   <select
                     value={timeframe}
                     onChange={(e) => setTimeframe(e.target.value)}
@@ -2017,7 +2017,7 @@ const handleResetScenario = async () => {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Contribution style</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Contribution style</p>
                   <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                     <button
                       type="button"
@@ -2036,7 +2036,7 @@ const handleResetScenario = async () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 xl:col-span-2">
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Distribution policy</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Distribution policy</p>
                   <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                     <button
                       type="button"
@@ -2055,7 +2055,7 @@ const handleResetScenario = async () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 relative xl:col-span-2" ref={benchmarkRef}>
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Benchmark</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Benchmark</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -2122,7 +2122,7 @@ const handleResetScenario = async () => {
                   )}
                 </div>
                 <div className="flex flex-col gap-1 xl:col-span-1">
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Inflation lens</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Inflation lens</p>
                   <button
                     type="button"
                     onClick={() => setInflationAdjust(!inflationAdjust)}
@@ -2164,7 +2164,7 @@ const handleResetScenario = async () => {
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300 mb-1">Initial investment (rand)</p>
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Initial investment (rand)</p>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -2177,7 +2177,7 @@ const handleResetScenario = async () => {
               </div>
               {investmentMode === 'monthly' && (
                 <div>
-                  <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300 mb-1">Monthly contribution</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Monthly contribution</p>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -2192,7 +2192,7 @@ const handleResetScenario = async () => {
               {timeframe === 'custom' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300 mb-1">Start date</p>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Start date</p>
                     <input
                       type="date"
                       value={customStart}
@@ -2202,7 +2202,7 @@ const handleResetScenario = async () => {
                     />
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300 mb-1">End date</p>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">End date</p>
                     <input
                       type="date"
                       value={customEnd}
@@ -2238,7 +2238,7 @@ const handleResetScenario = async () => {
                 <button
                   type="button"
                   onClick={() => setScenarioExpanded(prev => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary-500/60 bg-primary-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-100 shadow-sm transition hover:bg-primary-500/30"
+                  className="inline-flex items-center gap-2 rounded-full border border-primary-500/60 bg-primary-500/20 px-3 py-1 text-[11px] font-semibold text-primary-100 shadow-sm transition hover:bg-primary-500/30"
                 >
                   {scenarioExpanded ? 'Hide lab' : 'Open lab'}
                 </button>
@@ -2247,7 +2247,7 @@ const handleResetScenario = async () => {
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${scenarioData ? 'bg-emerald-500/20 text-emerald-300' : 'bg-primary-500/20 text-primary-200'}`}>
+                      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${scenarioData ? 'bg-emerald-500/20 text-emerald-300' : 'bg-primary-500/20 text-primary-200'}`}>
                         {scenarioData ? `Overlay: ${scenarioFrequencyDisplay}` : 'No scenario loaded'}
                       </span>
                       {scenarioMessage && (
@@ -2263,7 +2263,7 @@ const handleResetScenario = async () => {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Scenario type</p>
+                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Scenario type</p>
                       <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
                         <button
                           type="button"
@@ -2282,7 +2282,7 @@ const handleResetScenario = async () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Distribution policy</p>
+                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Distribution policy</p>
                       <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
                         <button
                           type="button"
@@ -2301,7 +2301,7 @@ const handleResetScenario = async () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Initial contribution</p>
+                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Initial contribution</p>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -2314,7 +2314,7 @@ const handleResetScenario = async () => {
                     {scenarioMode === 'monthly' && (
                       <>
                         <div>
-                          <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Contribution cadence</p>
+                          <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution cadence</p>
                           <select
                             value={scenarioFrequency}
                             onChange={(e) => setScenarioFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
@@ -2326,7 +2326,7 @@ const handleResetScenario = async () => {
                           </select>
                         </div>
                         <div>
-                          <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Contribution amount</p>
+                          <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution amount</p>
                           <input
                             type="text"
                             inputMode="numeric"
@@ -2338,7 +2338,7 @@ const handleResetScenario = async () => {
                         </div>
                         {scenarioFrequency === 'annual' && (
                           <div>
-                            <p className="text-[11px] uppercase tracking-wide text-primary-200 mb-1">Annual contribution month</p>
+                            <p className="text-[11px] font-semibold text-primary-200 mb-1">Annual contribution month</p>
                             <select
                               value={scenarioAnnualMonth}
                               onChange={(e) => setScenarioAnnualMonth(e.target.value)}
@@ -2397,12 +2397,12 @@ const handleResetScenario = async () => {
                   <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">{inflationAdjust ? 'Real total return' : 'Nominal total return'}</p>
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className={`text-lg font-semibold ${totalReturnPercent >= 0 ? 'text-success-600' : 'text-danger-600'}`}>{formatPercentage(totalReturnPercent)}</p>
                     </div>
                     {showBenchmarkStats && (
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatOptionalPercentage(benchmarkReturnPct)}</p>
                       </div>
                     )}
@@ -2412,12 +2412,12 @@ const handleResetScenario = async () => {
                   <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Volatility (annualised)</p>
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className="text-lg font-semibold text-brand-ink dark:text-gray-100">{formatPercentNoSign(portfolioVolatility)}</p>
                     </div>
                     {showBenchmarkStats && (
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkVolatility)}</p>
                     </div>
                     )}
@@ -2427,12 +2427,12 @@ const handleResetScenario = async () => {
                   <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Worst drawdown</p>
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className={`text-lg font-semibold ${typeof portfolioDrawdown === 'number' ? 'text-danger-600' : 'text-gray-400'}`}>{formatPercentNoSign(portfolioDrawdown)}</p>
                     </div>
                     {showBenchmarkStats && (
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkDrawdown)}</p>
                       </div>
                     )}
@@ -2442,7 +2442,7 @@ const handleResetScenario = async () => {
                   <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Dividends generated</p>
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className="text-lg font-semibold text-success-600">{formatCurrency(totalDividends)}</p>
                       {typeof averageDividendYield === 'number' && (
                         <p className="text-xs text-muted dark:text-gray-300">Simulated yield {averageDividendYield.toFixed(2)}% p.a.</p>
@@ -2456,7 +2456,7 @@ const handleResetScenario = async () => {
                     </div>
                     {showBenchmarkStats && (
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">
                           {typeof benchmarkDividends === 'number' ? formatCurrency(benchmarkDividends) : '—'}
                         </p>
@@ -2471,13 +2471,13 @@ const handleResetScenario = async () => {
                   <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Downside capture</p>
                   <div className="mt-3 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
                       <p className={`text-lg font-semibold ${typeof downsideCapture === 'number' ? (downsideCapture <= 100 ? 'text-success-600' : 'text-danger-600') : 'text-gray-400'}`}>{formatPercentNoSign(downsideCapture)}</p>
                       <p className="text-xs text-muted dark:text-gray-300">Lower than 100% indicates better downside protection vs benchmark.</p>
                     </div>
                     {showBenchmarkStats && (
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">100%</p>
                         <p className="text-xs text-muted dark:text-gray-300">Benchmark baseline</p>
                       </div>
@@ -2489,7 +2489,7 @@ const handleResetScenario = async () => {
             {scenarioData && scenarioResolved && (
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Scenario vs baseline</p>
+                  <p className="text-xs font-semibold text-slate-300">Scenario vs baseline</p>
                   <div className="mt-4 space-y-3 text-sm text-slate-200">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Baseline ending value</span>
@@ -2519,7 +2519,7 @@ const handleResetScenario = async () => {
                   </div>
                 </div>
                 <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Contribution & income</p>
+                  <p className="text-xs font-semibold text-slate-300">Contribution & income</p>
                   <div className="mt-4 space-y-3 text-sm text-slate-200">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Baseline capital invested</span>
@@ -2743,7 +2743,7 @@ const handleResetScenario = async () => {
                             value={String(holdingWeight)}
                             onChange={(e) => handleWeightChange(index, e.target.value)}
                             aria-label="Holding weight percentage"
-                            className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold tracking-wide text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
+                            className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
                           />
                           <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
                             %
@@ -2913,7 +2913,7 @@ const handleResetScenario = async () => {
                                 value={String(rowWeight)}
                                 onChange={(e) => handleCustomRowWeightChange(row.id, e.target.value)}
                                 aria-label="Custom weight percentage"
-                                className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold tracking-wide text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
+                                className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
                               />
                               <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
                                 %
@@ -3001,7 +3001,7 @@ const handleResetScenario = async () => {
                   >
                     <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1fr)] md:items-center md:gap-6">
                       <div className="space-y-2">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Current holding</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Current holding</p>
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
                             {suggestion.replace_symbol} · {suggestion.replace_name}
@@ -3015,7 +3015,7 @@ const handleResetScenario = async () => {
                         <ArrowRightLeft className="h-5 w-5 text-primary-500" />
                       </div>
                       <div className="space-y-2">
-                        <p className="text-[11px] uppercase tracking-wide text-subtle dark:text-muted dark:text-gray-300">Suggested replacement</p>
+                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Suggested replacement</p>
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
                             {suggestion.suggest_symbol} · {suggestion.suggest_name}

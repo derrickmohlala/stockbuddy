@@ -216,7 +216,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
           <div className="grid gap-4">
             <div className="rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-[0.2em] text-muted">Navigator growth</span>
+                <span className="text-xs font-semibold text-muted">Navigator growth</span>
                 <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">Live</span>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
@@ -240,7 +240,7 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
             </div>
             <div className="grid gap-4 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted">Daily rhythm</p>
+                <p className="text-xs font-semibold text-muted">Daily rhythm</p>
                 <span className="text-xs font-medium text-brand-purple">Auto curated</span>
               </div>
               <div className="space-y-3 text-sm text-subtle">
@@ -388,7 +388,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ term, analogy }) => {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <Wallet className="h-8 w-8 text-brand-purple" />
             <p className="text-lg font-semibold text-primary-ink">{term}</p>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted">Tap to flip</p>
+            <p className="text-xs text-muted">Tap to flip</p>
           </div>
         </div>
         <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6 text-left text-sm text-subtle [backface-visibility:hidden] rotate-y-180">

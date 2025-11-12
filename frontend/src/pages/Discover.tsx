@@ -234,8 +234,8 @@ const Discover: React.FC = () => {
       <section className="mx-auto max-w-6xl overflow-hidden rounded-[44px] border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div className="space-y-5">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
-              Instrument radar
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
+              Spotlight library
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">
               Scan the JSE landscape with filters built for South Africans.
@@ -243,10 +243,9 @@ const Discover: React.FC = () => {
             <p className="text-lg text-subtle">
               Slice by ETF, share, or REIT, compare dividend yields, track TERs, and jump straight into a simulated trade.
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.4em] text-muted">
-              <span>Live price snapshots</span>
-              <span>Yield &amp; TER visibility</span>
-              <span>Portfolio-ready insights</span>
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-muted">
+              <span>Filters stay in sync across tabs</span>
+              <span>Includes ETFs, shares, and REITs</span>
             </div>
           </div>
           <div className="space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6">
@@ -394,14 +393,14 @@ const Discover: React.FC = () => {
 
               <div className="mb-4 grid grid-cols-2 gap-4 text-sm text-subtle">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted">Dividend yield</p>
+                  <p className="text-xs font-semibold text-muted">Dividend yield</p>
                   <p className="mt-1 text-base font-semibold text-primary-ink">
                     {instrument.dividend_yield.toFixed(1)}%
                   </p>
                 </div>
                 {instrument.ter > 0 && (
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-muted">TER</p>
+                    <p className="text-xs font-semibold text-muted">TER</p>
                     <p className="mt-1 text-base font-semibold text-primary-ink">
                       {instrument.ter.toFixed(2)}%
                     </p>

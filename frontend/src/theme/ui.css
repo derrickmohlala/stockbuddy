@@ -28,7 +28,7 @@
 }
 
 .badge {
-  @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase;
+  @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium;
   border-color: var(--border-soft);
   color: var(--text-secondary);
   background: #ffffff;

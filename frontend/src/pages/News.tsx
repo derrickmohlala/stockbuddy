@@ -229,7 +229,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
       <section className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
               Daily briefing
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">
@@ -240,15 +240,15 @@ const News: React.FC<NewsProps> = ({ userId }) => {
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Holdings tracked</p>
+                <p className="text-xs font-semibold text-muted">Holdings tracked</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{holdingNews.length}</p>
               </div>
               <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Headlines in view</p>
+                <p className="text-xs font-semibold text-muted">Headlines in view</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{totalHeadlines}</p>
               </div>
               <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-muted">Earnings on radar</p>
+                <p className="text-xs font-semibold text-muted">Earnings on radar</p>
                 <p className="mt-2 text-2xl font-semibold text-primary-ink">{earningsWatch.length}</p>
               </div>
             </div>
@@ -301,7 +301,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <div className="space-y-4 rounded-2xl border border-brand-purple/30 bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.4em] text-brand-purple">Anchor watch</p>
+                    <p className="text-xs font-semibold text-brand-purple">Anchor watch</p>
                     <p className="text-sm text-subtle">{anchorData?.name ?? anchorData?.symbol}</p>
                   </div>
                   <Newspaper className="h-5 w-5 text-brand-purple" />
@@ -313,7 +313,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <div className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.4em] text-muted">Benchmark pulse</p>
+                    <p className="text-xs font-semibold text-muted">Benchmark pulse</p>
                     <p className="text-sm text-subtle">{benchmarkData?.name ?? benchmarkData?.symbol}</p>
                   </div>
                   <Newspaper className="h-5 w-5 text-muted" />
@@ -330,7 +330,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <h2 className="text-2xl font-semibold text-primary-ink">Holdings in the headlines</h2>
               <p className="text-subtle">Stories that reference the ETFs and shares you currently track.</p>
             </div>
-            <span className="rounded-full border border-[#e7e9f3] px-3 py-1 text-xs uppercase tracking-[0.4em] text-muted">
+            <span className="rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold text-muted">
               Updated hourly
             </span>
           </div>

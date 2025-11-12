@@ -510,7 +510,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     return (
       <div className="space-y-6">
         <div className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">Plan controls</p>
+          <p className="text-[11px] font-semibold text-muted">Plan controls</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {goalOptions.map(({ value, label, helper }) => {
               const active = goalType === value
@@ -697,7 +697,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               />
             )}
             <div className="w-full rounded-2xl border border-soft bg-white px-4 py-3 text-sm text-subtle">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">Term length</p>
+              <p className="text-xs font-semibold text-muted">Term length</p>
               <p className="text-xl font-semibold text-primary-ink">{termYears} year(s)</p>
             </div>
           </div>
@@ -708,7 +708,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         <section className="space-y-4 rounded-[28px] border border-soft bg-white px-6 py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-2xl font-semibold text-primary-ink">Plan checkpoints</h2>
-            <span className="text-xs uppercase tracking-[0.2em] text-muted">Live metrics</span>
+            <span className="text-xs font-semibold text-muted">Live metrics</span>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {highlightCards.map((card) => (
@@ -750,7 +750,7 @@ interface ResultCardProps {
 const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status }) => (
   <div className="surface-card relative overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-pop">
     <div className="pointer-events-none absolute -right-12 top-0 h-28 w-28 rounded-full bg-brand-purple/10 blur-3xl opacity-70"></div>
-    <p className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</p>
+    <p className="text-[11px] font-semibold text-muted">{label}</p>
     <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
     {status && <p className="mt-1 text-xs font-semibold text-brand-purple">Status: {status}</p>}
     {helper && <p className="mt-3 text-xs text-subtle">{helper}</p>}
@@ -773,7 +773,7 @@ const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan'
       >
         <div className="text-center">
           <p className="text-3xl font-semibold text-primary-ink">{clamped.toFixed(0)}%</p>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">{label}</p>
+          <p className="text-[11px] font-semibold text-muted">{label}</p>
         </div>
       </div>
     </div>
@@ -790,7 +790,7 @@ interface FieldShellProps {
 
 const FieldShell: React.FC<FieldShellProps> = ({ label, children, className }) => (
   <label className={`flex flex-col gap-3 ${className ?? ''}`}>
-    <span className="text-[11px] uppercase tracking-[0.3em] text-muted">{label}</span>
+    <span className="text-[11px] font-semibold text-muted">{label}</span>
     {children}
   </label>
 )
@@ -802,7 +802,7 @@ interface PlanSectionHeaderProps {
 
 const PlanSectionHeader: React.FC<PlanSectionHeaderProps> = ({ title, subtitle }) => (
   <div className="space-y-2">
-    <p className="text-[11px] uppercase tracking-[0.35em] text-muted">Plan intel</p>
+    <p className="text-[11px] font-semibold text-muted">Plan intel</p>
     <h3 className="text-xl font-semibold text-primary-ink">{title}</h3>
     {subtitle && <p className="text-sm text-subtle">{subtitle}</p>}
   </div>
@@ -844,7 +844,7 @@ const HighlightCard: React.FC<HighlightCardProps> = ({ label, value, helper, ico
     <div className="rounded-2xl border border-soft bg-white px-5 py-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted">{label}</p>
+          <p className="text-[11px] font-semibold text-muted">{label}</p>
           <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white">

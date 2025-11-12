@@ -42,7 +42,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
             </NavLink>
             <div className="hidden sm:flex flex-col">
               <span className="text-sm font-semibold text-primary-ink">StockBuddy</span>
-              <span className="text-xs uppercase tracking-[0.25em] text-muted">Investing studio</span>
+              <span className="text-xs font-medium text-muted">Investing studio</span>
             </div>
           </div>
 

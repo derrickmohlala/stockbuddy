@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
             <p>
               © {new Date().getFullYear()} StockBuddy. Educational purposes only — not financial advice.
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.3em] text-subtle">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-subtle">
               <span>Made for South African investors</span>
               <span>FSCA awareness focused</span>
             </div>

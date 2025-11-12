@@ -3,19 +3,6 @@ import archetypesData, { ArchetypeItem } from '../data/archetypes'
 
 // Using static, front-end bundled archetypes.
 
-const goalLabels: Record<string, string> = {
-  growth: 'Growth',
-  balanced: 'Balanced',
-  income: 'Income',
-  fallback: 'Fallback',
-}
-
-const riskLabels: Record<string, string> = {
-  high: 'High risk',
-  medium: 'Medium risk',
-  low: 'Low risk',
-}
-
 const Archetypes: React.FC = () => {
   const [archetypes, setArchetypes] = useState<ArchetypeItem[]>([])
 
@@ -56,14 +43,14 @@ const Archetypes: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                   <div className="md:w-1/2 space-y-3">
                     <div className="flex flex-wrap gap-2">
-                      <span className="badge bg-white/90 text-brand-purple uppercase tracking-wide text-xs font-semibold">
-                        {goalLabels[archetype.goal] || archetype.goal}
+                      <span className="badge bg-white/90 text-brand-purple text-xs font-semibold">
+                        Onboarding ready
                       </span>
-                      <span className="badge bg-brand-mint/20 text-brand-mint uppercase tracking-wide text-xs font-semibold">
-                        {riskLabels[archetype.risk_band] || archetype.risk_band}
+                      <span className="badge bg-brand-mint/20 text-brand-mint text-xs font-semibold">
+                        Steady income
                       </span>
-                      <span className="badge bg-brand-gold/20 text-brand-gold uppercase tracking-wide text-xs font-semibold">
-                        Anchor cap {archetype.anchor_cap_pct}%
+                      <span className="badge bg-brand-gold/20 text-brand-gold text-xs font-semibold">
+                        Inflation shield
                       </span>
                     </div>
                     <h2 className="text-2xl font-semibold text-brand-ink dark:text-gray-100">{archetype.name}</h2>

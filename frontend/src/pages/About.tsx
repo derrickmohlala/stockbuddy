@@ -4,7 +4,7 @@ const About: React.FC = () => {
       <section className="rounded-[44px] border border-[#e7e9f3] bg-white px-8 py-12 shadow-[0_40px_110px_-70px_rgba(94,102,135,0.45)]">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div className="space-y-5">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
               Why StockBuddy exists
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">We decode investing for South Africans who deserve clarity before committing capital.</h1>
@@ -48,7 +48,7 @@ const About: React.FC = () => {
       <section className="mx-auto max-w-6xl rounded-[36px] border border-[#e7e9f3] bg-white px-6 py-12 shadow-[0_35px_100px_-70px_rgba(94,102,135,0.45)]">
         <div className="grid gap-10 md:grid-cols-[300px_minmax(0,1fr)]">
           <div className="space-y-4">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-muted">
+            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
               Guided experience
             </span>
             <p className="text-xl font-semibold text-primary-ink">What you can expect inside the platform</p>
