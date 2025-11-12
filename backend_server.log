@@ -21,3 +21,7 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 209-547-634
+/Users/derrickmohlala/stockbuddy/backend/app.py:319: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+  user = User.query.get(user_id)
+127.0.0.1 - - [12/Nov/2025 19:18:28] "[33mGET /api/users/22 HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Nov/2025 19:18:28] "[33mGET /api/users/22 HTTP/1.1[0m" 404 -

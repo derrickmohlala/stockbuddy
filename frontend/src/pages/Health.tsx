@@ -126,6 +126,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   const [yieldLoading, setYieldLoading] = useState(false)
   const [yieldError, setYieldError] = useState<string | null>(null)
   const [portfolioWeightedYield, setPortfolioWeightedYield] = useState<number | null>(null)
+  const [portfolioTotalValue, setPortfolioTotalValue] = useState<number | null>(null)
   const [useCustomYield, setUseCustomYield] = useState<boolean>(false)
   const [customYieldPct, setCustomYieldPct] = useState<string>('')
   const [useCustomReturn, setUseCustomReturn] = useState<boolean>(false)
@@ -194,7 +195,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         setHasPortfolio(hasHoldings)
         // If we have a portfolio, sync the current value input with backend total_value for better defaults
         if (hasHoldings && typeof data.total_value === 'number' && Number.isFinite(data.total_value)) {
-          setGoalInputs(prev => ({ ...prev, 'Current portfolio value (ZAR)': Math.max(0, Math.round(data.total_value)) }))
+          const tv = Math.max(0, Math.round(data.total_value))
+          setPortfolioTotalValue(tv)
+          setGoalInputs(prev => ({ ...prev, 'Current portfolio value (ZAR)': tv }))
         }
         // For dividend growth goals, align current annual dividends with backend weighted yield snapshot
         if (hasHoldings) {
@@ -273,6 +276,14 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     const c = Math.max(0, Math.round(cap * (effectiveYieldPct / 100)))
     setGoalInputs(prev => ({ ...prev, 'Current annual dividends (ZAR)': c }))
   }, [goalType, startingCapital, effectiveYieldPct])
+
+  // Keep Current monthly income aligned to baseline × yield/12 for passive income
+  useEffect(() => {
+    if (goalType !== 'passive_income') return
+    const baseCap = baselineMode === 'plan' ? (startingCapital ?? 0) : (portfolioTotalValue ?? 0)
+    const monthly = Math.max(0, Math.round((baseCap * (effectiveYieldPct / 100)) / 12))
+    setGoalInputs(prev => ({ ...prev, 'Current monthly income (ZAR)': monthly }))
+  }, [goalType, baselineMode, startingCapital, portfolioTotalValue, effectiveYieldPct])
 
   useEffect(() => {
     if (!userId || preferenceSynced) return
@@ -617,7 +628,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   )
 
   const renderYieldAssumptions = () => {
-    if (goalType !== 'dividend_growth') return null
+    if (goalType !== 'dividend_growth' && goalType !== 'passive_income') return null
     const effectivePortfolioYield = portfolioWeightedYield !== null && Number.isFinite(portfolioWeightedYield)
       ? `${portfolioWeightedYield.toFixed(1)}%`
       : 'n/a'
