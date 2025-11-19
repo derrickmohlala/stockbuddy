@@ -130,51 +130,84 @@ const Signup: React.FC = () => {
     setSubmitting(true)
 
     try {
+      const requestBody = {
+        email: email.trim().toLowerCase(),
+        password,
+        ...onboardingData,
+        first_name: onboardingData.first_name.trim() // Override with trimmed version
+      }
+      
+      console.log('Attempting registration with data:', {
+        email: requestBody.email,
+        hasPassword: !!requestBody.password,
+        first_name: requestBody.first_name,
+        age_band: requestBody.age_band,
+        experience: requestBody.experience,
+        goal: requestBody.goal,
+        risk: requestBody.risk,
+        horizon: requestBody.horizon,
+        anchor_stock: requestBody.anchor_stock,
+        literacy_level: requestBody.literacy_level,
+        interests: requestBody.interests
+      })
+      
       // Register with onboarding data included
       const response = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-          ...onboardingData,
-          first_name: onboardingData.first_name.trim() // Override with trimmed version
-        })
+        body: JSON.stringify(requestBody)
+      })
+
+      console.log('Registration response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
       })
 
       if (!response.ok) {
         let errorMessage = 'Registration failed'
         let errorDetail = ''
+        
         try {
           const errorData = await response.json()
+          console.log('Error response data:', errorData)
           errorMessage = errorData.error || errorData.message || errorMessage
           errorDetail = errorData.detail || ''
         } catch (parseError) {
+          console.log('Failed to parse error as JSON, trying text...')
           // If JSON parsing fails, try to get text
-          const text = await response.text().catch(() => '')
-          if (text) {
-            try {
-              const parsed = JSON.parse(text)
-              errorMessage = parsed.error || parsed.message || errorMessage
-              errorDetail = parsed.detail || ''
-            } catch {
-              errorMessage = text || errorMessage
+          try {
+            const text = await response.text()
+            console.log('Error response text:', text)
+            if (text) {
+              try {
+                const parsed = JSON.parse(text)
+                errorMessage = parsed.error || parsed.message || errorMessage
+                errorDetail = parsed.detail || ''
+              } catch {
+                errorMessage = text || errorMessage
+              }
             }
+          } catch (textError) {
+            console.error('Failed to get error text:', textError)
           }
         }
+        
         const fullError = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage
         console.error('Registration failed:', {
           status: response.status,
           statusText: response.statusText,
           error: errorMessage,
-          detail: errorDetail
+          detail: errorDetail,
+          fullError
         })
         throw new Error(fullError)
       }
 
       const data = await response.json()
+      console.log('Registration successful:', { user_id: data.user_id, email: data.email })
       
       // Store token
       localStorage.setItem('stockbuddy_token', data.access_token)
@@ -186,34 +219,58 @@ const Signup: React.FC = () => {
       // Navigate to portfolio
       navigate('/portfolio')
     } catch (err: any) {
+      console.error('Registration catch block:', err)
+      
       let errorMsg = 'Registration failed. Please try again.'
       
-      if (err.message) {
-        errorMsg = err.message
-      } else if (err.toString && err.toString() !== '[object Object]') {
+      // Extract error message from various error types
+      if (err?.message) {
+        errorMsg = String(err.message)
+      } else if (err?.error) {
+        errorMsg = String(err.error)
+      } else if (typeof err === 'string') {
+        errorMsg = err
+      } else if (err?.toString && err.toString() !== '[object Object]') {
         errorMsg = err.toString()
+      } else {
+        // Last resort - stringify the error
+        try {
+          errorMsg = JSON.stringify(err)
+        } catch {
+          errorMsg = 'Registration failed. Please check the console for details.'
+        }
       }
       
+      console.log('Extracted error message:', errorMsg)
+      
       // Show more helpful error messages
-      if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+      const errorLower = errorMsg.toLowerCase()
+      if (errorLower.includes('network') || errorLower.includes('fetch') || errorLower.includes('failed to fetch') || errorLower.includes('cors')) {
         errorMsg = 'Unable to connect to the server. Please check your internet connection and try again.'
-      } else if (errorMsg.includes('already exists')) {
+      } else if (errorLower.includes('already exists') || errorLower.includes('duplicate')) {
         errorMsg = 'An account with this email already exists. Please try logging in instead.'
-      } else if (errorMsg.includes('required')) {
+      } else if (errorLower.includes('required') || errorLower.includes('missing')) {
         errorMsg = 'Please fill in all required fields.'
-      } else if (errorMsg.includes('valid email')) {
+      } else if (errorLower.includes('valid email') || (errorLower.includes('email') && errorLower.includes('invalid'))) {
         errorMsg = 'Please enter a valid email address.'
-      } else if (errorMsg.includes('password')) {
+      } else if (errorLower.includes('password') && errorLower.includes('6')) {
         errorMsg = 'Password must be at least 6 characters long.'
+      } else if (errorMsg === 'Registration failed. Please try again.' && err) {
+        // If we still have the generic message, try to show something more useful
+        errorMsg = `Registration failed: ${errorLower.includes('detail') ? errorMsg : 'Please check all fields are filled correctly.'}`
       }
+      
+      console.error('Final registration error:', {
+        originalError: err,
+        extractedMessage: errorMsg,
+        errorType: typeof err,
+        errorKeys: err ? Object.keys(err) : [],
+        errorString: String(err),
+        errorJSON: JSON.stringify(err, null, 2)
+      })
       
       setError(errorMsg)
       setSubmitting(false)
-      console.error('Registration error:', {
-        error: err,
-        message: err.message,
-        stack: err.stack
-      })
     }
   }
 

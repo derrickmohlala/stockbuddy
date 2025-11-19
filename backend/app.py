@@ -214,9 +214,17 @@ def register():
         return jsonify({"error": "User with this email already exists"}), 400
     
     # Create new user with basic info
+    try:
+        password_hash = generate_password_hash(password)
+        if isinstance(password_hash, bytes):
+            password_hash = password_hash.decode('utf-8')
+    except Exception as hash_error:
+        print(f"Error hashing password: {hash_error}")
+        return jsonify({"error": "Unable to process password"}), 400
+    
     user_data = {
         "email": email,
-        "password_hash": generate_password_hash(password),
+        "password_hash": password_hash,
         "first_name": first_name,
         "is_admin": False
     }
@@ -243,37 +251,57 @@ def register():
             "interests": json.dumps(interests_value)
         })
     
-    user = User(**user_data)
-    db.session.add(user)
-    
     try:
+        user = User(**user_data)
+        db.session.add(user)
         db.session.commit()
         
         # If onboarding data was provided, create portfolio immediately
         if has_onboarding_data:
-            archetype = generate_archetype(user)
-            allocations = generate_starter_allocations(user, archetype)
-            
-            # Create user portfolio
-            portfolio = UserPortfolio(
-                user_id=user.id,
-                archetype=archetype,
-                allocations=json.dumps(allocations)
-            )
-            db.session.add(portfolio)
-            db.session.commit()
-            
-            # Create initial positions
-            create_initial_positions(user.id, allocations)
-            db.session.commit()
-            
-            # Create baseline
-            baseline = PortfolioBaseline(
-                user_id=user.id,
-                allocations=json.dumps(allocations)
-            )
-            db.session.add(baseline)
-            db.session.commit()
+            try:
+                archetype = generate_archetype(user)
+                allocations = generate_starter_allocations(user, archetype)
+                
+                # Create user portfolio
+                portfolio = UserPortfolio(
+                    user_id=user.id,
+                    archetype=archetype,
+                    allocations=json.dumps(allocations)
+                )
+                db.session.add(portfolio)
+                db.session.commit()
+                
+                # Create initial positions
+                try:
+                    create_initial_positions(user.id, allocations)
+                    db.session.commit()
+                except Exception as pos_error:
+                    db.session.rollback()
+                    import traceback
+                    print(f"Warning: Failed to create initial positions: {pos_error}")
+                    traceback.print_exc()
+                    # Continue without positions - user can add them later
+                
+                # Create baseline
+                try:
+                    baseline = PortfolioBaseline(
+                        user_id=user.id,
+                        allocations=json.dumps(allocations)
+                    )
+                    db.session.add(baseline)
+                    db.session.commit()
+                except Exception as baseline_error:
+                    db.session.rollback()
+                    import traceback
+                    print(f"Warning: Failed to create baseline: {baseline_error}")
+                    traceback.print_exc()
+                    # Continue without baseline
+            except Exception as portfolio_error:
+                db.session.rollback()
+                import traceback
+                print(f"Warning: Failed to create portfolio: {portfolio_error}")
+                traceback.print_exc()
+                # Continue - user is created, portfolio can be set up later
         
         # Generate token
         access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
@@ -289,8 +317,9 @@ def register():
         db.session.rollback()
         error_detail = str(e)
         import traceback
+        error_traceback = traceback.format_exc()
         print(f"Registration error: {error_detail}")
-        print(traceback.format_exc())
+        print(error_traceback)
         
         # Provide more specific error messages
         if "UNIQUE constraint failed" in error_detail or "duplicate key" in error_detail.lower():
@@ -301,7 +330,8 @@ def register():
             # Check for validation errors
             if "email" in error_detail.lower():
                 return jsonify({"error": "Please enter a valid email address"}), 400
-        return jsonify({"error": "Unable to create user account", "detail": error_detail}), 400
+        # Return 500 with error details so frontend can display it
+        return jsonify({"error": "Unable to create user account", "detail": error_detail}), 500
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
