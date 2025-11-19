@@ -211,8 +211,10 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
             continue
         url = normalised.get("url")
         if not (isinstance(url, str) and url.startswith("http")):
-            # Don't set a fallback URL - let frontend handle it
-            normalised["url"] = None
+            # Create a fallback search URL on Moneyweb (reliable SA finance news source)
+            # Format: https://www.moneyweb.co.za/search/?q=SYMBOL
+            from urllib.parse import quote
+            normalised["url"] = f"https://www.moneyweb.co.za/search/?q={quote(symbol)}"
         normalised["published_at"] = published_at
         collected.append(normalised)
         if len(collected) >= limit:
