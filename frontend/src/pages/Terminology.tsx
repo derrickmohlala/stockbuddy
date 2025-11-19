@@ -386,7 +386,7 @@ const Terminology: React.FC = () => {
           <h1 className="text-4xl font-bold text-brand-ink dark:text-gray-100">Investment terminology</h1>
           <p className="text-lg text-muted dark:text-gray-300">
             Speak the language of South African investing. These are the phrases you’ll see throughout StockBuddy and
-            on trading statements from the JSE or your broker.
+            on trading statements from the JSE or investment platforms you use through your broker.
           </p>
         </header>
 

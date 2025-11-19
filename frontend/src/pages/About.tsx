@@ -72,11 +72,34 @@ const About: React.FC = () => {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl rounded-[32px] border border-[#e7e9f3] bg-white px-8 py-12 text-center shadow-[0_40px_120px_-70px_rgba(94,102,135,0.45)]">
-        <h2 className="text-3xl font-semibold text-primary-ink">Our north star</h2>
-        <p className="mt-3 text-lg text-subtle">
-          Confidence comes from context. StockBuddy provides the translation layer — so when you place your first real trade, it feels like the next logical step.
-        </p>
+      <section className="mx-auto max-w-6xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 shadow-[0_40px_120px_-70px_rgba(94,102,135,0.45)]">
+        <div className="grid gap-10 md:grid-cols-[280px_minmax(0,1fr)] md:items-center">
+          <div className="flex flex-col items-center gap-4 text-center md:text-left">
+            <div className="flex h-48 w-48 items-center justify-center rounded-[32px] border border-[#e7e9f3] bg-[#f7f8fb] text-5xl font-bold text-brand-purple">
+              DM
+            </div>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">Founder</p>
+              <h3 className="text-2xl font-semibold text-primary-ink">Derrick Mohlala</h3>
+            </div>
+          </div>
+          <div className="space-y-4 text-lg text-subtle">
+            <p>
+              Derrick built StockBuddy after helping friends and family decipher JSE jargon, tax rules, and the fine print
+              attached to local broker statements. He saw how even confident professionals hesitated to place their first
+              trade because the education layer felt imported or incomplete.
+            </p>
+            <p>
+              With a background in product strategy and a passion for simplifying personal finance, Derrick designed
+              StockBuddy to feel like an approachable investment studio: immersive lessons, South African data, and
+              practice environments that mirror what you will eventually see inside your broker portal.
+            </p>
+            <p>
+              His goal is to make every user feel “conversation-ready” when meeting an adviser or logging into their
+              preferred platform — confident in the terminology, informed about fees, and clear on the steps forward.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   )
