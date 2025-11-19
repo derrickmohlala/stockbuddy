@@ -288,11 +288,15 @@ def register():
     except Exception as e:
         db.session.rollback()
         error_detail = str(e)
+        import traceback
+        print(f"Registration error: {error_detail}")
+        print(traceback.format_exc())
+        
         # Provide more specific error messages
         if "UNIQUE constraint failed" in error_detail or "duplicate key" in error_detail.lower():
             return jsonify({"error": "A user with this email already exists"}), 400
         elif "NOT NULL constraint failed" in error_detail:
-            return jsonify({"error": "Missing required information. Please fill in all fields."}), 400
+            return jsonify({"error": "Missing required information. Please fill in all fields.", "detail": error_detail}), 400
         elif "pattern" in error_detail.lower() or "match" in error_detail.lower():
             # Check for validation errors
             if "email" in error_detail.lower():

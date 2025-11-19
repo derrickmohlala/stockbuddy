@@ -99,6 +99,34 @@ const Signup: React.FC = () => {
 
   const handleCompleteOnboarding = async () => {
     setError(null)
+    
+    // Validate all required fields before submitting
+    if (!email || !validateEmail(email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+    
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+    
+    if (!onboardingData.first_name || onboardingData.first_name.trim().length < 1) {
+      setError('First name is required')
+      return
+    }
+    
+    if (!onboardingData.age_band || !onboardingData.experience || !onboardingData.goal || 
+        !onboardingData.horizon || !onboardingData.anchor_stock || !onboardingData.literacy_level) {
+      setError('Please complete all onboarding questions')
+      return
+    }
+    
+    if (!onboardingData.interests || onboardingData.interests.length === 0) {
+      setError('Please select at least one interest')
+      return
+    }
+    
     setSubmitting(true)
 
     try {
@@ -118,15 +146,32 @@ const Signup: React.FC = () => {
 
       if (!response.ok) {
         let errorMessage = 'Registration failed'
+        let errorDetail = ''
         try {
           const errorData = await response.json()
-          errorMessage = errorData.error || errorData.detail || errorMessage
+          errorMessage = errorData.error || errorData.message || errorMessage
+          errorDetail = errorData.detail || ''
         } catch (parseError) {
           // If JSON parsing fails, try to get text
           const text = await response.text().catch(() => '')
-          if (text) errorMessage = text
+          if (text) {
+            try {
+              const parsed = JSON.parse(text)
+              errorMessage = parsed.error || parsed.message || errorMessage
+              errorDetail = parsed.detail || ''
+            } catch {
+              errorMessage = text || errorMessage
+            }
+          }
         }
-        throw new Error(errorMessage)
+        const fullError = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage
+        console.error('Registration failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          detail: errorDetail
+        })
+        throw new Error(fullError)
       }
 
       const data = await response.json()
@@ -141,10 +186,34 @@ const Signup: React.FC = () => {
       // Navigate to portfolio
       navigate('/portfolio')
     } catch (err: any) {
-      const errorMsg = err.message || err.toString() || 'Registration failed. Please try again.'
+      let errorMsg = 'Registration failed. Please try again.'
+      
+      if (err.message) {
+        errorMsg = err.message
+      } else if (err.toString && err.toString() !== '[object Object]') {
+        errorMsg = err.toString()
+      }
+      
+      // Show more helpful error messages
+      if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        errorMsg = 'Unable to connect to the server. Please check your internet connection and try again.'
+      } else if (errorMsg.includes('already exists')) {
+        errorMsg = 'An account with this email already exists. Please try logging in instead.'
+      } else if (errorMsg.includes('required')) {
+        errorMsg = 'Please fill in all required fields.'
+      } else if (errorMsg.includes('valid email')) {
+        errorMsg = 'Please enter a valid email address.'
+      } else if (errorMsg.includes('password')) {
+        errorMsg = 'Password must be at least 6 characters long.'
+      }
+      
       setError(errorMsg)
       setSubmitting(false)
-      console.error('Registration error:', err)
+      console.error('Registration error:', {
+        error: err,
+        message: err.message,
+        stack: err.stack
+      })
     }
   }
 
