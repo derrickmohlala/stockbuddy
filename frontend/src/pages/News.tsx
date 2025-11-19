@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Newspaper, RefreshCw, ExternalLink, AlertCircle, CalendarDays, TrendingUp, TrendingDown, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 
@@ -64,6 +64,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null)
   const [newsSearch, setNewsSearch] = useState('')
   const [headlinePage, setHeadlinePage] = useState(0)
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchLatestNews = useCallback(async () => {
     setLoading(true)
@@ -113,6 +114,40 @@ const News: React.FC<NewsProps> = ({ userId }) => {
       fetchLatestNews()
     }
   }, [userId, fetchLatestNews, fetchPersonalizedNews])
+
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!error || loading) {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+      return
+    }
+
+    retryTimeoutRef.current = setTimeout(() => {
+      retryTimeoutRef.current = null
+      if (userId && isPersonalized) {
+        fetchPersonalizedNews()
+      } else {
+        fetchLatestNews()
+      }
+    }, 4000)
+
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+    }
+  }, [error, loading, userId, isPersonalized, fetchLatestNews, fetchPersonalizedNews])
 
   const renderPublishedDate = (iso: string) => {
     const parsed = new Date(iso)
@@ -201,8 +236,69 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     return { headlineStories: selected, regularStories: remainder }
   }, [filteredNews, headlinePage])
   const displayedRegularStories = regularStories.slice(0, 10)
-
   const totalStories = filteredNews.length
+
+  type SentimentKey = 'Positive' | 'Neutral' | 'Cautious' | 'Mixed'
+
+  const sentimentCounts = useMemo<Record<SentimentKey, number>>(() => {
+    const counts: Record<SentimentKey, number> = {
+      Positive: 0,
+      Neutral: 0,
+      Cautious: 0,
+      Mixed: 0
+    }
+    filteredNews.forEach((story) => {
+      const normalized = (story.sentiment || '').trim().toLowerCase()
+      let key: SentimentKey = 'Neutral'
+      if (normalized === 'positive') key = 'Positive'
+      else if (normalized === 'cautious' || normalized === 'negative') key = 'Cautious'
+      else if (normalized === 'mixed') key = 'Mixed'
+      else if (normalized === 'neutral') key = 'Neutral'
+      counts[key] += 1
+    })
+    return counts
+  }, [filteredNews])
+
+  const positiveCount = sentimentCounts.Positive
+  const cautiousCount = sentimentCounts.Cautious
+  const neutralCount = sentimentCounts.Neutral
+  const mixedCount = sentimentCounts.Mixed
+
+  const dominantSentiment: SentimentKey = useMemo(() => {
+    if (filteredNews.length === 0) {
+      return 'Neutral'
+    }
+    const entries: Array<{ key: SentimentKey, count: number }> = [
+      { key: 'Positive', count: positiveCount },
+      { key: 'Cautious', count: cautiousCount },
+      { key: 'Neutral', count: neutralCount },
+      { key: 'Mixed', count: mixedCount }
+    ]
+    const highest = Math.max(...entries.map((entry) => entry.count))
+    const leaders = entries.filter((entry) => entry.count === highest && highest > 0)
+    if (leaders.length === 1) {
+      return leaders[0].key
+    }
+    if (leaders.length === 0) {
+      return 'Neutral'
+    }
+    if (leaders.some((entry) => entry.key === 'Mixed')) {
+      return 'Mixed'
+    }
+    return 'Mixed'
+  }, [filteredNews.length, positiveCount, cautiousCount, neutralCount, mixedCount])
+
+  const sentimentLabelDisplay = totalStories === 0 ? 'NO DATA' : dominantSentiment.toUpperCase()
+  const sentimentIcon = useMemo(() => {
+    if (dominantSentiment === 'Positive') {
+      return <TrendingUp className="h-6 w-6 text-brand-mint" />
+    }
+    if (dominantSentiment === 'Cautious') {
+      return <TrendingDown className="h-6 w-6 text-brand-coral" />
+    }
+    return <AlertCircle className="h-6 w-6 text-muted" />
+  }, [dominantSentiment])
+
   const hasHeadlinePaging = totalStories > HEADLINE_PAGE_SIZE
   const hasPreviousHeadlines = headlinePage > 0
   const hasNextHeadlines = (headlinePage + 1) * HEADLINE_PAGE_SIZE < totalStories
@@ -369,7 +465,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
-            <div className="relative w-full sm:w-64 order-first sm:order-last">
+            <div className="relative w-full sm:w-64 order-first sm:order-last sm:shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <input
                 type="search"
@@ -394,9 +490,14 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         </div>
         
         {error && (
-          <div className="flex items-center gap-3 bg-brand-coral/10 border-l-4 border-brand-coral px-4 py-3 text-sm text-brand-coral">
+          <div className="flex items-start gap-3 bg-brand-coral/10 border-l-4 border-brand-coral px-4 py-3 text-sm text-brand-coral">
             <AlertCircle className="h-5 w-5" />
-            <span>{error}</span>
+            <div className="flex flex-col gap-1">
+              <span>{error}</span>
+              {!loading && (
+                <span className="text-xs text-brand-coral/80">Retrying automatically…</span>
+              )}
+            </div>
           </div>
         )}
 
@@ -427,12 +528,8 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <div>
                 <p className="text-xs font-bold text-muted mb-1">MARKET SENTIMENT</p>
                 <div className="flex items-center gap-2">
-                  {filteredNews.filter(s => s.sentiment === 'Positive').length > filteredNews.filter(s => s.sentiment === 'Cautious').length ? (
-                    <TrendingUp className="h-6 w-6 text-brand-mint" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-brand-coral" />
-                  )}
-                  <span className="text-sm font-bold text-primary-ink">MIXED</span>
+                  {sentimentIcon}
+                  <span className="text-sm font-bold text-primary-ink">{sentimentLabelDisplay}</span>
                 </div>
               </div>
             </>
@@ -581,15 +678,19 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <div className="space-y-4 text-sm">
                 <div>
                   <p className="font-semibold text-primary-ink mb-1">Positive Sentiment</p>
-                  <p className="text-subtle">{filteredNews.filter(s => s.sentiment === 'Positive').length} stories</p>
+                  <p className="text-subtle">{positiveCount} stories</p>
                 </div>
                 <div>
                   <p className="font-semibold text-primary-ink mb-1">Cautious Outlook</p>
-                  <p className="text-subtle">{filteredNews.filter(s => s.sentiment === 'Cautious').length} stories</p>
+                  <p className="text-subtle">{cautiousCount} stories</p>
                 </div>
                 <div>
                   <p className="font-semibold text-primary-ink mb-1">Neutral Reports</p>
-                  <p className="text-subtle">{filteredNews.filter(s => s.sentiment === 'Neutral').length} stories</p>
+                  <p className="text-subtle">{neutralCount} stories</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary-ink mb-1">Mixed Read-throughs</p>
+                  <p className="text-subtle">{mixedCount} stories</p>
                 </div>
               </div>
             </section>
