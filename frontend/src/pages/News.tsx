@@ -473,7 +473,8 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 onChange={(event) => setNewsSearch(event.target.value)}
                 placeholder="Search symbol or company"
                 aria-label="Search news by symbol or company"
-                className="w-full rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none"
+                className="w-full appearance-none rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none"
+                autoComplete="off"
               />
               {newsSearch && (
                 <button

@@ -9,6 +9,35 @@ import yfinance as yf
 
 GOOGLE_NEWS_FEED = "https://news.google.com/rss/search?q={query}&hl=en-ZA&gl=ZA&ceid=ZA:en"
 
+POSITIVE_KEYWORDS = [
+    "beats", "beat", "surge", "surges", "rally", "soar", "soars", "climb", "climbs",
+    "strong", "record", "growth", "raise", "upgraded", "upgrade", "expands", "expansion",
+    "positive", "improves", "improvement", "tops", "outperforms", "accretive", "bullish"
+]
+
+NEGATIVE_KEYWORDS = [
+    "misses", "warns", "warning", "slump", "slumps", "fall", "falls", "drop", "drops",
+    "cuts", "cut", "downgrade", "downgraded", "pressure", "loss", "losses", "concern",
+    "probe", "regulatory", "lawsuit", "strike", "disappoints", "weak", "bearish"
+]
+
+
+def classify_sentiment(*texts):
+    combined = " ".join(filter(None, texts)).lower()
+    if not combined.strip():
+        return "Neutral"
+
+    positive_hits = sum(1 for word in POSITIVE_KEYWORDS if word in combined)
+    negative_hits = sum(1 for word in NEGATIVE_KEYWORDS if word in combined)
+
+    if positive_hits > 0 and negative_hits > 0:
+        return "Mixed"
+    if positive_hits > 0:
+        return "Positive"
+    if negative_hits > 0:
+        return "Cautious"
+    return "Neutral"
+
 
 def fetch_google_news(symbol, limit=5):
     query = quote_plus(f"{symbol} JSE news")
@@ -47,7 +76,7 @@ def fetch_google_news(symbol, limit=5):
             "name": None,
             "headline": title,
             "summary": description or f"Latest coverage mentioning {symbol} on the JSE.",
-            "sentiment": "Neutral",
+            "sentiment": classify_sentiment(title, description),
             "topic": "Market",
             "published_at": published_at.isoformat(),
             "source": source,
@@ -140,13 +169,15 @@ def _normalise_yf_record(record):
     if isinstance(thumb_source, dict):
         thumbnail = thumb_source.get('originalUrl')
 
+    sentiment = classify_sentiment(title or "", summary or "", content.get('category') or "")
+
     return {
         "id": record.get('uuid') or f"{record.get('symbol')}-{provider_time}",
         "headline": title,
         "summary": summary or record.get('content'),
         "source": source,
         "url": url,
-        "sentiment": 'Neutral',
+        "sentiment": sentiment,
         "topic": record.get('type') or record.get('topic') or content.get('category'),
         "published_at": published_at,
         "thumbnail": thumbnail
