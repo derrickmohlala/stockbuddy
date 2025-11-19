@@ -117,8 +117,16 @@ const Signup: React.FC = () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Registration failed')
+        let errorMessage = 'Registration failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.detail || errorMessage
+        } catch (parseError) {
+          // If JSON parsing fails, try to get text
+          const text = await response.text().catch(() => '')
+          if (text) errorMessage = text
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -133,13 +141,15 @@ const Signup: React.FC = () => {
       // Navigate to portfolio
       navigate('/portfolio')
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.')
+      const errorMsg = err.message || err.toString() || 'Registration failed. Please try again.'
+      setError(errorMsg)
       setSubmitting(false)
+      console.error('Registration error:', err)
     }
   }
 
   const renderStep0 = () => (
-    <form onSubmit={handleAccountCreation} className="space-y-6">
+    <form onSubmit={handleAccountCreation} className="space-y-6" noValidate>
       <div>
         <label htmlFor="firstName" className="block text-sm font-semibold text-primary-ink mb-2">
           First name

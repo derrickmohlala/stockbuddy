@@ -287,7 +287,17 @@ def register():
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Unable to create user", "detail": str(e)}), 400
+        error_detail = str(e)
+        # Provide more specific error messages
+        if "UNIQUE constraint failed" in error_detail or "duplicate key" in error_detail.lower():
+            return jsonify({"error": "A user with this email already exists"}), 400
+        elif "NOT NULL constraint failed" in error_detail:
+            return jsonify({"error": "Missing required information. Please fill in all fields."}), 400
+        elif "pattern" in error_detail.lower() or "match" in error_detail.lower():
+            # Check for validation errors
+            if "email" in error_detail.lower():
+                return jsonify({"error": "Please enter a valid email address"}), 400
+        return jsonify({"error": "Unable to create user account", "detail": error_detail}), 400
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():

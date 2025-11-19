@@ -264,13 +264,13 @@ const Discover: React.FC = () => {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div className="space-y-5">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
-              Spotlight library
+              Paper trading studio
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">
-              Scan the JSE landscape with filters built for South Africans.
+              Explore JSE instruments and practice paper trading.
             </h1>
             <p className="text-lg text-subtle">
-              Slice by ETF, share, or REIT, compare dividend yields, track TERs, and jump straight into a simulated trade.
+              Browse ETFs, shares, and REITs with live prices. Execute simulated trades to build your virtual portfolio — no real money involved.
             </p>
             <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-muted">
               <span>Filters stay in sync across tabs</span>

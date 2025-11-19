@@ -120,9 +120,12 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
       })
 
       if (response.ok) {
+        // Show success feedback before navigating
+        alert(`Success! Your ${tradeType} order for ${quantity} shares of ${instrument.symbol} has been executed. Your portfolio has been updated.`)
         navigate('/portfolio')
       } else {
-        console.error('Trade failed')
+        const errorData = await response.json().catch(() => ({ error: 'Trade failed' }))
+        alert(`Trade failed: ${errorData.error || 'Unable to execute trade. Please try again.'}`)
       }
     } catch (error) {
       console.error('Error executing trade:', error)
@@ -265,9 +268,19 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
 
           {/* Trade Form */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-4">
-              Simulated Trade
-            </h3>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">
+                  Paper Trading
+                </h3>
+                <span className="inline-flex items-center rounded-full border border-brand-purple/30 bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+                  Simulation
+                </span>
+              </div>
+              <p className="text-sm text-subtle dark:text-gray-300">
+                Execute simulated buy/sell orders using live JSE prices. Your virtual portfolio will be updated immediately — no real money or transactions involved.
+              </p>
+            </div>
 
             {/* Current Position */}
             {currentPosition > 0 && (
@@ -375,16 +388,36 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
               </button>
             </form>
 
+            {/* What Happens Notice */}
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start space-x-3">
+                <Calculator className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    What happens when you execute a trade?
+                  </h4>
+                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                    <li>• Your virtual portfolio is updated immediately</li>
+                    <li>• Buy orders add shares to your holdings</li>
+                    <li>• Sell orders reduce your position (if you have shares)</li>
+                    <li>• Average price is calculated automatically for new purchases</li>
+                    <li>• Trade history is recorded in your portfolio</li>
+                    <li>• No real money is involved — this is paper trading</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Educational Notice */}
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                    Educational Trading
+                    Educational Trading Only
                   </h4>
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    This is a simulated trade for educational purposes only. 
+                    This is a simulated trading experience for learning purposes. 
                     No real money is involved and this is not financial advice.
                   </p>
                 </div>
