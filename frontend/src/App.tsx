@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect, ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
@@ -93,8 +93,20 @@ function AppContent() {
                         setIsOnboarded(false)
                       }
                     }}
-                    ctaPath={isOnboarded ? '/portfolio' : '/onboarding'}
-                    ctaLabel={isOnboarded ? 'View Portfolio' : "Get Started - It's Free"}
+                    ctaPath={
+                      user && isOnboarded 
+                        ? '/portfolio' 
+                        : user && !isOnboarded 
+                        ? '/onboarding' 
+                        : '/signup'
+                    }
+                    ctaLabel={
+                      user && isOnboarded 
+                        ? 'View Portfolio' 
+                        : user && !isOnboarded 
+                        ? 'Complete Setup' 
+                        : "Get Started - It's Free"
+                    }
                   />
                   </PageLayout>
                 } 
@@ -106,20 +118,13 @@ function AppContent() {
                 path="/onboarding" 
                 element={
                   <PageLayout fullBleed>
-                  {userId ? (
+                  {user && userId ? (
                     <Onboarding 
                       onComplete={handleOnboardingComplete}
                       userId={userId}
                     />
                   ) : (
-                    <div className="flex min-h-[80vh] items-center justify-center">
-                      <div className="text-center space-y-4">
-                        <p className="text-subtle">Please sign up to continue</p>
-                        <Link to="/signup" className="btn-cta inline-block">
-                          Sign up
-                        </Link>
-                      </div>
-                    </div>
+                    <Navigate to="/signup" replace />
                   )}
                   </PageLayout>
                 } 
