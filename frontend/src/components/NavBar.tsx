@@ -1,6 +1,6 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X, LogOut, Shield } from 'lucide-react'
+import { Menu, X, LogOut, Shield, ChevronDown } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 type NavLinkRender = { isActive: boolean }
@@ -14,15 +14,23 @@ const navItems = [
   { label: 'About', to: '/about' },
   { label: 'Archetypes', to: '/archetypes' },
   { label: 'Terminology', to: '/terminology' },
-  { label: 'Portfolio', to: '/portfolio' },
   { label: 'News', to: '/news' },
   { label: 'Health', to: '/health' }
 ]
 
+const portfolioSubItems = [
+  { label: 'Portfolio', to: '/portfolio' },
+  { label: 'Discover', to: '/discover' }
+]
+
 const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [portfolioDropdownOpen, setPortfolioDropdownOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
+  
+  const isPortfolioActive = location.pathname.startsWith('/portfolio') || location.pathname.startsWith('/discover')
 
   const handleStart = () => {
     navigate(isOnboarded ? '/portfolio' : '/onboarding')
@@ -60,6 +68,44 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 {item.label}
               </NavLink>
             ))}
+            
+            {/* Portfolio Dropdown */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setPortfolioDropdownOpen(true)}
+              onMouseLeave={() => setPortfolioDropdownOpen(false)}
+            >
+              <button
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
+                  isPortfolioActive
+                    ? 'bg-brand-coral/10 text-brand-coral' 
+                    : 'text-muted hover:text-brand-coral'
+                }`}
+              >
+                Portfolio
+                <ChevronDown className={`h-3 w-3 transition-transform ${portfolioDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {portfolioDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-40 rounded-xl border border-[#e7e9f3] bg-white shadow-lg py-2">
+                  {portfolioSubItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `block px-4 py-2 text-sm font-medium transition-colors ${
+                          isActive 
+                            ? 'bg-brand-coral/10 text-brand-coral' 
+                            : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                        }`
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -131,6 +177,29 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 {item.label}
               </NavLink>
             ))}
+            
+            {/* Portfolio Section in Mobile Menu */}
+            <div className="rounded-xl border border-[#e7e9f3] overflow-hidden">
+              <div className="px-4 py-2 bg-[#f7f8fb] text-xs font-semibold text-muted">
+                Portfolio
+              </div>
+              {portfolioSubItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `block px-4 py-3 font-medium transition-colors border-t border-[#e7e9f3] ${
+                      isActive
+                        ? 'bg-brand-coral/10 text-brand-coral border-brand-coral/20'
+                        : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                    }`
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
             {user ? (
               <>
                 {user.is_admin && (
