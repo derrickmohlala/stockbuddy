@@ -111,8 +111,8 @@ const Signup: React.FC = () => {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
-          first_name: onboardingData.first_name.trim(),
-          ...onboardingData
+          ...onboardingData,
+          first_name: onboardingData.first_name.trim() // Override with trimmed version
         })
       })
 
