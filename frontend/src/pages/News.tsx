@@ -184,14 +184,33 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   const hasGroupedItems = scheduleSections.some(({ key }) => (earningsSchedule[key]?.length ?? 0) > 0)
   const shouldRenderScheduleCard = hasGroupedItems || earningsWatch.length > 0
 
+  const buildSearchUrl = (story: PortfolioNewsItem) => {
+    const parts = [story.symbol, story.headline, 'JSE news'].filter(Boolean)
+    return `https://www.google.com/search?q=${encodeURIComponent(parts.join(' '))}`
+  }
+
+  const resolveStoryUrl = (story: PortfolioNewsItem) => {
+    const fallback = buildSearchUrl(story)
+    if (!story.url || typeof story.url !== 'string') {
+      return { url: fallback, isFallback: true }
+    }
+    try {
+      const parsed = new URL(story.url)
+      const protocolValid = parsed.protocol === 'https:' || parsed.protocol === 'http:'
+      const isLocalStub = parsed.hostname.endsWith('stockbuddy.local') || parsed.hostname.endsWith('stockbuddy.test')
+      if (!protocolValid || isLocalStub) {
+        return { url: fallback, isFallback: true }
+      }
+      return { url: parsed.href, isFallback: false }
+    } catch {
+      return { url: fallback, isFallback: true }
+    }
+  }
+
   const renderStory = (story: PortfolioNewsItem, size: 'headline' | 'regular' = 'regular') => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
     const isHeadline = size === 'headline'
-    // Use the URL from backend (which should always be provided now)
-    // Backend ensures every story has a URL (either from yfinance or Google search fallback)
-    const articleUrl = story.url && typeof story.url === 'string' && story.url.startsWith('http') 
-      ? story.url 
-      : `https://www.google.com/search?q=${encodeURIComponent(`${story.symbol} JSE news`)}`
+    const { url: articleUrl, isFallback } = resolveStoryUrl(story)
     
     return (
       <article
@@ -243,7 +262,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold cursor-pointer"
           >
-            {story.url && story.url.startsWith('http') ? 'Read more' : `View ${story.symbol} news`}
+            {isFallback ? `View ${story.symbol} news` : 'Read more'}
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>

@@ -11,6 +11,7 @@ import random
 import hashlib
 import pandas as pd
 import statistics
+from urllib.parse import quote_plus
 
 from models import db, User, Instrument, Price, Basket, UserPortfolio, UserPosition, UserTrade, CPI, PortfolioBaseline, SuggestionAction
 from news_sources import fetch_static_news, fetch_live_news, fetch_upcoming_earnings
@@ -2179,17 +2180,21 @@ def synthesize_symbol_news(symbol, name, goal=None):
             )
         }
 
+        headline_text = headline_templates.get(sentiment_key, headline_templates['neutral'])
+        summary_text = summary_templates.get(sentiment_key, summary_templates['neutral'])
+        search_query = f"{symbol} {headline_text}".strip()
+
         stories.append({
             "id": f"{symbol}-{idx}",
             "symbol": symbol,
             "name": name,
-            "headline": headline_templates.get(sentiment_key, headline_templates['neutral']),
-            "summary": summary_templates.get(sentiment_key, summary_templates['neutral']),
+            "headline": headline_text,
+            "summary": summary_text,
             "sentiment": sentiment_label,
             "topic": topic,
             "published_at": published_at.isoformat(),
             "source": "StockBuddy Insights",
-            "url": f"https://news.stockbuddy.local/{symbol.lower()}/{idx}"
+            "url": f"https://www.google.com/search?q={quote_plus(search_query)}"
         })
     return stories
 
