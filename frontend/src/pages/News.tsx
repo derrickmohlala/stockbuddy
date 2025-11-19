@@ -187,6 +187,9 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   const renderStory = (story: PortfolioNewsItem, size: 'headline' | 'regular' = 'regular') => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
     const isHeadline = size === 'headline'
+    const hasValidUrl = story.url && typeof story.url === 'string' && story.url.startsWith('http')
+    const articleUrl = hasValidUrl ? story.url : null
+    const searchUrl = `https://finance.yahoo.com/quote/${encodeURIComponent(story.symbol)}`
     
     return (
       <article
@@ -204,9 +207,29 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 </span>
               )}
             </div>
-            <h3 className={`font-bold text-primary-ink leading-tight mb-3 ${isHeadline ? 'text-2xl' : 'text-lg'}`}>
-              {story.headline}
-            </h3>
+            {articleUrl ? (
+              <a
+                href={articleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group"
+              >
+                <h3 className={`font-bold text-primary-ink leading-tight mb-3 group-hover:text-brand-purple transition-colors cursor-pointer ${isHeadline ? 'text-2xl' : 'text-lg'}`}>
+                  {story.headline}
+                </h3>
+              </a>
+            ) : (
+              <a
+                href={searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group"
+              >
+                <h3 className={`font-bold text-primary-ink leading-tight mb-3 group-hover:text-brand-purple transition-colors cursor-pointer ${isHeadline ? 'text-2xl' : 'text-lg'}`}>
+                  {story.headline}
+                </h3>
+              </a>
+            )}
           </div>
           <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold border ${sentimentClass}`}>
             {story.sentiment}
@@ -225,14 +248,24 @@ const News: React.FC<NewsProps> = ({ userId }) => {
           {story.source && (
             <span className="italic">— {story.source}</span>
           )}
-          {story.url && (
+          {articleUrl ? (
             <a
-              href={story.url}
+              href={articleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold"
+              className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold cursor-pointer"
             >
               Read more
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          ) : (
+            <a
+              href={searchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold cursor-pointer"
+            >
+              View {story.symbol}
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
