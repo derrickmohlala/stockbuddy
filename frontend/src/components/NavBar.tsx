@@ -13,7 +13,10 @@ const navItems = [
   { label: 'Home', to: '/' },
   { label: 'About', to: '/about' },
   { label: 'Archetypes', to: '/archetypes' },
-  { label: 'Terminology', to: '/terminology' },
+  { label: 'Terminology', to: '/terminology' }
+]
+
+const navItemsAfterPortfolio = [
   { label: 'News', to: '/news' },
   { label: 'Health', to: '/health' }
 ]
@@ -75,37 +78,48 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
               onMouseEnter={() => setPortfolioDropdownOpen(true)}
               onMouseLeave={() => setPortfolioDropdownOpen(false)}
             >
-              <button
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
-                  isPortfolioActive
-                    ? 'bg-brand-coral/10 text-brand-coral' 
-                    : 'text-muted hover:text-brand-coral'
-                }`}
+              <NavLink
+                to="/portfolio"
+                className={() =>
+                  `rounded-full px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
+                    isPortfolioActive
+                      ? 'bg-brand-coral/10 text-brand-coral' 
+                      : 'text-muted hover:text-brand-coral'
+                  }`
+                }
               >
                 Portfolio
                 <ChevronDown className={`h-3 w-3 transition-transform ${portfolioDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+              </NavLink>
               
               {portfolioDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-40 rounded-xl border border-[#e7e9f3] bg-white shadow-lg py-2">
-                  {portfolioSubItems.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      className={({ isActive }) =>
-                        `block px-4 py-2 text-sm font-medium transition-colors ${
-                          isActive 
-                            ? 'bg-brand-coral/10 text-brand-coral' 
-                            : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
-                        }`
-                      }
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
+                <div className="absolute top-full left-0 pt-2 w-40">
+                  <div className="rounded-xl border border-[#e7e9f3] bg-white shadow-lg py-2">
+                    {portfolioSubItems.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) =>
+                          `block px-4 py-2 text-sm font-medium transition-colors ${
+                            isActive 
+                              ? 'bg-brand-coral/10 text-brand-coral' 
+                              : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                          }`
+                        }
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
+            
+            {navItemsAfterPortfolio.map((item) => (
+              <NavLink key={item.to} to={item.to} className={renderLinkClass}>
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -200,6 +214,17 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 </NavLink>
               ))}
             </div>
+            
+            {navItemsAfterPortfolio.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
             {user ? (
               <>
                 {user.is_admin && (
