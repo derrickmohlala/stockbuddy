@@ -85,18 +85,19 @@ const About: React.FC = () => {
           </div>
           <div className="space-y-4 text-lg text-subtle">
             <p>
-              Derrick built StockBuddy after helping friends and family decipher JSE jargon, tax rules, and the fine print
-              attached to local broker statements. He saw how even confident professionals hesitated to place their first
-              trade because the education layer felt imported or incomplete.
+              I originally started StockBuddy as a smart tool to organise my own investing decisions. I was tired of
+              jumping through multiple hoops — spreadsheets, download folders, and half-finished calculators — just to
+              get a clear read on what to buy or trim next.
             </p>
             <p>
-              With a background in product strategy and a passion for simplifying personal finance, Derrick designed
-              StockBuddy to feel like an approachable investment studio: immersive lessons, South African data, and
-              practice environments that mirror what you will eventually see inside your broker portal.
+              As I kept building, I realised the experience could help far more people than me. South Africans deserve
+              an investment studio that feels local, fun, and genuinely educational, so I began scaling StockBuddy beyond
+              a personal prototype.
             </p>
             <p>
-              His goal is to make every user feel “conversation-ready” when meeting an adviser or logging into their
-              preferred platform — confident in the terminology, informed about fees, and clear on the steps forward.
+              Today the product reflects that journey: immersive lessons, archetype-guided planning, and simulations that
+              feel like your future broker portal — minus the risk. My goal is still the same as day one: give people the
+              confidence and clarity to move from theory to their first real trade.
             </p>
           </div>
         </div>
