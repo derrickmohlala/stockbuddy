@@ -158,6 +158,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const [draftMonthlyContribution, setDraftMonthlyContribution] = useState('300')
   const [benchmarkOptions, setBenchmarkOptions] = useState<{ symbol: string; label: string }[]>([])
   const [benchmark, setBenchmark] = useState<string>('')
+  const [benchmarkResolved, setBenchmarkResolved] = useState(false)
   const [inflationAdjust, setInflationAdjust] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     const stored = localStorage.getItem('stockbuddy_inflation_adjust')
@@ -245,7 +246,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     const fetchBenchmarks = async () => {
       try {
         const response = await apiFetch('/api/benchmarks')
-        if (!response.ok) return
+        if (!response.ok) {
+          throw new Error('Unable to load benchmarks')
+        }
         const items = await response.json()
         const options = (items || []).map((it: any) => ({ symbol: it.symbol, label: it.label || it.symbol }))
         setBenchmarkOptions(options)
@@ -254,11 +257,12 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         if (!benchmark) {
           setBenchmark(savedValid || (options[0]?.symbol ?? ''))
         } else if (!options.find((o: { symbol: string; label: string }) => o.symbol === benchmark)) {
-          // Current benchmark is not in the supported list; switch to first
           setBenchmark(options[0]?.symbol ?? '')
         }
       } catch (error) {
         console.error('Error loading benchmarks:', error)
+      } finally {
+        setBenchmarkResolved(true)
       }
     }
     fetchBenchmarks()
@@ -328,6 +332,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
   useEffect(() => {
     if (!userId) return
+    if (!benchmarkResolved) return
 
     const loadInitial = async () => {
       try {
@@ -339,7 +344,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
     loadInitial()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
+  }, [userId, benchmarkResolved])
 
   // Removed automatic refetch; fetch happens only when inputs change via explicit actions.
 
@@ -1241,6 +1246,7 @@ const handleResetScenario = async () => {
     return performanceData.series || []
   }, [performanceData, inflationAdjust])
 
+  const benchmarkInitFetchRef = useRef(true)
   const benchmarkSeries = useMemo(() => performanceData?.benchmark_series || [], [performanceData])
   const benchmarkLabel = performanceData?.benchmark_label || (benchmarkOptions.find(opt => opt.symbol === benchmark)?.label ?? 'Benchmark')
   const benchmarkMap = useMemo(() => {
@@ -1287,10 +1293,14 @@ const handleResetScenario = async () => {
   // refresh performance so the benchmark line and KPIs render.
   useEffect(() => {
     if (!userId) return
-    if (!benchmark) return
+    if (!benchmarkResolved) return
+    if (benchmarkInitFetchRef.current) {
+      benchmarkInitFetchRef.current = false
+      return
+    }
     fetchPerformanceData(false, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [benchmark, userId])
+  }, [benchmark, userId, benchmarkResolved])
 
   useEffect(() => {
     if (timeframe === 'custom') {
