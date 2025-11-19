@@ -1,24 +1,57 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { UserPlus, AlertCircle } from 'lucide-react'
+import { UserPlus, AlertCircle, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { apiFetch } from '../lib/api'
+
+interface OnboardingData {
+  first_name: string
+  age_band: string
+  experience: string
+  goal: string
+  risk: number
+  horizon: string
+  anchor_stock: string
+  literacy_level: string
+  interests: string[]
+}
 
 const Signup: React.FC = () => {
-  const [firstName, setFirstName] = useState('')
+  const navigate = useNavigate()
+  const { refreshUser } = useAuth()
+  
+  // Account creation state (Step 0)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  
+  // Onboarding state (Steps 1-3)
+  const [currentStep, setCurrentStep] = useState(0) // 0 = signup, 1-3 = onboarding
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+    first_name: '',
+    age_band: '',
+    experience: '',
+    goal: '',
+    risk: 50,
+    horizon: '',
+    anchor_stock: '',
+    literacy_level: '',
+    interests: []
+  })
+  
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const { register } = useAuth()
-  const navigate = useNavigate()
+  const [submitting, setSubmitting] = useState(false)
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const updateData = (field: keyof OnboardingData, value: any) => {
+    setOnboardingData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleAccountCreation = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
@@ -29,7 +62,7 @@ const Signup: React.FC = () => {
     }
 
     // Validate first name
-    if (!firstName || firstName.trim().length < 1) {
+    if (!onboardingData.first_name || onboardingData.first_name.trim().length < 1) {
       setError('Please enter your first name')
       return
     }
@@ -44,28 +77,407 @@ const Signup: React.FC = () => {
       return
     }
 
-    setLoading(true)
+    // Move to onboarding step 1
+    setCurrentStep(1)
+  }
 
-    try {
-      await register(email.trim().toLowerCase(), password, firstName.trim())
-      navigate('/onboarding')
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.')
-    } finally {
-      setLoading(false)
+  const handleNext = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      handleCompleteOnboarding()
     }
   }
 
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    } else {
+      setCurrentStep(0) // Back to account creation
+    }
+  }
+
+  const handleCompleteOnboarding = async () => {
+    setError(null)
+    setSubmitting(true)
+
+    try {
+      // Register with onboarding data included
+      const response = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          first_name: onboardingData.first_name.trim(),
+          ...onboardingData
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Registration failed')
+      }
+
+      const data = await response.json()
+      
+      // Store token
+      localStorage.setItem('stockbuddy_token', data.access_token)
+      localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
+      
+      // Refresh auth context
+      await refreshUser()
+      
+      // Navigate to portfolio
+      navigate('/portfolio')
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.')
+      setSubmitting(false)
+    }
+  }
+
+  const renderStep0 = () => (
+    <form onSubmit={handleAccountCreation} className="space-y-6">
+      <div>
+        <label htmlFor="firstName" className="block text-sm font-semibold text-primary-ink mb-2">
+          First name
+        </label>
+        <input
+          id="firstName"
+          type="text"
+          value={onboardingData.first_name}
+          onChange={(e) => updateData('first_name', e.target.value)}
+          required
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          placeholder="John"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="email" className="block text-sm font-semibold text-primary-ink mb-2">
+          Email address
+        </label>
+        <input
+          id="email"
+          type="text"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-semibold text-primary-ink mb-2">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={6}
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          placeholder="••••••••"
+        />
+        <p className="mt-1 text-xs text-muted">At least 6 characters</p>
+      </div>
+
+      <div>
+        <label htmlFor="confirmPassword" className="block text-sm font-semibold text-primary-ink mb-2">
+          Confirm password
+        </label>
+        <input
+          id="confirmPassword"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          minLength={6}
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="w-full rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90"
+      >
+        Continue
+      </button>
+    </form>
+  )
+
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          What's your age range?
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {['18-24', '25-34', '35-44', '45-54', '55+'].map(age => (
+            <button
+              key={age}
+              type="button"
+              onClick={() => updateData('age_band', age)}
+              className={`p-3 rounded-xl border text-center transition-colors ${
+                onboardingData.age_band === age
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              {age}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          How would you describe your investing experience?
+        </label>
+        <div className="space-y-3">
+          {[
+            { value: 'novice', label: 'Novice', desc: 'New to investing, want to learn the basics' },
+            { value: 'intermediate', label: 'Intermediate', desc: 'Some experience, looking to improve' },
+            { value: 'advanced', label: 'Advanced', desc: 'Experienced investor, want to optimize' }
+          ].map(exp => (
+            <button
+              key={exp.value}
+              type="button"
+              onClick={() => updateData('experience', exp.value)}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${
+                onboardingData.experience === exp.value
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              <div className="font-semibold">{exp.label}</div>
+              <div className="text-sm text-subtle mt-1">{exp.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          What's your primary investment goal?
+        </label>
+        <div className="space-y-3">
+          {[
+            { value: 'growth', label: 'Growth', desc: 'Build wealth over the long term' },
+            { value: 'balanced', label: 'Balanced', desc: 'Steady growth with some income' },
+            { value: 'income', label: 'Income', desc: 'Generate regular income from investments' }
+          ].map(goal => (
+            <button
+              key={goal.value}
+              type="button"
+              onClick={() => updateData('goal', goal.value)}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${
+                onboardingData.goal === goal.value
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              <div className="font-semibold">{goal.label}</div>
+              <div className="text-sm text-subtle mt-1">{goal.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          Risk Tolerance: {onboardingData.risk}%
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={onboardingData.risk}
+          onChange={(e) => updateData('risk', parseInt(e.target.value))}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-purple"
+        />
+        <div className="flex justify-between text-sm text-subtle mt-1">
+          <span>Conservative</span>
+          <span>Aggressive</span>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          Investment time horizon?
+        </label>
+        <div className="space-y-3">
+          {[
+            { value: 'short', label: 'Short (1-3 years)', desc: 'Saving for near term goals' },
+            { value: 'medium', label: 'Medium (3-7 years)', desc: 'Building towards major goals' },
+            { value: 'long', label: 'Long (7+ years)', desc: 'Planning for retirement or long term wealth' }
+          ].map(horizon => (
+            <button
+              key={horizon.value}
+              type="button"
+              onClick={() => updateData('horizon', horizon.value)}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${
+                onboardingData.horizon === horizon.value
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              <div className="font-semibold">{horizon.label}</div>
+              <div className="text-sm text-subtle mt-1">{horizon.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          Pick your anchor stock (we'll cap it at 5% of your portfolio)
+        </label>
+        <select
+          value={onboardingData.anchor_stock}
+          onChange={(e) => updateData('anchor_stock', e.target.value)}
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+        >
+          <option value="">Select an anchor stock</option>
+          <option value="SBK.JO">Standard Bank</option>
+          <option value="FSR.JO">FirstRand</option>
+          <option value="CPI.JO">Capitec</option>
+          <option value="VOD.JO">Vodacom</option>
+          <option value="NPN.JO">Naspers</option>
+          <option value="SOL.JO">Sasol</option>
+        </select>
+      </div>
+    </div>
+  )
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          What interests you most? (Select all that apply)
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            'Banks', 'Resource counters', 'Retailers', 'Telcos', 
+            'Property', 'Broad ETFs', 'Healthcare', 'Technology'
+          ].map(interest => (
+            <button
+              key={interest}
+              type="button"
+              onClick={() => {
+                const newInterests = onboardingData.interests.includes(interest)
+                  ? onboardingData.interests.filter(i => i !== interest)
+                  : [...onboardingData.interests, interest]
+                updateData('interests', newInterests)
+              }}
+              className={`p-3 rounded-xl border text-center transition-colors ${
+                onboardingData.interests.includes(interest)
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              {interest}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-primary-ink mb-2">
+          What's your preferred learning style?
+        </label>
+        <div className="space-y-3">
+          {[
+            { value: 'novice', label: 'Beginner friendly', desc: 'Simple explanations, step-by-step guidance' },
+            { value: 'intermediate', label: 'Moderate detail', desc: 'Balanced explanations with some depth' },
+            { value: 'advanced', label: 'Deep dive', desc: 'Detailed analysis and advanced concepts' }
+          ].map(style => (
+            <button
+              key={style.value}
+              type="button"
+              onClick={() => updateData('literacy_level', style.value)}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${
+                onboardingData.literacy_level === style.value
+                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+              }`}
+            >
+              <div className="font-semibold">{style.label}</div>
+              <div className="text-sm text-subtle mt-1">{style.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 0:
+        return email && onboardingData.first_name && password && confirmPassword && password === confirmPassword
+      case 1:
+        return onboardingData.age_band && onboardingData.experience
+      case 2:
+        return onboardingData.goal && onboardingData.horizon && onboardingData.anchor_stock
+      case 3:
+        return onboardingData.interests.length > 0 && onboardingData.literacy_level
+      default:
+        return false
+    }
+  }
+
+  const totalSteps = 4 // Step 0 (signup) + Steps 1-3 (onboarding)
+  const stepNumber = currentStep + 1
+
   return (
-    <div className="flex min-h-[80vh] items-center justify-center">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-[80vh] items-center justify-center py-8">
+      <div className="w-full max-w-2xl px-4">
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-primary-ink">
+              Step {stepNumber} of {totalSteps}
+            </span>
+            <span className="text-sm text-subtle">
+              {Math.round((stepNumber / totalSteps) * 100)}% Complete
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-brand-purple h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(stepNumber / totalSteps) * 100}%` }}
+            />
+          </div>
+        </div>
+
         <div className="rounded-2xl border border-[#e7e9f3] bg-white p-8">
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-purple/10">
               <UserPlus className="h-8 w-8 text-brand-purple" />
             </div>
-            <h1 className="text-3xl font-bold text-primary-ink mb-2">Create your account</h1>
-            <p className="text-subtle">Join StockBuddy and start your investing journey</p>
+            <h1 className="text-3xl font-bold text-primary-ink mb-2">
+              {currentStep === 0 && "Create your account"}
+              {currentStep === 1 && "Tell us about yourself"}
+              {currentStep === 2 && "Define your investment goals"}
+              {currentStep === 3 && "Customize your experience"}
+            </h1>
+            <p className="text-subtle">
+              {currentStep === 0 && "Join StockBuddy and start your investing journey"}
+              {currentStep === 1 && "We'll personalize your experience based on your profile"}
+              {currentStep === 2 && "Help us understand your investment objectives"}
+              {currentStep === 3 && "Final touches to tailor your StockBuddy experience"}
+            </p>
           </div>
 
           {error && (
@@ -75,90 +487,44 @@ const Signup: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-semibold text-primary-ink mb-2">
-                First name
-              </label>
-              <input
-                id="firstName"
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                placeholder="John"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-primary-ink mb-2">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="text"
-                inputMode="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                placeholder="you@example.com"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-primary-ink mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                placeholder="••••••••"
-                disabled={loading}
-              />
-              <p className="mt-1 text-xs text-muted">At least 6 characters</p>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-primary-ink mb-2">
-                Confirm password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                placeholder="••••••••"
-                disabled={loading}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating account...' : 'Create account'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center text-sm text-subtle">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-brand-purple hover:underline">
-              Sign in
-            </Link>
+          <div>
+            {currentStep === 0 && renderStep0()}
+            {currentStep === 1 && renderStep1()}
+            {currentStep === 2 && renderStep2()}
+            {currentStep === 3 && renderStep3()}
           </div>
+
+          {/* Navigation */}
+          {currentStep > 0 && (
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handleBack}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-6 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/40 hover:text-brand-purple disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Back</span>
+              </button>
+
+              <button
+                onClick={handleNext}
+                disabled={!isStepValid() || submitting}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>{submitting ? 'Creating...' : (currentStep === 3 ? 'Complete Setup' : 'Next')}</span>
+                {currentStep === 3 ? <Check className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
+
+          {currentStep === 0 && (
+            <div className="mt-6 text-center text-sm text-subtle">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-brand-purple hover:underline">
+                Sign in
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -166,4 +532,3 @@ const Signup: React.FC = () => {
 }
 
 export default Signup
-

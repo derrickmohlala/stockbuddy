@@ -183,6 +183,17 @@ def register():
     password = data.get('password', '')
     first_name = data.get('first_name', '').strip()
     
+    # Check if onboarding data is included (for unified signup flow)
+    has_onboarding_data = all([
+        data.get('age_band'),
+        data.get('experience'),
+        data.get('goal'),
+        data.get('risk') is not None,
+        data.get('horizon'),
+        data.get('anchor_stock'),
+        data.get('literacy_level')
+    ])
+    
     if not email or not password or not first_name:
         return jsonify({"error": "Email, password, and first name are required"}), 400
     
@@ -202,16 +213,68 @@ def register():
     if existing:
         return jsonify({"error": "User with this email already exists"}), 400
     
-    # Create new user
-    user = User(
-        email=email,
-        password_hash=generate_password_hash(password),
-        first_name=first_name,
-        is_admin=False
-    )
+    # Create new user with basic info
+    user_data = {
+        "email": email,
+        "password_hash": generate_password_hash(password),
+        "first_name": first_name,
+        "is_admin": False
+    }
+    
+    # If onboarding data is provided, include it
+    if has_onboarding_data:
+        try:
+            risk_value = int(data.get('risk'))
+        except (TypeError, ValueError):
+            risk_value = 50  # Default risk
+        
+        interests_value = data.get('interests', [])
+        if not isinstance(interests_value, list):
+            interests_value = []
+        
+        user_data.update({
+            "age_band": str(data.get('age_band')).strip(),
+            "experience": str(data.get('experience')).strip(),
+            "goal": str(data.get('goal')).strip(),
+            "risk": risk_value,
+            "horizon": str(data.get('horizon')).strip(),
+            "anchor_stock": str(data.get('anchor_stock')).strip(),
+            "literacy_level": str(data.get('literacy_level')).strip(),
+            "interests": json.dumps(interests_value)
+        })
+    
+    user = User(**user_data)
     db.session.add(user)
+    
     try:
         db.session.commit()
+        
+        # If onboarding data was provided, create portfolio immediately
+        if has_onboarding_data:
+            archetype = generate_archetype(user)
+            allocations = generate_starter_allocations(user, archetype)
+            
+            # Create user portfolio
+            portfolio = UserPortfolio(
+                user_id=user.id,
+                archetype=archetype,
+                allocations=json.dumps(allocations)
+            )
+            db.session.add(portfolio)
+            db.session.commit()
+            
+            # Create initial positions
+            create_initial_positions(user.id, allocations)
+            db.session.commit()
+            
+            # Create baseline
+            baseline = PortfolioBaseline(
+                user_id=user.id,
+                allocations=json.dumps(allocations)
+            )
+            db.session.add(baseline)
+            db.session.commit()
+        
         # Generate token
         access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
         return jsonify({
@@ -219,6 +282,7 @@ def register():
             "email": user.email,
             "first_name": user.first_name,
             "is_admin": user.is_admin,
+            "is_onboarded": has_onboarding_data,
             "access_token": access_token
         }), 201
     except Exception as e:
