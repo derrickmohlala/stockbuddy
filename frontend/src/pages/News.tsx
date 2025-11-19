@@ -191,20 +191,34 @@ const News: React.FC<NewsProps> = ({ userId }) => {
 
   const resolveStoryUrl = (story: PortfolioNewsItem) => {
     const fallback = buildSearchUrl(story)
-    if (!story.url || typeof story.url !== 'string') {
+    const raw = typeof story.url === 'string' ? story.url.trim() : ''
+    if (!raw) {
       return { url: fallback, isFallback: true }
     }
-    try {
-      const parsed = new URL(story.url)
-      const protocolValid = parsed.protocol === 'https:' || parsed.protocol === 'http:'
-      const isLocalStub = parsed.hostname.endsWith('stockbuddy.local') || parsed.hostname.endsWith('stockbuddy.test')
-      if (!protocolValid || isLocalStub) {
+
+    const lower = raw.toLowerCase()
+    const isAbsolute = lower.startsWith('http://') || lower.startsWith('https://')
+
+    if (isAbsolute) {
+      try {
+        const parsed = new URL(raw)
+        const protocolValid = parsed.protocol === 'https:' || parsed.protocol === 'http:'
+        const hostname = parsed.hostname || ''
+        const isInternalStub = hostname.endsWith('stockbuddy.local') || hostname.endsWith('stockbuddy.test')
+        if (!protocolValid || isInternalStub) {
+          return { url: fallback, isFallback: true }
+        }
+        return { url: parsed.href, isFallback: false }
+      } catch {
         return { url: fallback, isFallback: true }
       }
-      return { url: parsed.href, isFallback: false }
-    } catch {
-      return { url: fallback, isFallback: true }
     }
+
+    if (raw.startsWith('/')) {
+      return { url: raw, isFallback: false }
+    }
+
+    return { url: fallback, isFallback: true }
   }
 
   const renderStory = (story: PortfolioNewsItem, size: 'headline' | 'regular' = 'regular') => {

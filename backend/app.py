@@ -14,7 +14,7 @@ import statistics
 from urllib.parse import quote_plus
 
 from models import db, User, Instrument, Price, Basket, UserPortfolio, UserPosition, UserTrade, CPI, PortfolioBaseline, SuggestionAction
-from news_sources import fetch_static_news, fetch_live_news, fetch_upcoming_earnings
+from news_sources import fetch_live_news, fetch_upcoming_earnings
 
 ARCHETYPE_CONFIG = {
     "Dreamer": {

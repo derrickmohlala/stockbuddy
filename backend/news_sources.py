@@ -1,102 +1,62 @@
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from urllib.parse import quote_plus
+import re
+import xml.etree.ElementTree as ET
 
+import requests
 import yfinance as yf
 
-STATIC_NEWS = {
-    "STX40.JO": [
-        {
-            "headline": "JSE Top 40 edges higher as rand steadies ahead of budget update",
-            "summary": "Broad-based buying across rand-hedge counters lifted the Top 40, with traders pointing to calmer currency markets and resilient mining majors.",
-            "source": "Business Day",
-            "url": "https://www.businesslive.co.za/bd/markets/2024-02-19-jse-top-40-edges-higher-as-rand-steadies/",
-            "sentiment": "Positive",
-            "topic": "Market outlook",
-            "days_ago": 2
-        },
-        {
-            "headline": "Passive investors flock to Satrix Top 40 as local unit prices stay depressed",
-            "summary": "Asset managers report continued inflows into core ETFs with investors citing valuation opportunities on the JSE’s heavyweight names.",
-            "source": "Moneyweb",
-            "url": "https://www.moneyweb.co.za/news/markets/passive-investors-flock-to-satrix-top-40/",
-            "sentiment": "Positive",
-            "topic": "Asset flows",
-            "days_ago": 5
-        }
-    ],
-    "MTN.JO": [
-        {
-            "headline": "MTN outlines capex discipline while pushing 5G expansion in SA",
-            "summary": "Management reaffirmed guidance for mid-teens service revenue growth as network investments tilt toward data capacity and fintech services.",
-            "source": "TechCentral",
-            "url": "https://techcentral.co.za/mtn-outlines-capex-discipline-while-pushing-5g-expansion/",
-            "sentiment": "Positive",
-            "topic": "Growth strategy",
-            "days_ago": 3
-        },
-        {
-            "headline": "Regulatory glare on Nigeria unit keeps MTN investors cautious",
-            "summary": "Analysts warn that fresh spectrum fee disputes could weigh on the telecom’s largest market, tempering near-term earnings momentum.",
-            "source": "Reuters",
-            "url": "https://www.reuters.com/africa/mtn-nigeria-spectrum-fees-2024-02-15/",
-            "sentiment": "Mixed",
-            "topic": "Regulation",
-            "days_ago": 6
-        }
-    ],
-    "GRT.JO": [
-        {
-            "headline": "Growthpoint signals stabilising office vacancies, eyes solar rollout",
-            "summary": "South Africa’s largest REIT says demand for premium office space is improving while embedded energy projects support distribution guidance.",
-            "source": "PropertyWheel",
-            "url": "https://propertywheel.co.za/2024/02/growthpoint-signals-stabilising-office-vacancies/",
-            "sentiment": "Positive",
-            "topic": "Property fundamentals",
-            "days_ago": 4
-        },
-        {
-            "headline": "Inflation pressure keeps SA REIT yields elevated",
-            "summary": "Portfolio managers highlight Growthpoint’s balance sheet strength but caution that higher-for-longer rates could cap capital growth.",
-            "source": "Financial Mail",
-            "url": "https://www.businesslive.co.za/fm/money-and-investing/2024-02-12-inflation-pressure-keeps-sa-reit-yields-elevated/",
-            "sentiment": "Mixed",
-            "topic": "Yield outlook",
-            "days_ago": 7
-        }
-    ]
-}
-
-# Add a lightweight fallback for Vodacom headlines (helps when Yahoo is quiet or cached empty)
-STATIC_NEWS["VOD.JO"] = [
-    {
-        "headline": "Vodacom posts interim results; data, fibre and fintech drive growth",
-        "summary": "Management highlighted double‑digit momentum in financial services and fibre while spectrum investments underpin network quality across SA.",
-        "source": "Vodacom IR / Press",
-        "url": "https://www.vodacom.com/investors/",
-        "sentiment": "Neutral",
-        "topic": "Results",
-        "days_ago": 1
-    }
-]
+GOOGLE_NEWS_FEED = "https://news.google.com/rss/search?q={query}&hl=en-ZA&gl=ZA&ceid=ZA:en"
 
 
-def fetch_static_news(symbol):
-    stories = []
-    items = STATIC_NEWS.get(symbol, [])
-    for entry in items:
-        published_at = datetime.now(timezone.utc) - timedelta(days=entry.get("days_ago", 3))
-        stories.append({
-            "id": f"{symbol}-{entry.get('headline')[:12].replace(' ', '').lower()}",
+def fetch_google_news(symbol, limit=5):
+    query = quote_plus(f"{symbol} JSE news")
+    url = GOOGLE_NEWS_FEED.format(query=query)
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except Exception:
+        return []
+
+    try:
+        root = ET.fromstring(response.text)
+    except ET.ParseError:
+        return []
+
+    cleaned = []
+    for idx, item in enumerate(root.findall(".//item")):
+        title = item.findtext("title") or f"{symbol} market update"
+        link = item.findtext("link") or f"https://www.google.com/search?q={query}"
+        description = item.findtext("description") or ""
+        description = re.sub(r"<[^>]+>", "", description).strip()
+        source = item.findtext("source") or "Google News"
+        pub_date_text = item.findtext("pubDate")
+        try:
+            published_at = parsedate_to_datetime(pub_date_text) if pub_date_text else datetime.now(timezone.utc)
+            if published_at.tzinfo is None:
+                published_at = published_at.replace(tzinfo=timezone.utc)
+            else:
+                published_at = published_at.astimezone(timezone.utc)
+        except Exception:
+            published_at = datetime.now(timezone.utc)
+
+        cleaned.append({
+            "id": f"{symbol}-gnews-{idx}",
             "symbol": symbol,
             "name": None,
-            "headline": entry.get("headline"),
-            "summary": entry.get("summary"),
-            "sentiment": entry.get("sentiment", "Neutral"),
-            "topic": entry.get("topic"),
+            "headline": title,
+            "summary": description or f"Latest coverage mentioning {symbol} on the JSE.",
+            "sentiment": "Neutral",
+            "topic": "Market",
             "published_at": published_at.isoformat(),
-            "source": entry.get("source"),
-            "url": entry.get("url")
+            "source": source,
+            "url": link
         })
-    return stories
+
+        if len(cleaned) >= limit:
+            break
+    return cleaned
 
 
 def _extract_first_url(record):
@@ -209,7 +169,7 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
         ttl = timedelta(minutes=30) if cached.get("stories") else timedelta(minutes=5)
         if now - cached.get("at", now) < ttl:
             stories = cached.get("stories", [])
-            return stories if stories else fetch_static_news(symbol)
+            return stories
 
     cutoff = now - timedelta(days=lookback_days)
     collected = []
@@ -235,11 +195,8 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
             if isinstance(raw_link, str) and raw_link.startswith("http"):
                 normalised["url"] = raw_link
             else:
-                # Use Google search as reliable fallback - search for symbol + "JSE news"
-                # This will almost always return relevant results
-                from urllib.parse import quote
-                search_query = f"{symbol} JSE news"
-                normalised["url"] = f"https://www.google.com/search?q={quote(search_query)}"
+                search_query = quote_plus(f"{symbol} JSE news")
+                normalised["url"] = f"https://www.google.com/search?q={search_query}"
         
         normalised["published_at"] = published_at
         collected.append(normalised)
@@ -254,9 +211,12 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
         entry["published_at"] = entry["published_at"].isoformat()
         stories.append(entry)
 
+    if not stories:
+        stories = fetch_google_news(symbol, limit=limit)
+
     # Cache and return
     NEWS_CACHE[cache_key] = {"at": now, "stories": stories}
-    return stories if stories else fetch_static_news(symbol)
+    return stories
 
 
 def fetch_upcoming_earnings(symbol, horizon_days=60, limit=4):
