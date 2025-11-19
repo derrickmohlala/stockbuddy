@@ -13,9 +13,26 @@ const Signup: React.FC = () => {
   const { register } = useAuth()
   const navigate = useNavigate()
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    // Validate email format
+    if (!email || !validateEmail(email)) {
+      setError('Please enter a valid email address')
+      return
+    }
+
+    // Validate first name
+    if (!firstName || firstName.trim().length < 1) {
+      setError('Please enter your first name')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -30,7 +47,7 @@ const Signup: React.FC = () => {
     setLoading(true)
 
     try {
-      await register(email, password, firstName)
+      await register(email.trim().toLowerCase(), password, firstName.trim())
       navigate('/onboarding')
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -81,7 +98,8 @@ const Signup: React.FC = () => {
               </label>
               <input
                 id="email"
-                type="email"
+                type="text"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

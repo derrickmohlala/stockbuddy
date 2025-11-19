@@ -14,10 +14,16 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    
+    if (!email || !password) {
+      setError('Please enter your email and password')
+      return
+    }
+    
     setLoading(true)
 
     try {
-      await login(email, password)
+      await login(email.trim().toLowerCase(), password)
       navigate('/portfolio')
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.')
@@ -52,7 +58,8 @@ const Login: React.FC = () => {
               </label>
               <input
                 id="email"
-                type="email"
+                type="text"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

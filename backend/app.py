@@ -176,6 +176,8 @@ def health():
 # Authentication endpoints
 @app.route("/api/auth/register", methods=["POST"])
 def register():
+    import re
+    
     data = request.json or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -184,8 +186,16 @@ def register():
     if not email or not password or not first_name:
         return jsonify({"error": "Email, password, and first name are required"}), 400
     
+    # Validate email format
+    email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_pattern, email):
+        return jsonify({"error": "Please enter a valid email address"}), 400
+    
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
+    
+    if len(first_name) < 1:
+        return jsonify({"error": "First name is required"}), 400
     
     # Check if user already exists
     existing = User.query.filter_by(email=email).first()
