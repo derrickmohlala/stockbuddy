@@ -373,7 +373,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
   const fetchPortfolio = async () => {
     try {
+      setLoading(true)
       const response = await apiFetch(`/api/portfolio/${userId}`)
+      
       if (response.ok) {
         const data = await response.json()
         setPortfolio(data)
@@ -422,10 +424,37 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         if (typeof data.current_annual_dividends === 'number') {
           setPortfolioAnnualDividends(data.current_annual_dividends)
         }
+      } else {
+        // Handle error response
+        let errorMessage = 'Failed to load portfolio'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If JSON parsing fails, try text
+          try {
+            const text = await response.text()
+            if (text) errorMessage = text
+          } catch {}
+        }
+        console.error('Error fetching portfolio:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage
+        })
+        // Don't set portfolio to null if it already exists
+        if (!portfolio) {
+          setPortfolio(null)
+        }
       }
     } catch (error) {
       console.error('Error fetching portfolio:', error)
+      // Network or other errors
+      if (!portfolio) {
+        setPortfolio(null)
+      }
     } finally {
+      setLoading(false)
       setPortfolioLoaded(true)
     }
   }

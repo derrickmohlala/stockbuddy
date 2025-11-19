@@ -679,7 +679,34 @@ def get_portfolio(user_id):
 
     portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
     positions = UserPosition.query.filter_by(user_id=user_id).all()
-    allocation_targets = json.loads(portfolio.allocations) if portfolio and portfolio.allocations else {}
+    
+    # Handle case where portfolio doesn't exist yet (newly registered user)
+    if not portfolio:
+        return jsonify({
+            "user_id": user_id,
+            "first_name": user.first_name,
+            "archetype": None,
+            "total_value": 0,
+            "total_cost": 0,
+            "total_pnl": 0,
+            "total_pnl_pct": 0,
+            "holdings": [],
+            "allocation_targets": {},
+            "plan_summary": None,
+            "plan_persona": None,
+            "plan_guidance": None,
+            "plan_goal": None,
+            "plan_risk_band": None,
+            "plan_anchor_cap_pct": None,
+            "suggestions": [],
+            "applied_suggestions": [],
+            "baseline_allocations": {},
+            "alerts": [],
+            "weighted_dividend_yield_pct": None,
+            "current_annual_dividends": None
+        })
+    
+    allocation_targets = json.loads(portfolio.allocations) if portfolio.allocations else {}
     archetype_copy = get_archetype_copy(portfolio.archetype, allocation_targets) if portfolio else {}
     
     # Calculate portfolio value and P/L
@@ -724,7 +751,7 @@ def get_portfolio(user_id):
 
     applied_actions = SuggestionAction.query.filter_by(user_id=user_id, action='applied') \
         .order_by(SuggestionAction.created_at.desc()).limit(3).all()
-    suggestions = generate_suggestions(holdings, portfolio, allocation_targets, applied_actions)
+    suggestions = generate_suggestions(holdings, portfolio, allocation_targets, applied_actions) if portfolio else []
     applied_suggestions = [{
         "id": action.id,
         "replace_symbol": action.replace_symbol,
@@ -732,7 +759,7 @@ def get_portfolio(user_id):
         "created_at": action.created_at.isoformat() if action.created_at else None
     } for action in applied_actions]
 
-    alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value)
+    alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value) if portfolio else []
 
     # Dividend yield snapshot for Health page
     weighted_dividend_yield_pct = None
