@@ -187,9 +187,11 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   const renderStory = (story: PortfolioNewsItem, size: 'headline' | 'regular' = 'regular') => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
     const isHeadline = size === 'headline'
+    // Use the URL from backend (which should always be provided now)
+    // Backend ensures every story has a URL (either from yfinance or Google search fallback)
     const articleUrl = story.url && typeof story.url === 'string' && story.url.startsWith('http') 
       ? story.url 
-      : `https://www.moneyweb.co.za/search/?q=${encodeURIComponent(story.symbol)}`
+      : `https://www.google.com/search?q=${encodeURIComponent(`${story.symbol} JSE news`)}`
     
     return (
       <article

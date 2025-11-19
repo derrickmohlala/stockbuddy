@@ -100,27 +100,44 @@ def fetch_static_news(symbol):
 
 
 def _extract_first_url(record):
-    direct = record.get('link') or record.get('url')
-    if isinstance(direct, str) and direct.startswith('http'):
-        return direct
-
+    """Extract URL from yfinance news record, checking all possible locations."""
+    # yfinance news items typically have 'link' at top level - check this first
+    link = record.get('link')
+    if isinstance(link, str) and link.startswith('http'):
+        return link
+    
+    # Also check 'url' at top level
+    url = record.get('url')
+    if isinstance(url, str) and url.startswith('http'):
+        return url
+    
+    # Check content object
     content = record.get('content') or {}
     if isinstance(content, dict):
+        # Check nested URL objects
         for key in ('canonicalUrl', 'clickThroughUrl', 'previewUrl'):
             value = content.get(key)
             if isinstance(value, dict):
-                url = value.get('url')
-                if url and isinstance(url, str) and url.startswith('http'):
-                    return url
+                nested_url = value.get('url')
+                if nested_url and isinstance(nested_url, str) and nested_url.startswith('http'):
+                    return nested_url
+            elif isinstance(value, str) and value.startswith('http'):
+                return value
+        
+        # Check direct provider content URL
         alt = content.get('providerContentUrl')
         if isinstance(alt, str) and alt.startswith('http'):
             return alt
-
+    
+    # Check finance object
     finance = record.get('finance') or {}
     if isinstance(finance, dict):
-        preview = finance.get('stock', {}).get('link')
-        if isinstance(preview, str) and preview.startswith('http'):
-            return preview
+        stock = finance.get('stock', {})
+        if isinstance(stock, dict):
+            preview = stock.get('link')
+            if isinstance(preview, str) and preview.startswith('http'):
+                return preview
+    
     return None
 
 
@@ -209,12 +226,21 @@ def fetch_live_news(symbol, limit=6, lookback_days=14):
             continue
         if published_at < cutoff:
             continue
+        
+        # Ensure we always have a URL - yfinance should provide 'link' field
         url = normalised.get("url")
         if not (isinstance(url, str) and url.startswith("http")):
-            # Create a fallback search URL on Moneyweb (reliable SA finance news source)
-            # Format: https://www.moneyweb.co.za/search/?q=SYMBOL
-            from urllib.parse import quote
-            normalised["url"] = f"https://www.moneyweb.co.za/search/?q={quote(symbol)}"
+            # Double-check the raw item for 'link' field (yfinance puts it at top level)
+            raw_link = item.get("link") if isinstance(item, dict) else None
+            if isinstance(raw_link, str) and raw_link.startswith("http"):
+                normalised["url"] = raw_link
+            else:
+                # Use Google search as reliable fallback - search for symbol + "JSE news"
+                # This will almost always return relevant results
+                from urllib.parse import quote
+                search_query = f"{symbol} JSE news"
+                normalised["url"] = f"https://www.google.com/search?q={quote(search_query)}"
+        
         normalised["published_at"] = published_at
         collected.append(normalised)
         if len(collected) >= limit:
