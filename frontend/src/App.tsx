@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useState, useEffect, ReactNode } from 'react'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
 import { apiFetch } from './lib/api'
 import Onboarding from './pages/Onboarding'
@@ -14,6 +15,9 @@ import Archetypes from './pages/Archetypes'
 import Terminology from './pages/Terminology'
 import News from './pages/News'
 import Health from './pages/Health'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Admin from './pages/Admin'
 import NavBar from './components/NavBar'
 import Footer from './components/Footer'
 
@@ -30,49 +34,46 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, fullBleed = false }) 
   </div>
 )
 
-function App() {
+function AppContent() {
+  const { user, refreshUser } = useAuth()
   const [userId, setUserId] = useState<number | null>(null)
   const [isOnboarded, setIsOnboarded] = useState(false)
 
+  // Sync auth user with legacy userId for backwards compatibility
   useEffect(() => {
-    // Bootstrap from localStorage then verify with backend (handles new deployments with a fresh DB)
-    const saved = localStorage.getItem('stockbuddy_user_id')
-    if (!saved) {
-      setIsOnboarded(false)
-      setUserId(null)
-      return
-    }
-    const id = parseInt(saved)
-    if (!Number.isFinite(id)) {
-      localStorage.removeItem('stockbuddy_user_id')
-      setIsOnboarded(false)
-      setUserId(null)
-      return
-    }
-    // Optimistically set, then verify
-    setUserId(id)
-    ;(async () => {
-      try {
-        const resp = await apiFetch(`/api/users/${id}`)
-        if (resp.ok) {
-          setIsOnboarded(true)
-        } else {
-          // Stale userId (e.g., new backend instance). Reset and send user through onboarding.
-          localStorage.removeItem('stockbuddy_user_id')
-          setIsOnboarded(false)
-          setUserId(null)
+    if (user) {
+      setUserId(user.user_id)
+      setIsOnboarded(user.is_onboarded)
+      localStorage.setItem('stockbuddy_user_id', user.user_id.toString())
+    } else {
+      // Fallback to legacy localStorage for users without auth
+      const saved = localStorage.getItem('stockbuddy_user_id')
+      if (saved) {
+        const id = parseInt(saved)
+        if (Number.isFinite(id)) {
+          setUserId(id)
+          // Try to verify if user exists
+          apiFetch(`/api/users/${id}`).then(resp => {
+            setIsOnboarded(resp.ok)
+          }).catch(() => {
+            setIsOnboarded(false)
+          })
         }
-      } catch {
-        // On network error keep soft state; pages that need data will guide the user.
-        setIsOnboarded(!!id)
+      } else {
+        setUserId(null)
+        setIsOnboarded(false)
       }
-    })()
-  }, [])
+    }
+  }, [user])
 
   const handleOnboardingComplete = (newUserId: number) => {
     setUserId(newUserId)
     setIsOnboarded(true)
     localStorage.setItem('stockbuddy_user_id', newUserId.toString())
+    // Refresh auth user if logged in
+    if (user && user.user_id === newUserId) {
+      refreshUser()
+    }
   }
 
   return (
@@ -80,12 +81,12 @@ function App() {
       <div className="app-shell">
         <NavBar isOnboarded={isOnboarded} />
 
-        <main className="flex-1">
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <PageLayout>
+          <main className="flex-1">
+            <Routes>
+              <Route 
+                path="/" 
+                element={
+                  <PageLayout>
                   <Home
                     onGetStarted={() => {
                       if (!isOnboarded) {
@@ -95,36 +96,47 @@ function App() {
                     ctaPath={isOnboarded ? '/portfolio' : '/onboarding'}
                     ctaLabel={isOnboarded ? 'View Portfolio' : "Get Started - It's Free"}
                   />
-                </PageLayout>
-              } 
-            />
-            <Route 
-              path="/onboarding" 
-              element={
-                <PageLayout fullBleed>
+                  </PageLayout>
+                } 
+              />
+              <Route path="/login" element={<PageLayout><Login /></PageLayout>} />
+              <Route path="/signup" element={<PageLayout><Signup /></PageLayout>} />
+              <Route path="/admin" element={<PageLayout><Admin /></PageLayout>} />
+              <Route 
+                path="/onboarding" 
+                element={
+                  <PageLayout fullBleed>
                   <Onboarding 
                     onComplete={handleOnboardingComplete}
                     userId={userId}
                   />
-                </PageLayout>
-              } 
-            />
-            <Route path="/discover" element={<PageLayout><Discover /></PageLayout>} />
-            <Route path="/portfolio" element={<PageLayout><Portfolio userId={userId} /></PageLayout>} />
-            <Route path="/news" element={<PageLayout><News userId={userId} /></PageLayout>} />
-            <Route path="/baskets" element={<PageLayout><Baskets userId={userId} /></PageLayout>} />
-            <Route path="/trade/:symbol" element={<PageLayout fullBleed><Trade userId={userId} /></PageLayout>} />
-            <Route path="/learn" element={<PageLayout><Learn /></PageLayout>} />
-            <Route path="/profile" element={<PageLayout><Profile userId={userId} /></PageLayout>} />
-            <Route path="/about" element={<PageLayout><About /></PageLayout>} />
-            <Route path="/archetypes" element={<PageLayout><Archetypes /></PageLayout>} />
-            <Route path="/terminology" element={<PageLayout><Terminology /></PageLayout>} />
-            <Route path="/health" element={<PageLayout><Health userId={userId} /></PageLayout>} />
-          </Routes>
+                  </PageLayout>
+                } 
+              />
+              <Route path="/discover" element={<PageLayout><Discover /></PageLayout>} />
+              <Route path="/portfolio" element={<PageLayout><Portfolio userId={userId} /></PageLayout>} />
+              <Route path="/news" element={<PageLayout><News userId={userId} /></PageLayout>} />
+              <Route path="/baskets" element={<PageLayout><Baskets userId={userId} /></PageLayout>} />
+              <Route path="/trade/:symbol" element={<PageLayout fullBleed><Trade userId={userId} /></PageLayout>} />
+              <Route path="/learn" element={<PageLayout><Learn /></PageLayout>} />
+              <Route path="/profile" element={<PageLayout><Profile userId={userId} /></PageLayout>} />
+              <Route path="/about" element={<PageLayout><About /></PageLayout>} />
+              <Route path="/archetypes" element={<PageLayout><Archetypes /></PageLayout>} />
+              <Route path="/terminology" element={<PageLayout><Terminology /></PageLayout>} />
+              <Route path="/health" element={<PageLayout><Health userId={userId} /></PageLayout>} />
+            </Routes>
         </main>
         <Footer />
       </div>
     </Router>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

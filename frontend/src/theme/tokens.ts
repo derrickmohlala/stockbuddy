@@ -2,7 +2,7 @@ export const palette = {
   brand: {
     coral: '#e94b4b',
     purple: '#7a3ff2',
-    mint: '#3fd0c9',
+  mint: '#3fd0c9',
     gold: '#ffc943'
   },
   neutrals: {

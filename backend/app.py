@@ -2,8 +2,10 @@ import os
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import uuid
 import math
@@ -156,9 +158,12 @@ BENCHMARK_CONFIG = {
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stockbuddy.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
 db.init_app(app)
 CORS(app)
+jwt = JWTManager(app)
 
 with app.app_context():
     db.create_all()
@@ -167,6 +172,152 @@ with app.app_context():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
+
+# Authentication endpoints
+@app.route("/api/auth/register", methods=["POST"])
+def register():
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    first_name = data.get('first_name', '').strip()
+    
+    if not email or not password or not first_name:
+        return jsonify({"error": "Email, password, and first name are required"}), 400
+    
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    
+    # Check if user already exists
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({"error": "User with this email already exists"}), 400
+    
+    # Create new user
+    user = User(
+        email=email,
+        password_hash=generate_password_hash(password),
+        first_name=first_name,
+        is_admin=False
+    )
+    db.session.add(user)
+    try:
+        db.session.commit()
+        # Generate token
+        access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
+        return jsonify({
+            "user_id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "is_admin": user.is_admin,
+            "access_token": access_token
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Unable to create user", "detail": str(e)}), 400
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.password_hash:
+        return jsonify({"error": "Invalid email or password"}), 401
+    
+    if not check_password_hash(user.password_hash, password):
+        return jsonify({"error": "Invalid email or password"}), 401
+    
+    # Generate token
+    access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
+    return jsonify({
+        "user_id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "is_admin": user.is_admin,
+        "access_token": access_token
+    }), 200
+
+@app.route("/api/auth/current", methods=["GET"])
+@jwt_required()
+def get_current_user():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({
+        "user_id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "is_admin": user.is_admin,
+        "is_onboarded": bool(user.goal and user.risk is not None)
+    }), 200
+
+@app.route("/api/auth/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    # With JWT, logout is handled client-side by removing the token
+    # But we can blacklist tokens if needed
+    return jsonify({"message": "Logged out successfully"}), 200
+
+# Admin endpoints
+@app.route("/api/admin/users", methods=["GET"])
+@jwt_required()
+def get_all_users():
+    # Check if user is admin
+    claims = get_jwt()
+    if not claims.get('is_admin'):
+        return jsonify({"error": "Admin access required"}), 403
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    search = request.args.get('search', '').strip()
+    
+    query = User.query
+    
+    # Apply search filter
+    if search:
+        query = query.filter(
+            db.or_(
+                User.email.ilike(f'%{search}%'),
+                User.first_name.ilike(f'%{search}%')
+            )
+        )
+    
+    # Pagination
+    pagination = query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    users = []
+    for user in pagination.items:
+        users.append({
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "is_admin": user.is_admin,
+            "age_band": user.age_band,
+            "experience": user.experience,
+            "goal": user.goal,
+            "risk": user.risk,
+            "horizon": user.horizon,
+            "anchor_stock": user.anchor_stock,
+            "literacy_level": user.literacy_level,
+            "is_onboarded": bool(user.goal and user.risk is not None),
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        })
+    
+    return jsonify({
+        "users": users,
+        "total": pagination.total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pagination.pages
+    }), 200
 
 # Onboarding endpoint
 @app.route("/api/onboarding", methods=["POST"])

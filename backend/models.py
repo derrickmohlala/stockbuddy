@@ -7,14 +7,17 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=True)  # Optional for backwards compat
+    password_hash = db.Column(db.String(255), nullable=True)  # Optional for backwards compat
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
-    age_band = db.Column(db.String(20), nullable=False)      # 18-24, 25-34, 35-44, 45-54, 55+
-    experience = db.Column(db.String(20), nullable=False)    # novice, intermediate, advanced
-    goal = db.Column(db.String(50), nullable=False)          # growth, balanced, income
-    risk = db.Column(db.Integer, nullable=False)             # slider value 0–100
-    horizon = db.Column(db.String(20), nullable=False)       # short, medium, long
-    anchor_stock = db.Column(db.String(50), nullable=False)  # e.g. Capitec
-    literacy_level = db.Column(db.String(20), nullable=False)# novice, intermediate, advanced
+    age_band = db.Column(db.String(20), nullable=True)      # 18-24, 25-34, 35-44, 45-54, 55+
+    experience = db.Column(db.String(20), nullable=True)    # novice, intermediate, advanced
+    goal = db.Column(db.String(50), nullable=True)          # growth, balanced, income
+    risk = db.Column(db.Integer, nullable=True)             # slider value 0–100
+    horizon = db.Column(db.String(20), nullable=True)       # short, medium, long
+    anchor_stock = db.Column(db.String(50), nullable=True)  # e.g. Capitec
+    literacy_level = db.Column(db.String(20), nullable=True)# novice, intermediate, advanced
     interests = db.Column(db.Text)                           # JSON array of interests
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 

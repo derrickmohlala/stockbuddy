@@ -30,8 +30,8 @@
     font-family: 'Manrope', system-ui, sans-serif;
     background: var(--page-bg);
   }
-
-  body {
+  
+body {
     min-height: 100vh;
     background: var(--page-bg);
     color: var(--text-primary);
@@ -115,7 +115,7 @@
     padding: 1.75rem;
     color: var(--text-primary);
   }
-
+  
   .input-field {
     width: 100%;
     border-radius: 14px;
@@ -131,7 +131,7 @@
     border-color: var(--brand-purple);
     box-shadow: none;
   }
-
+  
   .compliance-banner {
     border-radius: 16px;
     border: 1px solid rgba(255, 201, 67, 0.4);

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, LogOut, Shield } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 type NavLinkRender = { isActive: boolean }
 
@@ -21,9 +22,16 @@ const navItems = [
 const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const handleStart = () => {
     navigate(isOnboarded ? '/portfolio' : '/onboarding')
+    setMenuOpen(false)
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
     setMenuOpen(false)
   }
 
@@ -55,12 +63,50 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleStart}
-              className="btn-cta hidden whitespace-nowrap md:inline-flex"
-            >
-              {isOnboarded ? 'View portfolio' : 'Get started'}
-            </button>
+            {user ? (
+              <>
+                {user.is_admin && (
+                  <NavLink
+                    to="/admin"
+                    className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </NavLink>
+                )}
+                <div className="hidden md:flex items-center gap-2 text-sm text-muted">
+                  <span>{user.first_name}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+                <button
+                  onClick={handleStart}
+                  className="btn-cta hidden whitespace-nowrap md:inline-flex"
+                >
+                  {isOnboarded ? 'View portfolio' : 'Get started'}
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/login"
+                  className="hidden md:inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
+                >
+                  Login
+                </NavLink>
+                <NavLink
+                  to="/signup"
+                  className="btn-cta hidden whitespace-nowrap md:inline-flex"
+                >
+                  Sign up
+                </NavLink>
+              </>
+            )}
             <button
               className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] p-2 text-primary-ink transition hover:border-brand-coral hover:text-brand-coral md:hidden"
               onClick={() => setMenuOpen((prev) => !prev)}
@@ -85,9 +131,50 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 {item.label}
               </NavLink>
             ))}
-            <button onClick={handleStart} className="btn-cta mt-2 w-full">
-              {isOnboarded ? 'View portfolio' : 'Get started'}
-            </button>
+            {user ? (
+              <>
+                {user.is_admin && (
+                  <NavLink
+                    to="/admin"
+                    className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral flex items-center gap-2"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </NavLink>
+                )}
+                <div className="rounded-xl border border-[#e7e9f3] px-4 py-3 text-muted">
+                  {user.first_name} ({user.email})
+                </div>
+                <button onClick={handleStart} className="btn-cta mt-2 w-full">
+                  {isOnboarded ? 'View portfolio' : 'Get started'}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral flex items-center justify-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  to="/login"
+                  className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </NavLink>
+                <NavLink
+                  to="/signup"
+                  className="btn-cta mt-2 w-full"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Sign up
+                </NavLink>
+              </>
+            )}
           </nav>
         </div>
       )}
