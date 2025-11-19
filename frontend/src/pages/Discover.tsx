@@ -45,6 +45,7 @@ const Discover: React.FC = () => {
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [filteredInstruments, setFilteredInstruments] = useState<Instrument[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'etf' | 'share' | 'reit' | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'yield' | 'sector'>('name')
@@ -62,13 +63,21 @@ const Discover: React.FC = () => {
 
   const fetchInstruments = async () => {
     try {
+      setError(null)
       const response = await apiFetch('/api/instruments')
       if (response.ok) {
         const data = await response.json()
-        setInstruments(data)
+        setInstruments(data || [])
+        if (!data || data.length === 0) {
+          setError('No instruments found. Please seed the database with instruments.')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch instruments' }))
+        setError(errorData.error || 'Failed to load instruments')
       }
     } catch (error) {
       console.error('Error fetching instruments:', error)
+      setError('Failed to connect to the server. Please check your connection.')
     } finally {
       setLoading(false)
     }
@@ -224,6 +233,26 @@ const Discover: React.FC = () => {
         <div className="space-y-4 text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-purple border-t-transparent"></div>
           <p className="text-subtle">Loading instruments...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="mx-auto max-w-md space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-coral/10">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-primary-ink">Unable to load instruments</h2>
+          <p className="text-subtle">{error}</p>
+          <button
+            onClick={fetchInstruments}
+            className="btn-cta mt-4 px-6 py-2"
+          >
+            Try again
+          </button>
         </div>
       </div>
     )

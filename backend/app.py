@@ -461,6 +461,12 @@ def get_instruments():
         latest_price = Price.query.filter_by(instrument_id=instrument.id)\
             .order_by(Price.date.desc()).first()
         
+        # Get mini series for chart (last 30 days or last 30 price points)
+        mini_series_query = Price.query.filter_by(instrument_id=instrument.id)\
+            .order_by(Price.date.desc()).limit(30).all()
+        
+        mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+        
         result.append({
             "id": instrument.id,
             "symbol": instrument.symbol,
@@ -470,7 +476,8 @@ def get_instruments():
             "dividend_yield": instrument.dividend_yield,
             "ter": instrument.ter,
             "latest_price": latest_price.close if latest_price else None,
-            "price_date": latest_price.date.isoformat() if latest_price else None
+            "price_date": latest_price.date.isoformat() if latest_price else None,
+            "mini_series": mini_series
         })
     
     return jsonify(result)
