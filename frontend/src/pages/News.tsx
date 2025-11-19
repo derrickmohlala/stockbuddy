@@ -202,7 +202,6 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   }, [filteredNews, headlinePage])
   const displayedRegularStories = regularStories.slice(0, 10)
 
-  const searchActive = newsSearch.trim().length > 0
   const totalStories = filteredNews.length
   const hasHeadlinePaging = totalStories > HEADLINE_PAGE_SIZE
   const hasPreviousHeadlines = headlinePage > 0
