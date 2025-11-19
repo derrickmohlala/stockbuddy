@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Newspaper, RefreshCw, ExternalLink, AlertCircle, CalendarDays } from 'lucide-react'
-import OnboardingCard from '../components/OnboardingCard'
+import { Newspaper, RefreshCw, ExternalLink, AlertCircle, CalendarDays, TrendingUp, TrendingDown } from 'lucide-react'
 import { apiFetch } from '../lib/api'
 
 interface NewsProps {
@@ -19,6 +17,7 @@ interface PortfolioNewsItem {
   published_at: string
   source?: string
   url?: string
+  portfolioImpact?: string
 }
 
 interface NewsGroup {
@@ -44,47 +43,48 @@ interface EarningsItem {
 
 type EarningsSchedule = Partial<Record<EarningsContext, EarningsItem[]>>
 
-
 const sentimentClasses: Record<string, string> = {
-  Positive: 'bg-brand-mint/15 text-brand-mint',
-  Neutral: 'bg-[#e7e9f3] text-muted',
-  Mixed: 'bg-amber-100 text-amber-700',
-  Cautious: 'bg-brand-coral/15 text-brand-coral'
+  Positive: 'bg-brand-mint/15 text-brand-mint border-brand-mint/30',
+  Neutral: 'bg-[#e7e9f3] text-muted border-[#d7d9e5]',
+  Mixed: 'bg-amber-100 text-amber-700 border-amber-300',
+  Cautious: 'bg-brand-coral/15 text-brand-coral border-brand-coral/30'
 }
 
 const News: React.FC<NewsProps> = ({ userId }) => {
+  const [isPersonalized, setIsPersonalized] = useState(false)
   const [benchmarkData, setBenchmarkData] = useState<BenchmarkPayload | null>(null)
   const [anchorData, setAnchorData] = useState<AnchorPayload | null>(null)
   const [holdingGroups, setHoldingGroups] = useState<NewsGroup[]>([])
+  const [generalNews, setGeneralNews] = useState<NewsGroup[]>([])
   const [earningsWatch, setEarningsWatch] = useState<EarningsItem[]>([])
   const [earningsSchedule, setEarningsSchedule] = useState<EarningsSchedule>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
 
-  useEffect(() => {
-    const loadBenchmarks = async () => {
-      try {
-        const resp = await apiFetch('/api/benchmarks')
-        if (!resp.ok) {
-          throw new Error('Unable to fetch benchmarks')
-        }
-        await resp.json() // fetched for parity
-      } catch (err) {
-        console.error('Failed to load benchmark list', err)
+  const fetchLatestNews = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await apiFetch('/api/news/latest')
+      if (!response.ok) {
+        throw new Error('Unable to load latest news.')
       }
+      const data = await response.json()
+      setGeneralNews(data.news || [])
+      setIsPersonalized(false)
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong loading news.')
+    } finally {
+      setLoading(false)
     }
-    loadBenchmarks()
   }, [])
 
-  const fetchNews = useCallback(async () => {
+  const fetchPersonalizedNews = useCallback(async () => {
     if (!userId) return
     setLoading(true)
     setError(null)
     try {
-      const params = new URLSearchParams()
-      
-      const response = await apiFetch(`/api/news/${userId}?${params.toString()}`)
+      const response = await apiFetch(`/api/news/${userId}`)
       if (!response.ok) {
         throw new Error('Unable to load portfolio news right now.')
       }
@@ -94,6 +94,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
       setHoldingGroups(data.holdings || [])
       setEarningsWatch(data.earnings_watch || [])
       setEarningsSchedule(data.earnings_schedule || {})
+      setIsPersonalized(true)
     } catch (err: any) {
       setError(err.message || 'Something went wrong loading news.')
     } finally {
@@ -103,16 +104,18 @@ const News: React.FC<NewsProps> = ({ userId }) => {
 
   useEffect(() => {
     if (userId) {
-      fetchNews()
+      fetchPersonalizedNews()
+    } else {
+      fetchLatestNews()
     }
-  }, [userId, fetchNews])
+  }, [userId, fetchLatestNews, fetchPersonalizedNews])
 
   const renderPublishedDate = (iso: string) => {
     const parsed = new Date(iso)
     if (Number.isNaN(parsed.getTime())) {
       return 'Recently updated'
     }
-    return parsed.toLocaleString('en-ZA', {
+    return parsed.toLocaleDateString('en-ZA', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -121,15 +124,38 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     })
   }
 
-  const holdingNews = useMemo(
-    () => holdingGroups.filter((group) => Array.isArray(group.news) && group.news.length > 0),
-    [holdingGroups]
-  )
+  const allNews = useMemo(() => {
+    if (isPersonalized) {
+      const personalized: PortfolioNewsItem[] = []
+      if (anchorData?.news) {
+        anchorData.news.forEach(story => {
+          personalized.push({ ...story, portfolioImpact: 'Affects your anchor stock' })
+        })
+      }
+      if (benchmarkData?.news) {
+        benchmarkData.news.forEach(story => {
+          personalized.push({ ...story, portfolioImpact: 'Affects your benchmark' })
+        })
+      }
+      holdingGroups.forEach(group => {
+        group.news.forEach(story => {
+          personalized.push({ ...story, portfolioImpact: `In your portfolio: ${group.name}` })
+        })
+      })
+      return personalized.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+    } else {
+      const general: PortfolioNewsItem[] = []
+      generalNews.forEach(group => {
+        group.news.forEach(story => {
+          general.push(story)
+        })
+      })
+      return general.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+    }
+  }, [isPersonalized, anchorData, benchmarkData, holdingGroups, generalNews])
 
-  const totalHeadlines = useMemo(
-    () => holdingNews.reduce((acc, group) => acc + group.news.length, 0),
-    [holdingNews]
-  )
+  const headlineStories = useMemo(() => allNews.slice(0, 3), [allNews])
+  const regularStories = useMemo(() => allNews.slice(3), [allNews])
 
   const anchorHeadline = anchorData?.news?.[0]
   const benchmarkHeadline = benchmarkData?.news?.[0]
@@ -158,49 +184,55 @@ const News: React.FC<NewsProps> = ({ userId }) => {
   const hasGroupedItems = scheduleSections.some(({ key }) => (earningsSchedule[key]?.length ?? 0) > 0)
   const shouldRenderScheduleCard = hasGroupedItems || earningsWatch.length > 0
 
-  const schedulePlaceholders: Record<EarningsContext, string> = {
-    anchor: 'No anchor earnings confirmed in the next 60 days.',
-    benchmark: 'Benchmark constituents have not flagged upcoming earnings in this window.',
-    portfolio: 'None of your current holdings have scheduled calls in the next 60 days.'
-  }
-
-  const renderStory = (story: PortfolioNewsItem, accent: 'primary' | 'neutral') => {
+  const renderStory = (story: PortfolioNewsItem, size: 'headline' | 'regular' = 'regular') => {
     const sentimentClass = sentimentClasses[story.sentiment] ?? sentimentClasses['Neutral']
-    const cardTone =
-      accent === 'primary'
-        ? 'border-brand-purple/30'
-        : 'border-[#e7e9f3]'
-
+    const isHeadline = size === 'headline'
+    
     return (
       <article
         key={story.id}
-        className={`rounded-[26px] border bg-white px-5 py-5 transition hover:-translate-y-0.5 ${cardTone}`}
+        className={`border-b-2 border-[#d7d9e5] pb-6 ${isHeadline ? 'mb-8' : 'mb-6'}`}
       >
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="flex-1 min-w-0 break-words text-lg font-semibold text-primary-ink">
-            {story.headline}
-          </h3>
-          <span className={`whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold ${sentimentClass}`}>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-xs font-bold text-primary-ink tracking-wider">{story.symbol}</span>
+              {story.portfolioImpact && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-purple/10 text-brand-purple text-[10px] font-semibold border border-brand-purple/30">
+                  <TrendingUp className="h-3 w-3" />
+                  Portfolio
+                </span>
+              )}
+            </div>
+            <h3 className={`font-bold text-primary-ink leading-tight mb-3 ${isHeadline ? 'text-2xl' : 'text-lg'}`}>
+              {story.headline}
+            </h3>
+          </div>
+          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold border ${sentimentClass}`}>
             {story.sentiment}
           </span>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-subtle">{story.summary}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted">
-          <span>{renderPublishedDate(story.published_at)}</span>
+        
+        <p className={`text-subtle leading-relaxed mb-4 ${isHeadline ? 'text-base' : 'text-sm'}`}>
+          {story.summary}
+        </p>
+        
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted border-t border-[#e7e9f3] pt-3">
+          <span className="font-semibold">{renderPublishedDate(story.published_at)}</span>
           {story.topic && (
-            <span className="rounded-full bg-brand-purple/10 px-3 py-1 text-[11px] font-semibold text-brand-purple">
-              {story.topic}
-            </span>
+            <span className="px-2 py-0.5 bg-[#e7e9f3] font-semibold">{story.topic}</span>
           )}
-          {story.source && <span>Source: {story.source}</span>}
+          {story.source && (
+            <span className="italic">— {story.source}</span>
+          )}
           {story.url && (
             <a
               href={story.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-brand-purple hover:underline"
+              className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold"
             >
-              View detail
+              Read more
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -209,200 +241,239 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     )
   }
 
-  if (!userId) {
-    return (
-      <OnboardingCard
-        icon={<Newspaper className="w-10 h-10 text-brand-purple" />}
-        title="Finish onboarding"
-        message="Complete the onboarding journey so we can tailor daily news to the shares and ETFs you actually hold."
-        primaryLabel="Start onboarding"
-        onPrimary={() => navigate('/onboarding')}
-        maxWidth="md"
-      />
-    )
-  }
-
   const nextEarnings = earningsWatch[0]
+  const totalStories = allNews.length
 
   return (
-    <div className="space-y-16">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
-              Daily briefing
-            </span>
-            <h1 className="text-4xl font-semibold text-primary-ink">
-              Stay ahead of your holdings, benchmark, and anchor company in one glance.
+    <div className="max-w-7xl mx-auto px-4">
+      {/* Newspaper Header */}
+      <header className="border-b-4 border-primary-ink mb-8 pb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-5xl font-black text-primary-ink tracking-tight mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+              THE JSE TIMES
             </h1>
-            <p className="text-lg text-subtle">
-              We pull credible South African headlines every morning, prioritise what impacts your strategy, and keep the upcoming earnings diary in view.
+            <p className="text-xs text-muted font-semibold tracking-wider">
+              {isPersonalized ? 'PERSONAL EDITION' : 'MARKET EDITION'} • {new Date().toLocaleDateString('en-ZA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Holdings tracked</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{holdingNews.length}</p>
-              </div>
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Headlines in view</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{totalHeadlines}</p>
-              </div>
-              <div className="rounded-[22px] border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Earnings on radar</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{earningsWatch.length}</p>
-              </div>
-            </div>
           </div>
-          <div className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-primary-ink">Next earnings checkpoint</p>
-              <CalendarDays className="h-5 w-5 text-brand-purple" />
-            </div>
-            {nextEarnings ? (
-              <div className="space-y-2 text-sm text-subtle">
-                <p className="text-base font-semibold text-primary-ink">{nextEarnings.symbol}</p>
-                {nextEarnings.date && (
-                  <p>{new Date(nextEarnings.date).toLocaleDateString('en-ZA', { month: 'long', day: 'numeric' })}</p>
-                )}
-                {nextEarnings.name && <p>{nextEarnings.name}</p>}
-                {typeof nextEarnings.surprise_pct === 'number' && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">
-                    Surprise {nextEarnings.surprise_pct.toFixed(1)}%
-                  </span>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-subtle">No immediate earnings flagged. We’ll surface the next call as soon as it lands.</p>
+          <div className="flex items-center gap-4">
+            {userId && (
+              <button
+                type="button"
+                onClick={() => setIsPersonalized(!isPersonalized)}
+                className="px-4 py-2 border border-[#d7d9e5] bg-white text-sm font-semibold text-primary-ink hover:bg-[#f7f8fb] transition"
+              >
+                {isPersonalized ? 'View All News' : 'Personalize'}
+              </button>
             )}
             <button
               type="button"
-              onClick={fetchNews}
-              className="btn-secondary inline-flex w-full items-center justify-center gap-2"
+              onClick={userId && isPersonalized ? fetchPersonalizedNews : fetchLatestNews}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-[#d7d9e5] bg-white text-sm font-semibold text-primary-ink hover:bg-[#f7f8fb] transition"
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Refreshing feed…' : 'Refresh feed'}
+              {loading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl space-y-12 px-4">
+        
         {error && (
-          <div className="flex items-center gap-3 rounded-[24px] border border-brand-coral/40 bg-brand-coral/10 px-4 py-3 text-sm text-brand-coral">
+          <div className="flex items-center gap-3 bg-brand-coral/10 border-l-4 border-brand-coral px-4 py-3 text-sm text-brand-coral">
             <AlertCircle className="h-5 w-5" />
             <span>{error}</span>
           </div>
         )}
 
-        {(anchorHeadline || benchmarkHeadline) && (
-          <div className="grid gap-6 md:grid-cols-2">
-            {anchorHeadline && (
-              <div className="space-y-4 rounded-2xl border border-brand-purple/30 bg-white px-5 py-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-brand-purple">Anchor watch</p>
-                    <p className="text-sm text-subtle">{anchorData?.name ?? anchorData?.symbol}</p>
-                  </div>
-                  <Newspaper className="h-5 w-5 text-brand-purple" />
-                </div>
-                {renderStory(anchorHeadline, 'primary')}
-              </div>
-            )}
-            {benchmarkHeadline && (
-              <div className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-muted">Benchmark pulse</p>
-                    <p className="text-sm text-subtle">{benchmarkData?.name ?? benchmarkData?.symbol}</p>
-                  </div>
-                  <Newspaper className="h-5 w-5 text-muted" />
-                </div>
-                {renderStory(benchmarkHeadline, 'neutral')}
-              </div>
-            )}
+        {/* Stats Bar */}
+        <div className="grid grid-cols-3 gap-6 mt-6 pt-6 border-t border-[#d7d9e5]">
+          <div>
+            <p className="text-xs font-bold text-muted mb-1">TOTAL HEADLINES</p>
+            <p className="text-3xl font-black text-primary-ink">{totalStories}</p>
           </div>
-        )}
-
-        <div className="space-y-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold text-primary-ink">Holdings in the headlines</h2>
-              <p className="text-subtle">Stories that reference the ETFs and shares you currently track.</p>
-            </div>
-            <span className="rounded-full border border-[#e7e9f3] px-3 py-1 text-xs font-semibold text-muted">
-              Updated hourly
-            </span>
-          </div>
-
-          {holdingNews.length === 0 ? (
-            <div className="rounded-2xl border border-[#e7e9f3] bg-white px-6 py-10 text-center text-subtle">
-              Your watchlist is quiet. We’ll surface stories as soon as your holdings hit the news cycle.
-            </div>
-          ) : (
-            <div className="grid gap-10">
-              {holdingNews.map((group) => (
-                <section key={group.symbol} className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-xl font-semibold text-primary-ink">{group.name}</h3>
-                      <p className="text-sm text-subtle">{group.symbol}</p>
-                    </div>
-                    <span className="rounded-full bg-brand-mint/15 px-3 py-1 text-xs font-semibold text-brand-mint">
-                      {group.news.length} stories
-                    </span>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {group.news.map((story, index) => renderStory(story, index === 0 ? 'primary' : 'neutral'))}
-                  </div>
-                </section>
-              ))}
-            </div>
+          {isPersonalized && (
+            <>
+              <div>
+                <p className="text-xs font-bold text-muted mb-1">HOLDINGS TRACKED</p>
+                <p className="text-3xl font-black text-primary-ink">{holdingGroups.length}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted mb-1">EARNINGS ON RADAR</p>
+                <p className="text-3xl font-black text-primary-ink">{earningsWatch.length}</p>
+              </div>
+            </>
+          )}
+          {!isPersonalized && (
+            <>
+              <div>
+                <p className="text-xs font-bold text-muted mb-1">COMPANIES COVERED</p>
+                <p className="text-3xl font-black text-primary-ink">{generalNews.length}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-muted mb-1">MARKET SENTIMENT</p>
+                <div className="flex items-center gap-2">
+                  {allNews.filter(s => s.sentiment === 'Positive').length > allNews.filter(s => s.sentiment === 'Cautious').length ? (
+                    <TrendingUp className="h-6 w-6 text-brand-mint" />
+                  ) : (
+                    <TrendingDown className="h-6 w-6 text-brand-coral" />
+                  )}
+                  <span className="text-sm font-bold text-primary-ink">MIXED</span>
+                </div>
+              </div>
+            </>
           )}
         </div>
+      </header>
 
-        {shouldRenderScheduleCard && (
-          <section className="space-y-6 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-semibold text-primary-ink">Upcoming earnings checkpoints</h2>
-                <p className="text-subtle">Map the events that could move your holdings over the next two months.</p>
-              </div>
-              <CalendarDays className="h-6 w-6 text-brand-purple" />
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {scheduleSections.map(({ key, label, helper }) => {
-                const grouped = earningsSchedule[key] ?? []
-                return (
-                  <div key={key} className="space-y-4 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-5">
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-primary-ink">{label}</p>
-                      <p className="text-xs text-subtle">{helper}</p>
-                    </div>
-                    {grouped.length === 0 ? (
-                      <p className="text-sm text-subtle">{schedulePlaceholders[key]}</p>
-                    ) : (
-                      <ul className="space-y-3 text-sm text-subtle">
-                        {grouped.slice(0, 4).map((item) => (
-                          <li key={`${item.symbol}-${item.date}`} className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
-                            <p className="text-sm font-semibold text-primary-ink">{item.symbol}</p>
-                            {item.date && <p>{new Date(item.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</p>}
-                            {typeof item.surprise_pct === 'number' && (
-                              <span className="inline-flex items-center gap-2 text-xs text-brand-mint">
-                                Surprise {item.surprise_pct.toFixed(1)}%
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )
-              })}
+      {/* Main Newspaper Content - Multi-column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+        {/* Left Column - Headlines */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* Banner Headlines */}
+          <section className="border-b-4 border-primary-ink pb-6 mb-8">
+            <h2 className="text-xs font-black text-muted tracking-widest mb-6">LEADING HEADLINES</h2>
+            <div className="space-y-8">
+              {headlineStories.map(story => renderStory(story, 'headline'))}
             </div>
           </section>
-        )}
-      </section>
+
+          {/* Regular Stories - 2 Column Layout */}
+          <section>
+            <h2 className="text-xs font-black text-muted tracking-widest mb-6">MARKET INTELLIGENCE</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {regularStories.slice(0, 10).map(story => renderStory(story, 'regular'))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Sidebar */}
+        <aside className="lg:col-span-4 space-y-8">
+          {/* Personalized Sections */}
+          {isPersonalized && (
+            <>
+              {anchorHeadline && (
+                <section className="border-2 border-[#d7d9e5] p-6 bg-white">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#d7d9e5]">
+                    <div>
+                      <h3 className="text-xs font-black text-brand-purple tracking-widest mb-1">ANCHOR WATCH</h3>
+                      <p className="text-sm font-bold text-primary-ink">{anchorData?.name ?? anchorData?.symbol}</p>
+                    </div>
+                    <Newspaper className="h-5 w-5 text-brand-purple" />
+                  </div>
+                  {renderStory({ ...anchorHeadline, portfolioImpact: 'Your anchor stock' }, 'regular')}
+                </section>
+              )}
+
+              {benchmarkHeadline && (
+                <section className="border-2 border-[#d7d9e5] p-6 bg-white">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#d7d9e5]">
+                    <div>
+                      <h3 className="text-xs font-black text-muted tracking-widest mb-1">BENCHMARK PULSE</h3>
+                      <p className="text-sm font-bold text-primary-ink">{benchmarkData?.name ?? benchmarkData?.symbol}</p>
+                    </div>
+                    <Newspaper className="h-5 w-5 text-muted" />
+                  </div>
+                  {renderStory({ ...benchmarkHeadline, portfolioImpact: 'Your benchmark' }, 'regular')}
+                </section>
+              )}
+
+              {shouldRenderScheduleCard && (
+                <section className="border-2 border-[#d7d9e5] p-6 bg-white">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#d7d9e5]">
+                    <h3 className="text-xs font-black text-primary-ink tracking-widest">EARNINGS CALENDAR</h3>
+                    <CalendarDays className="h-5 w-5 text-brand-purple" />
+                  </div>
+                  {nextEarnings ? (
+                    <div className="space-y-3">
+                      <div className="border-l-4 border-brand-purple pl-4">
+                        <p className="text-lg font-black text-primary-ink mb-1">{nextEarnings.symbol}</p>
+                        {nextEarnings.date && (
+                          <p className="text-sm font-semibold text-subtle">
+                            {new Date(nextEarnings.date).toLocaleDateString('en-ZA', { month: 'long', day: 'numeric' })}
+                          </p>
+                        )}
+                        {nextEarnings.name && (
+                          <p className="text-xs text-muted mt-1">{nextEarnings.name}</p>
+                        )}
+                      </div>
+                      <div className="grid gap-4">
+                        {scheduleSections.map(({ key, label }) => {
+                          const grouped = earningsSchedule[key] ?? []
+                          if (grouped.length === 0) return null
+                          return (
+                            <div key={key} className="border border-[#d7d9e5] p-3">
+                              <p className="text-xs font-black text-primary-ink mb-2">{label.toUpperCase()}</p>
+                              <ul className="space-y-2 text-xs text-subtle">
+                                {grouped.slice(0, 3).map((item) => (
+                                  <li key={`${item.symbol}-${item.date}`} className="border-b border-[#e7e9f3] pb-2 last:border-0">
+                                    <p className="font-semibold text-primary-ink">{item.symbol}</p>
+                                    {item.date && (
+                                      <p>{new Date(item.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</p>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-subtle">No immediate earnings flagged.</p>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+
+          {/* Market Summary for General News */}
+          {!isPersonalized && (
+            <section className="border-2 border-[#d7d9e5] p-6 bg-white">
+              <h3 className="text-xs font-black text-primary-ink tracking-widest mb-4 pb-3 border-b-2 border-[#d7d9e5]">MARKET SUMMARY</h3>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <p className="font-semibold text-primary-ink mb-1">Positive Sentiment</p>
+                  <p className="text-subtle">{allNews.filter(s => s.sentiment === 'Positive').length} stories</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary-ink mb-1">Cautious Outlook</p>
+                  <p className="text-subtle">{allNews.filter(s => s.sentiment === 'Cautious').length} stories</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary-ink mb-1">Neutral Reports</p>
+                  <p className="text-subtle">{allNews.filter(s => s.sentiment === 'Neutral').length} stories</p>
+                </div>
+              </div>
+            </section>
+          )}
+        </aside>
+      </div>
+
+      {/* Holdings by Symbol - Newspaper Style */}
+      {isPersonalized && holdingGroups.length > 0 && (
+        <section className="border-t-4 border-primary-ink pt-8 mt-12">
+          <h2 className="text-xs font-black text-muted tracking-widest mb-6">HOLDINGS IN THE HEADLINES</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {holdingGroups.map((group) => (
+              <div key={group.symbol} className="border-2 border-[#d7d9e5] p-6 bg-white">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#d7d9e5]">
+                  <div>
+                    <h3 className="text-lg font-black text-primary-ink">{group.name}</h3>
+                    <p className="text-xs font-semibold text-muted">{group.symbol}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-brand-mint/15 text-brand-mint text-xs font-bold border border-brand-mint/30">
+                    {group.news.length} STORIES
+                  </span>
+                </div>
+                <div className="space-y-6">
+                  {group.news.slice(0, 3).map((story) => renderStory({ ...story, portfolioImpact: `In your portfolio: ${group.name}` }, 'regular'))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

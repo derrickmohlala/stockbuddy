@@ -1276,6 +1276,61 @@ def portfolio_news(user_id):
 
     return jsonify(response)
 
+@app.route("/api/news/latest")
+def latest_news():
+    """Fetch latest news from popular JSE instruments without requiring a user."""
+    # Popular JSE instruments to fetch news from
+    popular_symbols = [
+        "STX40.JO",  # Satrix Top 40
+        "SBK.JO",    # Standard Bank
+        "FSR.JO",    # FirstRand
+        "NPN.JO",    # Naspers
+        "BHP.JO",    # BHP Group
+        "VOD.JO",    # Vodacom
+        "MTN.JO",    # MTN Group
+        "GRT.JO",    # Growthpoint Properties
+        "CPI.JO",    # Capitec
+        "SHF.JO",    # Shoprite
+    ]
+    
+    all_news = []
+    
+    for symbol in popular_symbols:
+        instrument = Instrument.query.filter_by(symbol=symbol, is_active=True).first()
+        if not instrument:
+            continue
+        
+        raw_news = fetch_live_news(symbol, limit=3, lookback_days=7)
+        for item in raw_news:
+            story = item.copy()
+            story["symbol"] = symbol
+            story["name"] = instrument.name
+            all_news.append(story)
+    
+    # Sort by published_at descending
+    all_news.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+    
+    # Limit to most recent 30 stories
+    all_news = all_news[:30]
+    
+    # Group by symbol for easier display
+    grouped = {}
+    for story in all_news:
+        symbol = story.get("symbol")
+        if symbol not in grouped:
+            instrument = Instrument.query.filter_by(symbol=symbol).first()
+            grouped[symbol] = {
+                "symbol": symbol,
+                "name": instrument.name if instrument else symbol,
+                "news": []
+            }
+        grouped[symbol]["news"].append(story)
+    
+    return jsonify({
+        "news": list(grouped.values()),
+        "total_stories": len(all_news)
+    })
+
 # Paper trading endpoint
 @app.route("/api/trade/sim", methods=["POST"])
 def paper_trade():
