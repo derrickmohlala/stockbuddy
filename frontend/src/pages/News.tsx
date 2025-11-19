@@ -465,7 +465,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
-            <div className="relative w-full sm:w-64 order-first sm:order-last sm:shrink-0">
+            <div className="relative w-full sm:w-80 order-first sm:order-last sm:shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <input
                 type="search"
@@ -473,7 +473,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 onChange={(event) => setNewsSearch(event.target.value)}
                 placeholder="Search symbol or company"
                 aria-label="Search news by symbol or company"
-                className="w-full appearance-none rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none"
+                className="w-full appearance-none rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none placeholder:text-muted"
                 autoComplete="off"
               />
               {newsSearch && (
