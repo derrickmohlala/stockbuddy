@@ -33,10 +33,13 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   const location = useLocation()
   const { user, logout } = useAuth()
   
+  // Use user's onboarding status from auth context, fallback to prop
+  const userIsOnboarded = user?.is_onboarded ?? isOnboarded
+  
   const isPortfolioActive = location.pathname.startsWith('/portfolio') || location.pathname.startsWith('/discover')
 
   const handleStart = () => {
-    navigate(isOnboarded ? '/portfolio' : '/onboarding')
+    navigate(userIsOnboarded ? '/portfolio' : '/onboarding')
     setMenuOpen(false)
   }
 
@@ -148,7 +151,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                   onClick={handleStart}
                   className="btn-cta hidden whitespace-nowrap md:inline-flex"
                 >
-                  {isOnboarded ? 'View portfolio' : 'Get started'}
+                  {userIsOnboarded ? 'View portfolio' : 'Get started'}
                 </button>
               </>
             ) : (
@@ -241,7 +244,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                   {user.first_name} ({user.email})
                 </div>
                 <button onClick={handleStart} className="btn-cta mt-2 w-full">
-                  {isOnboarded ? 'View portfolio' : 'Get started'}
+                  {userIsOnboarded ? 'View portfolio' : 'Get started'}
                 </button>
                 <button
                   onClick={handleLogout}

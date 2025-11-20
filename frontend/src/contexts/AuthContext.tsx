@@ -37,23 +37,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch current user when token is available
   useEffect(() => {
-    if (token && !user) {
-      refreshUser()
-    } else if (!token) {
-      setUser(null)
+    const fetchUser = async () => {
+      const currentToken = token || localStorage.getItem('stockbuddy_token')
+      if (currentToken && currentToken !== token) {
+        setToken(currentToken)
+      }
+      
+      if (currentToken) {
+        await refreshUser()
+      } else {
+        setUser(null)
+      }
     }
+    
+    fetchUser()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const refreshUser = useCallback(async () => {
-    if (!token) {
+    // Get token from state or localStorage
+    const currentToken = token || localStorage.getItem('stockbuddy_token')
+    if (!currentToken) {
       setUser(null)
       return
+    }
+
+    // If token in state is different from localStorage, sync it
+    if (currentToken !== token) {
+      setToken(currentToken)
     }
 
     try {
       const response = await apiFetch('/api/auth/current', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${currentToken}`
         }
       })
 
@@ -70,12 +87,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Token invalid, clear it
         setToken(null)
         localStorage.removeItem('stockbuddy_token')
+        localStorage.removeItem('stockbuddy_user_id')
         setUser(null)
       }
     } catch (error) {
       console.error('Error fetching current user:', error)
       setToken(null)
       localStorage.removeItem('stockbuddy_token')
+      localStorage.removeItem('stockbuddy_user_id')
       setUser(null)
     }
   }, [token])
@@ -143,35 +162,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const data = await response.json()
-    setToken(data.access_token)
-    localStorage.setItem('stockbuddy_token', data.access_token)
+    const accessToken = data.access_token
+    
+    setToken(accessToken)
+    localStorage.setItem('stockbuddy_token', accessToken)
     localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
     
-    const newUser = {
-      user_id: data.user_id,
-      email: data.email,
-      first_name: data.first_name,
-      is_admin: data.is_admin,
-      is_onboarded: false
-    }
-    setUser(newUser)
-    
-    // Refresh to get onboarding status if available
+    // Fetch full user data with onboarding status
     try {
       const currentResponse = await apiFetch('/api/auth/current', {
         headers: {
-          'Authorization': `Bearer ${data.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       })
       if (currentResponse.ok) {
         const currentData = await currentResponse.json()
         setUser({
-          ...newUser,
+          user_id: currentData.user_id,
+          email: currentData.email,
+          first_name: currentData.first_name,
+          is_admin: currentData.is_admin,
           is_onboarded: currentData.is_onboarded
+        })
+      } else {
+        // Fallback to registration data
+        setUser({
+          user_id: data.user_id,
+          email: data.email,
+          first_name: data.first_name,
+          is_admin: data.is_admin,
+          is_onboarded: data.is_onboarded || false
         })
       }
     } catch {
-      // If refresh fails, keep the initial user data
+      // Fallback to registration data if refresh fails
+      setUser({
+        user_id: data.user_id,
+        email: data.email,
+        first_name: data.first_name,
+        is_admin: data.is_admin,
+        is_onboarded: data.is_onboarded || false
+      })
     }
   }, [])
 
