@@ -673,137 +673,161 @@ def list_benchmarks():
 # Portfolio endpoints
 @app.route("/api/portfolio/<int:user_id>")
 def get_portfolio(user_id):
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
-    portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
-    positions = UserPosition.query.filter_by(user_id=user_id).all()
-    
-    # Handle case where portfolio doesn't exist yet (newly registered user)
-    if not portfolio:
+        portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
+        positions = UserPosition.query.filter_by(user_id=user_id).all()
+        
+        # Handle case where portfolio doesn't exist yet (newly registered user)
+        if not portfolio:
+            return jsonify({
+                "user_id": user_id,
+                "first_name": user.first_name,
+                "archetype": None,
+                "total_value": 0,
+                "total_cost": 0,
+                "total_pnl": 0,
+                "total_pnl_pct": 0,
+                "holdings": [],
+                "allocation_targets": {},
+                "plan_summary": None,
+                "plan_persona": None,
+                "plan_guidance": None,
+                "plan_goal": None,
+                "plan_risk_band": None,
+                "plan_anchor_cap_pct": None,
+                "suggestions": [],
+                "applied_suggestions": [],
+                "baseline_allocations": {},
+                "alerts": [],
+                "weighted_dividend_yield_pct": None,
+                "current_annual_dividends": None
+            })
+        
+        allocation_targets = json.loads(portfolio.allocations) if portfolio.allocations else {}
+        archetype_copy = get_archetype_copy(portfolio.archetype, allocation_targets)
+        
+        # Calculate portfolio value and P/L
+        total_value = 0
+        total_cost = 0
+        
+        holdings = []
+        for position in positions:
+            instrument = Instrument.query.filter_by(symbol=position.symbol).first()
+            if instrument:
+                latest_price = Price.query.filter_by(instrument_id=instrument.id)\
+                    .order_by(Price.date.desc()).first()
+                
+                if latest_price:
+                    current_value = position.quantity * latest_price.close
+                    cost_basis = position.quantity * position.avg_price
+                    pnl = current_value - cost_basis
+                    pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0
+                    
+                    total_value += current_value
+                    total_cost += cost_basis
+                    
+                    holdings.append({
+                        "symbol": position.symbol,
+                        "name": instrument.name,
+                        "quantity": position.quantity,
+                        "avg_price": position.avg_price,
+                        "current_price": latest_price.close,
+                        "current_value": current_value,
+                        "cost_basis": cost_basis,
+                        "pnl": pnl,
+                        "pnl_pct": pnl_pct,
+                        "weight": 0  # Will calculate after getting total
+                    })
+        
+        # Calculate weights
+        for holding in holdings:
+            holding["weight"] = (holding["current_value"] / total_value * 100) if total_value > 0 else 0
+
+        total_pnl = total_value - total_cost
+        total_pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0
+
+        applied_actions = SuggestionAction.query.filter_by(user_id=user_id, action='applied') \
+            .order_by(SuggestionAction.created_at.desc()).limit(3).all()
+        
+        suggestions = []
+        try:
+            suggestions = generate_suggestions(holdings, portfolio, allocation_targets, applied_actions) if portfolio else []
+        except Exception as e:
+            print(f"Error generating suggestions: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        applied_suggestions = [{
+            "id": action.id,
+            "replace_symbol": action.replace_symbol,
+            "suggest_symbol": action.suggest_symbol,
+            "created_at": action.created_at.isoformat() if action.created_at else None
+        } for action in applied_actions]
+
+        alerts = []
+        try:
+            alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value) if portfolio else []
+        except Exception as e:
+            print(f"Error generating goal alerts: {e}")
+            import traceback
+            traceback.print_exc()
+
+        # Dividend yield snapshot for Health page
+        weighted_dividend_yield_pct = None
+        current_annual_dividends = None
+        try:
+            wy = calculate_weighted_dividend_yield(user_id)
+            if wy is not None:
+                weighted_dividend_yield_pct = float(wy)
+                if total_value and total_value > 0:
+                    current_annual_dividends = (total_value * weighted_dividend_yield_pct / 100.0)
+        except Exception as e:
+            print(f"Error calculating weighted dividend yield: {e}")
+            import traceback
+            traceback.print_exc()
+
+        baseline = PortfolioBaseline.query.filter_by(user_id=user_id).first()
+        baseline_allocations = {}
+        if baseline and baseline.allocations:
+            try:
+                baseline_allocations = json.loads(baseline.allocations)
+            except json.JSONDecodeError:
+                baseline_allocations = {}
+
         return jsonify({
             "user_id": user_id,
             "first_name": user.first_name,
-            "archetype": None,
-            "total_value": 0,
-            "total_cost": 0,
-            "total_pnl": 0,
-            "total_pnl_pct": 0,
-            "holdings": [],
-            "allocation_targets": {},
-            "plan_summary": None,
-            "plan_persona": None,
-            "plan_guidance": None,
-            "plan_goal": None,
-            "plan_risk_band": None,
-            "plan_anchor_cap_pct": None,
-            "suggestions": [],
-            "applied_suggestions": [],
-            "baseline_allocations": {},
-            "alerts": [],
-            "weighted_dividend_yield_pct": None,
-            "current_annual_dividends": None
+            "archetype": portfolio.archetype if portfolio else None,
+            "total_value": total_value,
+            "total_cost": total_cost,
+            "total_pnl": total_pnl,
+            "total_pnl_pct": total_pnl_pct,
+            "holdings": holdings,
+            "allocation_targets": allocation_targets,
+            "plan_summary": archetype_copy.get("summary") if archetype_copy else None,
+            "plan_persona": archetype_copy.get("persona") if archetype_copy else None,
+            "plan_guidance": archetype_copy.get("guidance") if archetype_copy else None,
+            "plan_goal": archetype_copy.get("goal") if archetype_copy else None,
+            "plan_risk_band": archetype_copy.get("risk_band") if archetype_copy else None,
+            "plan_anchor_cap_pct": archetype_copy.get("anchor_cap_pct") if archetype_copy else None,
+            "suggestions": suggestions,
+            "applied_suggestions": applied_suggestions,
+            "baseline_allocations": baseline_allocations,
+            "alerts": alerts,
+            "weighted_dividend_yield_pct": round(weighted_dividend_yield_pct, 2) if weighted_dividend_yield_pct is not None else None,
+            "current_annual_dividends": round(current_annual_dividends, 2) if current_annual_dividends is not None else None
         })
-    
-    allocation_targets = json.loads(portfolio.allocations) if portfolio.allocations else {}
-    archetype_copy = get_archetype_copy(portfolio.archetype, allocation_targets) if portfolio else {}
-    
-    # Calculate portfolio value and P/L
-    total_value = 0
-    total_cost = 0
-    
-    holdings = []
-    for position in positions:
-        instrument = Instrument.query.filter_by(symbol=position.symbol).first()
-        if instrument:
-            latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-                .order_by(Price.date.desc()).first()
-            
-            if latest_price:
-                current_value = position.quantity * latest_price.close
-                cost_basis = position.quantity * position.avg_price
-                pnl = current_value - cost_basis
-                pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0
-                
-                total_value += current_value
-                total_cost += cost_basis
-                
-                holdings.append({
-                    "symbol": position.symbol,
-                    "name": instrument.name,
-                    "quantity": position.quantity,
-                    "avg_price": position.avg_price,
-                    "current_price": latest_price.close,
-                    "current_value": current_value,
-                    "cost_basis": cost_basis,
-                    "pnl": pnl,
-                    "pnl_pct": pnl_pct,
-                    "weight": 0  # Will calculate after getting total
-                })
-    
-    # Calculate weights
-    for holding in holdings:
-        holding["weight"] = (holding["current_value"] / total_value * 100) if total_value > 0 else 0
-
-    total_pnl = total_value - total_cost
-    total_pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0
-
-    applied_actions = SuggestionAction.query.filter_by(user_id=user_id, action='applied') \
-        .order_by(SuggestionAction.created_at.desc()).limit(3).all()
-    suggestions = generate_suggestions(holdings, portfolio, allocation_targets, applied_actions) if portfolio else []
-    applied_suggestions = [{
-        "id": action.id,
-        "replace_symbol": action.replace_symbol,
-        "suggest_symbol": action.suggest_symbol,
-        "created_at": action.created_at.isoformat() if action.created_at else None
-    } for action in applied_actions]
-
-    alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value) if portfolio else []
-
-    # Dividend yield snapshot for Health page
-    weighted_dividend_yield_pct = None
-    current_annual_dividends = None
-    try:
-        wy = calculate_weighted_dividend_yield(user_id)
-        if wy is not None:
-            weighted_dividend_yield_pct = float(wy)
-            if total_value and total_value > 0:
-                current_annual_dividends = (total_value * weighted_dividend_yield_pct / 100.0)
-    except Exception:
-        pass
-
-    baseline = PortfolioBaseline.query.filter_by(user_id=user_id).first()
-    baseline_allocations = {}
-    if baseline and baseline.allocations:
-        try:
-            baseline_allocations = json.loads(baseline.allocations)
-        except json.JSONDecodeError:
-            baseline_allocations = {}
-
-    return jsonify({
-        "user_id": user_id,
-        "first_name": user.first_name,
-        "archetype": portfolio.archetype if portfolio else None,
-        "total_value": total_value,
-        "total_cost": total_cost,
-        "total_pnl": total_pnl,
-        "total_pnl_pct": total_pnl_pct,
-        "holdings": holdings,
-        "allocation_targets": allocation_targets,
-        "plan_summary": archetype_copy.get("summary"),
-        "plan_persona": archetype_copy.get("persona"),
-        "plan_guidance": archetype_copy.get("guidance"),
-        "plan_goal": archetype_copy.get("goal"),
-        "plan_risk_band": archetype_copy.get("risk_band"),
-        "plan_anchor_cap_pct": archetype_copy.get("anchor_cap_pct"),
-        "suggestions": suggestions,
-        "applied_suggestions": applied_suggestions,
-        "baseline_allocations": baseline_allocations,
-        "alerts": alerts,
-        "weighted_dividend_yield_pct": round(weighted_dividend_yield_pct, 2) if weighted_dividend_yield_pct is not None else None,
-        "current_annual_dividends": round(current_annual_dividends, 2) if current_annual_dividends is not None else None
-    })
+    except Exception as e:
+        import traceback
+        error_detail = str(e)
+        error_traceback = traceback.format_exc()
+        print(f"Error fetching portfolio for user {user_id}: {error_detail}")
+        print(error_traceback)
+        return jsonify({"error": f"Failed to load portfolio: {error_detail}"}), 500
 
 
 @app.route("/api/health/plan", methods=["POST"])
