@@ -170,29 +170,30 @@ const Signup: React.FC = () => {
         let errorMessage = 'Registration failed'
         let errorDetail = ''
         
+        // Read the response body as text first (can only be read once)
         try {
-          const errorData = await response.json()
-          console.log('Error response data:', errorData)
-          errorMessage = errorData.error || errorData.message || errorMessage
-          errorDetail = errorData.detail || ''
-        } catch (parseError) {
-          console.log('Failed to parse error as JSON, trying text...')
-          // If JSON parsing fails, try to get text
-          try {
-            const text = await response.text()
-            console.log('Error response text:', text)
-            if (text) {
-              try {
-                const parsed = JSON.parse(text)
-                errorMessage = parsed.error || parsed.message || errorMessage
-                errorDetail = parsed.detail || ''
-              } catch {
-                errorMessage = text || errorMessage
-              }
+          const text = await response.text()
+          console.log('Error response text:', text)
+          
+          if (text) {
+            try {
+              // Try to parse as JSON
+              const errorData = JSON.parse(text)
+              console.log('Error response data:', errorData)
+              errorMessage = errorData.error || errorData.message || errorMessage
+              errorDetail = errorData.detail || ''
+            } catch (jsonError) {
+              // If not JSON, use text as error message
+              errorMessage = text || errorMessage
             }
-          } catch (textError) {
-            console.error('Failed to get error text:', textError)
+          } else {
+            // No body, use status text
+            errorMessage = response.statusText || `Server error (${response.status})`
           }
+        } catch (textError) {
+          console.error('Failed to get error text:', textError)
+          // Use status text as fallback
+          errorMessage = response.statusText || `Server error (${response.status})`
         }
         
         const fullError = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage

@@ -177,81 +177,84 @@ def health():
 @app.route("/api/auth/register", methods=["POST"])
 def register():
     import re
+    import traceback
     
-    data = request.json or {}
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-    first_name = data.get('first_name', '').strip()
-    
-    # Check if onboarding data is included (for unified signup flow)
-    has_onboarding_data = all([
-        data.get('age_band'),
-        data.get('experience'),
-        data.get('goal'),
-        data.get('risk') is not None,
-        data.get('horizon'),
-        data.get('anchor_stock'),
-        data.get('literacy_level')
-    ])
-    
-    if not email or not password or not first_name:
-        return jsonify({"error": "Email, password, and first name are required"}), 400
-    
-    # Validate email format
-    email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
-    if not re.match(email_pattern, email):
-        return jsonify({"error": "Please enter a valid email address"}), 400
-    
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
-    
-    if len(first_name) < 1:
-        return jsonify({"error": "First name is required"}), 400
-    
-    # Check if user already exists
-    existing = User.query.filter_by(email=email).first()
-    if existing:
-        return jsonify({"error": "User with this email already exists"}), 400
-    
-    # Create new user with basic info
     try:
-        password_hash = generate_password_hash(password)
-        if isinstance(password_hash, bytes):
-            password_hash = password_hash.decode('utf-8')
-    except Exception as hash_error:
-        print(f"Error hashing password: {hash_error}")
-        return jsonify({"error": "Unable to process password"}), 400
-    
-    user_data = {
-        "email": email,
-        "password_hash": password_hash,
-        "first_name": first_name,
-        "is_admin": False
-    }
-    
-    # If onboarding data is provided, include it
-    if has_onboarding_data:
+        data = request.json or {}
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        first_name = data.get('first_name', '').strip()
+        
+        # Check if onboarding data is included (for unified signup flow)
+        has_onboarding_data = all([
+            data.get('age_band'),
+            data.get('experience'),
+            data.get('goal'),
+            data.get('risk') is not None,
+            data.get('horizon'),
+            data.get('anchor_stock'),
+            data.get('literacy_level')
+        ])
+        
+        if not email or not password or not first_name:
+            return jsonify({"error": "Email, password, and first name are required"}), 400
+        
+        # Validate email format
+        email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_pattern, email):
+            return jsonify({"error": "Please enter a valid email address"}), 400
+        
+        if len(password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        
+        if len(first_name) < 1:
+            return jsonify({"error": "First name is required"}), 400
+        
+        # Check if user already exists
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            return jsonify({"error": "A user with this email already exists"}), 400
+        
+        # Create new user with basic info
         try:
-            risk_value = int(data.get('risk'))
-        except (TypeError, ValueError):
-            risk_value = 50  # Default risk
+            password_hash = generate_password_hash(password)
+            if isinstance(password_hash, bytes):
+                password_hash = password_hash.decode('utf-8')
+        except Exception as hash_error:
+            print(f"Error hashing password: {hash_error}")
+            traceback.print_exc()
+            return jsonify({"error": "Unable to process password"}), 400
         
-        interests_value = data.get('interests', [])
-        if not isinstance(interests_value, list):
-            interests_value = []
+        user_data = {
+            "email": email,
+            "password_hash": password_hash,
+            "first_name": first_name,
+            "is_admin": False
+        }
         
-        user_data.update({
-            "age_band": str(data.get('age_band')).strip(),
-            "experience": str(data.get('experience')).strip(),
-            "goal": str(data.get('goal')).strip(),
-            "risk": risk_value,
-            "horizon": str(data.get('horizon')).strip(),
-            "anchor_stock": str(data.get('anchor_stock')).strip(),
-            "literacy_level": str(data.get('literacy_level')).strip(),
-            "interests": json.dumps(interests_value)
-        })
-    
-    try:
+        # If onboarding data is provided, include it
+        if has_onboarding_data:
+            try:
+                risk_value = int(data.get('risk'))
+            except (TypeError, ValueError):
+                risk_value = 50  # Default risk
+            
+            interests_value = data.get('interests', [])
+            if not isinstance(interests_value, list):
+                interests_value = []
+            
+            user_data.update({
+                "age_band": str(data.get('age_band')).strip(),
+                "experience": str(data.get('experience')).strip(),
+                "goal": str(data.get('goal')).strip(),
+                "risk": risk_value,
+                "horizon": str(data.get('horizon')).strip(),
+                "anchor_stock": str(data.get('anchor_stock')).strip(),
+                "literacy_level": str(data.get('literacy_level')).strip(),
+                "interests": json.dumps(interests_value)
+            })
+        
+        # Create user
         user = User(**user_data)
         db.session.add(user)
         db.session.commit()
@@ -277,8 +280,7 @@ def register():
                     db.session.commit()
                 except Exception as pos_error:
                     db.session.rollback()
-                    import traceback
-                    print(f"Warning: Failed to create initial positions: {pos_error}")
+                    print(f"Warning: Failed to create initial positions for user {user.id}: {pos_error}")
                     traceback.print_exc()
                     # Continue without positions - user can add them later
                 
@@ -292,14 +294,12 @@ def register():
                     db.session.commit()
                 except Exception as baseline_error:
                     db.session.rollback()
-                    import traceback
-                    print(f"Warning: Failed to create baseline: {baseline_error}")
+                    print(f"Warning: Failed to create baseline for user {user.id}: {baseline_error}")
                     traceback.print_exc()
                     # Continue without baseline
             except Exception as portfolio_error:
-                db.session.rollback()
-                import traceback
-                print(f"Warning: Failed to create portfolio: {portfolio_error}")
+                # Don't rollback user creation, just log the portfolio error
+                print(f"Warning: Failed to create portfolio for user {user.id}: {portfolio_error}")
                 traceback.print_exc()
                 # Continue - user is created, portfolio can be set up later
         
@@ -313,10 +313,10 @@ def register():
             "is_onboarded": has_onboarding_data,
             "access_token": access_token
         }), 201
+        
     except Exception as e:
         db.session.rollback()
         error_detail = str(e)
-        import traceback
         error_traceback = traceback.format_exc()
         print(f"Registration error: {error_detail}")
         print(error_traceback)
@@ -330,8 +330,11 @@ def register():
             # Check for validation errors
             if "email" in error_detail.lower():
                 return jsonify({"error": "Please enter a valid email address"}), 400
+            else:
+                return jsonify({"error": "Invalid input format", "detail": error_detail}), 400
+        
         # Return 500 with error details so frontend can display it
-        return jsonify({"error": "Unable to create user account", "detail": error_detail}), 500
+        return jsonify({"error": "Unable to create user account. Please try again.", "detail": error_detail}), 500
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
