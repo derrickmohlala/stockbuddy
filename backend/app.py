@@ -259,7 +259,11 @@ def auto_seed():
         from seed_instruments import seed_instruments
         from seed_cpi import seed_cpi
         from seed_baskets import seed_baskets
-        from backfill_prices import backfill_prices
+        try:
+            from backfill_prices import backfill_prices
+        except Exception as import_error:
+            backfill_prices = None
+            print(f"⚠ Warning: Could not import backfill_prices ({import_error}). Prices will use existing data or synthetic fallbacks.")
         
         # Run all seed scripts in order
         print("Seeding instruments...")
@@ -290,14 +294,17 @@ def auto_seed():
         except Exception as e:
             print(f"⚠ Error seeding baskets: {e}")
         
-        print("Backfilling prices (this may take a few minutes)...")
-        try:
-            backfill_prices()
-            print("✓ Price backfill completed")
-        except Exception as e:
-            print(f"⚠ Error backfilling prices: {e}")
-            import traceback
-            traceback.print_exc()
+        if backfill_prices:
+            print("Backfilling prices (this may take a few minutes)...")
+            try:
+                backfill_prices()
+                print("✓ Price backfill completed")
+            except Exception as e:
+                print(f"⚠ Error backfilling prices: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("⚠ Skipping price backfill because the helper module is unavailable.")
         
         print("✓ Automatic seeding completed!")
         
@@ -341,7 +348,11 @@ def manual_reseed():
         from seed_instruments import seed_instruments
         from seed_cpi import seed_cpi
         from seed_baskets import seed_baskets
-        from backfill_prices import backfill_prices
+        try:
+            from backfill_prices import backfill_prices
+        except Exception as import_error:
+            backfill_prices = None
+            print(f"⚠ Warning: Unable to import backfill_prices during manual reseed ({import_error}).")
         
         print("Manual re-seed triggered by admin...")
         
@@ -350,7 +361,8 @@ def manual_reseed():
         
         seed_cpi()
         seed_baskets()
-        backfill_prices()
+        if backfill_prices:
+            backfill_prices()
         
         return jsonify({
             "success": True,
@@ -2660,6 +2672,9 @@ def generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetyp
     holdings_map = {h["symbol"]: h for h in holdings}
 
     if not portfolio or not user:
+        return alerts
+
+    if not holdings or total_value is None or total_value <= 0:
         return alerts
 
     # Base tolerances

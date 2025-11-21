@@ -83,6 +83,11 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
           navigate('/login')
           return
         }
+        if (response.status === 404) {
+          setProfile(null)
+          setError('We could not find your profile. Please sign in again to refresh your session.')
+          return
+        }
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to load profile')
       }
@@ -98,6 +103,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     } catch (err: any) {
       console.error('Error fetching profile:', err)
       setError(err.message || 'Failed to load profile')
+      setProfile(null)
       if (err.message?.includes('401') || err.message?.includes('403')) {
         navigate('/login')
       }
@@ -186,8 +192,22 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   if (!profile) {
     return (
       <div className="flex min-h-[80vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-subtle">Profile not found</p>
+        <div className="text-center space-y-4">
+          <p className="text-subtle">{error || 'Profile not found'}</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => fetchProfile()}
+              className="w-full sm:w-auto rounded-full border border-[#e7e9f3] px-6 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/40 hover:text-brand-purple"
+            >
+              Try again
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full sm:w-auto rounded-full bg-brand-purple px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-purple/90"
+            >
+              Sign in again
+            </button>
+          </div>
         </div>
       </div>
     )
