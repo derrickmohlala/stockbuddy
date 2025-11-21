@@ -231,11 +231,52 @@ def run_sqlite_migrations():
         # Don't fail startup if migration has issues - just log it
         print(f"SQLite migration warning (non-fatal): {e}")
 
+def auto_seed():
+    """Automatically seed the database if it's empty (first-time setup)"""
+    try:
+        # Check if database needs seeding by checking if instruments exist
+        instrument_count = Instrument.query.count()
+        
+        if instrument_count > 0:
+            print("✓ Database already seeded, skipping auto-seed")
+            return
+        
+        print("⚠ Database is empty, running automatic seeding...")
+        
+        # Import seed functions
+        from seed_instruments import seed_instruments
+        from seed_cpi import seed_cpi
+        from seed_baskets import seed_baskets
+        from backfill_prices import backfill_prices
+        
+        # Run all seed scripts in order
+        print("Seeding instruments...")
+        seed_instruments()
+        
+        print("Seeding CPI data...")
+        seed_cpi()
+        
+        print("Seeding baskets...")
+        seed_baskets()
+        
+        print("Backfilling prices (this may take a minute)...")
+        backfill_prices()
+        
+        print("✓ Automatic seeding completed successfully!")
+        
+    except Exception as e:
+        # Don't fail app startup if seeding fails - just log it
+        print(f"⚠ Auto-seed warning (non-fatal): {e}")
+        import traceback
+        traceback.print_exc()
+
 with app.app_context():
     # Create all tables based on models
     db.create_all()
     # Run SQLite-specific migrations only for local development
     run_sqlite_migrations()
+    # Auto-seed database if empty (first-time setup)
+    auto_seed()
 
 # Health check
 @app.route("/api/health")
