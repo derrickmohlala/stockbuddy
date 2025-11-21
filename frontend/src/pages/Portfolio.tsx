@@ -418,8 +418,11 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           holdingsValue: data.total_value,
           distributionPolicy
         })
-        if (typeof data.weighted_dividend_yield_pct === 'number') {
+        if (typeof data.weighted_dividend_yield_pct === 'number' && data.weighted_dividend_yield_pct >= 0) {
           setPortfolioWeightedYield(data.weighted_dividend_yield_pct)
+        } else {
+          // If not provided or invalid, don't set it (will show '--')
+          setPortfolioWeightedYield(null)
         }
         if (typeof data.current_annual_dividends === 'number') {
           setPortfolioAnnualDividends(data.current_annual_dividends)

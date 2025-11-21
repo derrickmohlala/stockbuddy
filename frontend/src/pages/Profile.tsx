@@ -37,7 +37,7 @@ const SOUTH_AFRICAN_PROVINCES = [
 ]
 
 const Profile: React.FC<ProfileProps> = ({ userId }) => {
-  const { user: authUser, refreshUser } = useAuth()
+  const { user: authUser, refreshUser, token } = useAuth()
   const navigate = useNavigate()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,27 +54,37 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
-    if (userId || authUser) {
+    // Use authUser.user_id if available, otherwise fall back to userId prop
+    const effectiveUserId = authUser?.user_id || userId
+    
+    if (effectiveUserId || token) {
       fetchProfile()
     } else {
       // Redirect to login if not authenticated
       navigate('/login')
     }
-  }, [userId, authUser, navigate])
+  }, [userId, authUser, token, navigate])
 
   const fetchProfile = async () => {
     try {
       setLoading(true)
       setError(null)
       
+      // Check if user is authenticated
+      if (!token && !authUser) {
+        navigate('/login')
+        return
+      }
+      
       const response = await apiFetch('/api/profile')
       
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
           navigate('/login')
           return
         }
-        throw new Error('Failed to load profile')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to load profile')
       }
       
       const data = await response.json()
@@ -88,6 +98,9 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     } catch (err: any) {
       console.error('Error fetching profile:', err)
       setError(err.message || 'Failed to load profile')
+      if (err.message?.includes('401') || err.message?.includes('403')) {
+        navigate('/login')
+      }
     } finally {
       setLoading(false)
     }

@@ -148,25 +148,40 @@ const Discover: React.FC = () => {
   }
 
   const renderMiniChart = (instrument: Instrument) => {
-    if (!instrument.mini_series || instrument.mini_series.length === 0) {
+    // Check if we have valid price data
+    if (!instrument.mini_series || instrument.mini_series.length === 0 || !instrument.latest_price) {
       return (
-        <div className="h-16 flex items-center justify-center text-gray-400 text-sm">
-          No data
+        <div className="h-16 flex items-center justify-center text-muted text-xs">
+          No price data available
+        </div>
+      )
+    }
+
+    // Filter out invalid data points
+    const validSeries = instrument.mini_series.filter(point => 
+      point && point.date && typeof point.close === 'number' && !isNaN(point.close)
+    )
+
+    if (validSeries.length === 0) {
+      return (
+        <div className="h-16 flex items-center justify-center text-muted text-xs">
+          No price data available
         </div>
       )
     }
 
     const data = {
-      labels: instrument.mini_series.map(point => 
+      labels: validSeries.map(point => 
         new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })
       ),
       datasets: [
         {
-          data: instrument.mini_series.map(point => point.close),
+          data: validSeries.map(point => point.close),
           borderColor: '#0ea5e9',
           backgroundColor: 'rgba(14, 165, 233, 0.1)',
           tension: 0.1,
           pointRadius: 0,
+          borderWidth: 2,
         },
       ],
     }

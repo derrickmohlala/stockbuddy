@@ -232,16 +232,22 @@ def run_sqlite_migrations():
         print(f"SQLite migration warning (non-fatal): {e}")
 
 def auto_seed():
-    """Automatically seed the database if it's empty (first-time setup)"""
+    """Automatically seed the database if it's empty or incomplete (first-time setup)"""
     try:
         # Check if database needs seeding by checking if instruments exist
         instrument_count = Instrument.query.count()
+        EXPECTED_INSTRUMENTS = 90  # Expected number of instruments from seed_instruments.py (comprehensive list)
         
-        if instrument_count > 0:
-            print("✓ Database already seeded, skipping auto-seed")
+        # If we have a reasonable number of instruments, assume seeding is complete
+        if instrument_count >= EXPECTED_INSTRUMENTS:
+            print(f"✓ Database already seeded ({instrument_count} instruments), skipping auto-seed")
             return
         
-        print("⚠ Database is empty, running automatic seeding...")
+        # If we have some instruments but not enough, re-seed (might be incomplete)
+        if instrument_count > 0 and instrument_count < EXPECTED_INSTRUMENTS:
+            print(f"⚠ Database appears partially seeded ({instrument_count}/{EXPECTED_INSTRUMENTS} instruments), re-seeding...")
+        else:
+            print("⚠ Database is empty, running automatic seeding...")
         
         # Import seed functions
         from seed_instruments import seed_instruments
@@ -252,6 +258,13 @@ def auto_seed():
         # Run all seed scripts in order
         print("Seeding instruments...")
         seed_instruments()
+        
+        # Verify instruments were seeded
+        new_instrument_count = Instrument.query.count()
+        if new_instrument_count < EXPECTED_INSTRUMENTS:
+            print(f"⚠ Warning: Expected {EXPECTED_INSTRUMENTS} instruments but found {new_instrument_count}")
+        else:
+            print(f"✓ Seeded {new_instrument_count} instruments successfully")
         
         print("Seeding CPI data...")
         seed_cpi()
@@ -1079,12 +1092,18 @@ def get_portfolio(user_id):
             wy = calculate_weighted_dividend_yield(user_id)
             if wy is not None:
                 weighted_dividend_yield_pct = float(wy)
-                if total_value and total_value > 0:
+                # Only calculate annual dividends if we have a portfolio value
+                if total_value and total_value > 0 and weighted_dividend_yield_pct > 0:
                     current_annual_dividends = (total_value * weighted_dividend_yield_pct / 100.0)
+            else:
+                # Fallback: if calculation returns None, use a default
+                weighted_dividend_yield_pct = 3.5
         except Exception as e:
             print(f"Error calculating weighted dividend yield: {e}")
             import traceback
             traceback.print_exc()
+            # Fallback on error
+            weighted_dividend_yield_pct = 3.5
 
         baseline = PortfolioBaseline.query.filter_by(user_id=user_id).first()
         baseline_allocations = {}
