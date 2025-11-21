@@ -109,42 +109,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Login failed')
+      let errorMessage = 'Login failed'
+      try {
+        const text = await response.text()
+        if (text) {
+          try {
+            const errorData = JSON.parse(text)
+            errorMessage = errorData.error || errorData.message || errorMessage
+          } catch {
+            errorMessage = text || errorMessage
+          }
+        }
+      } catch {
+        errorMessage = response.statusText || `Server error (${response.status})`
+      }
+      throw new Error(errorMessage)
     }
 
     const data = await response.json()
-    setToken(data.access_token)
-    localStorage.setItem('stockbuddy_token', data.access_token)
+    const accessToken = data.access_token
+    
+    setToken(accessToken)
+    localStorage.setItem('stockbuddy_token', accessToken)
     localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
     
-    // Set user immediately, then refresh for onboarding status
-    const newUser = {
+    // Set user with onboarding status from login response
+    setUser({
       user_id: data.user_id,
       email: data.email,
       first_name: data.first_name,
       is_admin: data.is_admin,
-      is_onboarded: false
-    }
-    setUser(newUser)
-    
-    // Refresh to get onboarding status
-    try {
-      const currentResponse = await apiFetch('/api/auth/current', {
-        headers: {
-          'Authorization': `Bearer ${data.access_token}`
-        }
-      })
-      if (currentResponse.ok) {
-        const currentData = await currentResponse.json()
-        setUser({
-          ...newUser,
-          is_onboarded: currentData.is_onboarded
-        })
-      }
-    } catch {
-      // If refresh fails, keep the initial user data
-    }
+      is_onboarded: data.is_onboarded || false
+    })
   }, [])
 
   const register = useCallback(async (email: string, password: string, first_name: string) => {

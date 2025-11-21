@@ -24,10 +24,16 @@ const Login: React.FC = () => {
 
     try {
       await login(email.trim().toLowerCase(), password)
-      navigate('/portfolio')
+      
+      // Login successful - navigate will happen after auth state updates
+      // The App component will handle routing based on onboarding status
+      // Navigate to home first, which will redirect appropriately
+      setTimeout(() => {
+        navigate('/')
+      }, 200)
     } catch (err: any) {
+      console.error('Login error:', err)
       setError(err.message || 'Login failed. Please check your credentials.')
-    } finally {
       setLoading(false)
     }
   }

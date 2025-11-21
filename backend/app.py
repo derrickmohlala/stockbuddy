@@ -358,11 +358,16 @@ def login():
     
     # Generate token
     access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
+    
+    # Determine if user is onboarded (has goal and risk)
+    is_onboarded = bool(user.goal and user.risk is not None)
+    
     return jsonify({
         "user_id": user.id,
         "email": user.email,
         "first_name": user.first_name,
         "is_admin": user.is_admin,
+        "is_onboarded": is_onboarded,
         "access_token": access_token
     }), 200
 
