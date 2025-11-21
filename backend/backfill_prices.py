@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-Backfill historical prices for JSE instruments using yfinance.
-Falls back to deterministic synthetic prices when live data isn't available.
+Backfill historical prices for JSE instruments. Prefers live Yahoo Finance data,
+falls back to deterministic synthetic prices only if all live sources fail.
 """
 
 from app import app
 from models import db, Instrument, Price
-from datetime import date
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 import hashlib
 import random
 import time
+import requests
+
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+YAHOO_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (StockBuddy/1.0; +https://github.com/derrickmohlala/stockbuddy)"
+}
 
 try:
     import yfinance as yf
@@ -59,86 +65,148 @@ def _generate_synthetic_series(instrument, months: int = 72):
         })
     return prices
 
+
+def _fetch_prices_from_yahoo_api(symbol: str):
+    """Fetch historical prices directly from the public Yahoo Finance chart API."""
+    try:
+        response = requests.get(
+            YAHOO_CHART_URL.format(symbol=symbol),
+            params={"range": "10y", "interval": "1mo", "events": "div"},
+            headers=YAHOO_HEADERS,
+            timeout=15
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:
+        print(f"  ✗ Yahoo chart API request failed for {symbol}: {exc}")
+        return []
+
+    result = (payload.get("chart") or {}).get("result")
+    if not result:
+        return []
+    chart = result[0]
+    timestamps = chart.get("timestamp") or []
+    quote = (chart.get("indicators") or {}).get("quote") or [{}]
+    quote_data = quote[0] if quote else {}
+    closes = quote_data.get("close") or []
+    dividends = ((chart.get("events") or {}).get("dividends") or {})
+
+    dividend_map = {}
+    for ts, div in dividends.items():
+        try:
+            dividend_map[int(ts)] = float(div.get("amount", 0.0))
+        except (TypeError, ValueError):
+            continue
+
+    series = []
+    for idx, ts in enumerate(timestamps):
+        if ts is None:
+            continue
+        close_val = closes[idx] if idx < len(closes) else None
+        if close_val is None or close_val <= 0:
+            continue
+        dt = datetime.fromtimestamp(ts).date()
+        dividend = dividend_map.get(int(ts), 0.0)
+        series.append({
+            "date": dt,
+            "close": round(float(close_val), 2),
+            "dividend": round(dividend, 2)
+        })
+
+    return series
+
+
+def _persist_price_series(instrument, series):
+    """Replace instrument price history with provided series."""
+    Price.query.filter_by(instrument_id=instrument.id).delete()
+    entries = 0
+    last_close = None
+    for entry in series:
+        db.session.add(Price(
+            instrument_id=instrument.id,
+            date=entry["date"],
+            close=entry["close"],
+            dividend=entry.get("dividend", 0.0)
+        ))
+        entries += 1
+        last_close = entry["close"]
+    db.session.commit()
+    return entries, last_close
+
+
 def backfill_prices():
     with app.app_context():
         instruments = Instrument.query.filter_by(is_active=True).all()
         
-        print(f"Backfilling prices for {len(instruments)} instruments from yfinance...")
+        print(f"Backfilling prices for {len(instruments)} instruments...")
         
-        successful = 0
+        real_yf = 0
+        real_yahoo = 0
         synthetic = 0
         failed = 0
         
         for instrument in instruments:
             print(f"Fetching prices for {instrument.symbol} ({instrument.name})...")
+            price_written = False
             
-            hist = None
             if yf:
                 try:
-                    # Fetch historical data from yfinance
                     ticker = yf.Ticker(instrument.symbol)
                     hist = ticker.history(period="10y", interval="1mo", auto_adjust=False)
                 except Exception as e:
+                    hist = None
                     print(f"  ✗ Error fetching {instrument.symbol} from yfinance: {e}")
-            
-            if yf and hist is not None and not hist.empty:
-                # Clear existing prices for this instrument
-                Price.query.filter_by(instrument_id=instrument.id).delete()
-                
-                prices_added = 0
-                for date_idx, row in hist.iterrows():
-                    close_price = float(row['Close'])
-                    if close_price > 0:  # Only add valid prices
-                        price = Price(
-                            instrument_id=instrument.id,
-                            date=date_idx.date(),
-                            close=round(close_price, 2),
-                            dividend=round(float(row.get('Dividends', 0)), 2)
-                        )
-                        db.session.add(price)
-                        prices_added += 1
-                
-                db.session.commit()
-                
-                if prices_added > 0:
-                    latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-                        .order_by(Price.date.desc()).first()
-                    print(f"  ✓ Added {prices_added} real price points (latest: R{latest_price.close:.2f})")
-                    successful += 1
                 else:
-                    print(f"  ⚠ No usable prices returned for {instrument.symbol}, generating synthetic series instead")
-                    hist = None  # Force fallback below
-                
-                # Be nice to the API - rate limiting
-                time.sleep(0.5)
+                    if hist is not None and not hist.empty:
+                        series = []
+                        for date_idx, row in hist.iterrows():
+                            close_price = float(row['Close'])
+                            if close_price <= 0:
+                                continue
+                            dividend_value = float(row.get('Dividends', 0) or 0.0)
+                            series.append({
+                                "date": date_idx.date(),
+                                "close": round(close_price, 2),
+                                "dividend": round(dividend_value, 2)
+                            })
+                        if series:
+                            entries, latest = _persist_price_series(instrument, series)
+                            print(f"  ✓ Added {entries} price points via yfinance (latest: R{latest:.2f})")
+                            real_yf += 1
+                            price_written = True
+                        else:
+                            print(f"  ⚠ yfinance returned no usable data for {instrument.symbol}")
+                    time.sleep(0.5)
+            else:
+                print("  ⚠ yfinance not available; skipping direct library fetch.")
             
-            if hist is None or (hasattr(hist, "empty") and hist.empty):
+            if not price_written:
+                yahoo_series = _fetch_prices_from_yahoo_api(instrument.symbol)
+                if yahoo_series:
+                    entries, latest = _persist_price_series(instrument, yahoo_series)
+                    print(f"  ✓ Added {entries} price points via Yahoo chart API (latest: R{latest:.2f})")
+                    real_yahoo += 1
+                    price_written = True
+            
+            if not price_written:
                 print("  ↺ Using synthetic fallback data")
-                Price.query.filter_by(instrument_id=instrument.id).delete()
                 synthetic_series = _generate_synthetic_series(instrument)
-                for entry in synthetic_series:
-                    db.session.add(Price(
-                        instrument_id=instrument.id,
-                        date=entry["date"],
-                        close=entry["close"],
-                        dividend=entry["dividend"]
-                    ))
-                db.session.commit()
-                synthetic += 1
-                latest_price = synthetic_series[-1]["close"] if synthetic_series else None
-                if latest_price:
-                    print(f"  ~ Generated {len(synthetic_series)} synthetic price points (latest: R{latest_price:.2f})")
+                if synthetic_series:
+                    entries, latest = _persist_price_series(instrument, synthetic_series)
+                    print(f"  ~ Generated {entries} synthetic price points (latest: R{latest:.2f})")
+                    synthetic += 1
                 else:
-                    print("  ⚠ Failed to generate synthetic prices")
+                    print("  ✗ Failed to generate synthetic prices")
                     failed += 1
         
-        print(f"\n✓ Price backfill completed: {successful} real, {synthetic} synthetic, {failed} failed")
+        print(
+            "\n✓ Price backfill completed: "
+            f"{real_yf} via yfinance, {real_yahoo} via Yahoo API, "
+            f"{synthetic} synthetic, {failed} failed"
+        )
         if not yf:
-            print("⚠ yfinance is not installed; synthetic series were generated for all instruments.")
-        elif synthetic > 0:
-            print(f"⚠ {synthetic} instruments used synthetic pricing because live data was unavailable.")
+            print("⚠ yfinance is not installed; considered Yahoo API and synthetic fallbacks only.")
 
-# Synthetic fallback ensures endpoints always have price history even offline.
 
 if __name__ == "__main__":
     backfill_prices()
