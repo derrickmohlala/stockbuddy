@@ -18,7 +18,7 @@ interface OnboardingData {
 
 const Signup: React.FC = () => {
   const navigate = useNavigate()
-  const { register, refreshUser, user } = useAuth()
+  const { refreshUser } = useAuth()
   
   // Account creation state (Step 0)
   const [email, setEmail] = useState('')
