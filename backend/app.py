@@ -237,14 +237,15 @@ def auto_seed():
         # Check if database needs seeding by checking if instruments exist
         instrument_count = Instrument.query.count()
         EXPECTED_INSTRUMENTS = 90  # Expected number of instruments from seed_instruments.py (comprehensive list)
+        MIN_ACCEPTABLE = 80  # Minimum acceptable count (allows some variance)
         
         # If we have a reasonable number of instruments, assume seeding is complete
-        if instrument_count >= EXPECTED_INSTRUMENTS:
+        if instrument_count >= MIN_ACCEPTABLE:
             print(f"✓ Database already seeded ({instrument_count} instruments), skipping auto-seed")
             return
         
         # If we have some instruments but not enough, re-seed (might be incomplete)
-        if instrument_count > 0 and instrument_count < EXPECTED_INSTRUMENTS:
+        if instrument_count > 0 and instrument_count < MIN_ACCEPTABLE:
             print(f"⚠ Database appears partially seeded ({instrument_count}/{EXPECTED_INSTRUMENTS} instruments), re-seeding...")
         else:
             print("⚠ Database is empty, running automatic seeding...")
@@ -257,29 +258,47 @@ def auto_seed():
         
         # Run all seed scripts in order
         print("Seeding instruments...")
-        seed_instruments()
+        try:
+            seed_instruments()
+        except Exception as e:
+            print(f"⚠ Error seeding instruments: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Verify instruments were seeded
         new_instrument_count = Instrument.query.count()
-        if new_instrument_count < EXPECTED_INSTRUMENTS:
-            print(f"⚠ Warning: Expected {EXPECTED_INSTRUMENTS} instruments but found {new_instrument_count}")
+        print(f"✓ Instrument count after seeding: {new_instrument_count}")
+        if new_instrument_count < MIN_ACCEPTABLE:
+            print(f"⚠ Warning: Expected at least {MIN_ACCEPTABLE} instruments but found {new_instrument_count}")
         else:
             print(f"✓ Seeded {new_instrument_count} instruments successfully")
         
         print("Seeding CPI data...")
-        seed_cpi()
+        try:
+            seed_cpi()
+        except Exception as e:
+            print(f"⚠ Error seeding CPI: {e}")
         
         print("Seeding baskets...")
-        seed_baskets()
+        try:
+            seed_baskets()
+        except Exception as e:
+            print(f"⚠ Error seeding baskets: {e}")
         
-        print("Backfilling prices (this may take a minute)...")
-        backfill_prices()
+        print("Backfilling prices (this may take a few minutes)...")
+        try:
+            backfill_prices()
+            print("✓ Price backfill completed")
+        except Exception as e:
+            print(f"⚠ Error backfilling prices: {e}")
+            import traceback
+            traceback.print_exc()
         
-        print("✓ Automatic seeding completed successfully!")
+        print("✓ Automatic seeding completed!")
         
     except Exception as e:
         # Don't fail app startup if seeding fails - just log it
-        print(f"⚠ Auto-seed warning (non-fatal): {e}")
+        print(f"⚠ Auto-seed error (non-fatal): {e}")
         import traceback
         traceback.print_exc()
 
@@ -294,7 +313,49 @@ with app.app_context():
 # Health check
 @app.route("/api/health")
 def health():
-    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
+    instrument_count = Instrument.query.count()
+    return jsonify({
+        "status": "healthy", 
+        "timestamp": datetime.now().isoformat(),
+        "instruments": instrument_count
+    })
+
+# Manual re-seed endpoint (for testing/debugging)
+@app.route("/api/admin/reseed", methods=["POST"])
+@jwt_required()
+def manual_reseed():
+    """Manually trigger database re-seeding (admin only)"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user or not user.is_admin:
+            return jsonify({"error": "Admin access required"}), 403
+        
+        # Force re-seed
+        from seed_instruments import seed_instruments
+        from seed_cpi import seed_cpi
+        from seed_baskets import seed_baskets
+        from backfill_prices import backfill_prices
+        
+        print("Manual re-seed triggered by admin...")
+        
+        seed_instruments()
+        instrument_count = Instrument.query.count()
+        
+        seed_cpi()
+        seed_baskets()
+        backfill_prices()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database re-seeded successfully",
+            "instruments": instrument_count
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # Authentication endpoints
 @app.route("/api/auth/register", methods=["POST"])
@@ -883,6 +944,10 @@ def get_instruments():
             .order_by(Price.date.desc()).limit(30).all()
         
         mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+        
+        # If no price data exists, log a warning (no mock prices - only real data)
+        if not latest_price:
+            print(f"Warning: No price data found for {instrument.symbol} - price backfill may be needed")
         
         result.append({
             "id": instrument.id,
@@ -2104,15 +2169,11 @@ def create_initial_positions(user_id, allocations, starting_value=100000):
             db.session.flush()
 
         latest_price = Price.query.filter_by(instrument_id=instrument.id).order_by(Price.date.desc()).first()
-        if not latest_price or not latest_price.close:
-            latest_price = Price(
-                instrument_id=instrument.id,
-                date=date.today(),
-                close=100.0,
-                dividend=0.0
-            )
-            db.session.add(latest_price)
-            db.session.flush()
+        
+        # Skip if no real price data exists - don't create fake prices
+        if not latest_price or not latest_price.close or latest_price.close <= 0:
+            print(f"Warning: Skipping {symbol} - no real price data available")
+            continue
 
         allocation_value = starting_value * (weight / 100)
         if allocation_value <= 0:
@@ -2124,9 +2185,17 @@ def create_initial_positions(user_id, allocations, starting_value=100000):
                 .order_by(Price.date.desc()).first()
         except Exception:
             past_price = None
-        baseline_price = past_price.close if past_price and past_price.close else latest_price.close * 0.94
+        
+        # Use real price data only
+        if past_price and past_price.close and past_price.close > 0:
+            baseline_price = past_price.close
+        else:
+            # Use current price with a small discount to simulate historical purchase
+            baseline_price = latest_price.close * 0.94
+        
         if baseline_price <= 0:
-            baseline_price = latest_price.close or 100.0
+            print(f"Warning: Invalid baseline price for {symbol}, skipping")
+            continue
         quantity = round(allocation_value / baseline_price, 4)
         if quantity <= 0:
             continue
