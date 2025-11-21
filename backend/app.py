@@ -950,105 +950,102 @@ def onboarding():
 # Instruments endpoint
 @app.route("/api/instruments")
 def get_instruments():
-    instrument_type = request.args.get('type')
-    sector = request.args.get('sector')
-    
-    # First check: get all instruments (both active and inactive) to diagnose
-    total_count = Instrument.query.count()
-    active_count = Instrument.query.filter_by(is_active=True).count()
+    try:
+        instrument_type = request.args.get('type')
+        sector = request.args.get('sector')
+        
+        # First check: get all instruments (both active and inactive) to diagnose
+        total_count = Instrument.query.count()
+        active_count = Instrument.query.filter_by(is_active=True).count()
 
-    # If no instruments exist at all, trigger auto-seeding on demand
-    if total_count == 0:
-        print("⚠ No instruments found in database. Attempting automatic seeding...")
-        try:
-            auto_seed()
-        except Exception as auto_seed_error:
-            print(f"✗ Auto-seed failed during /api/instruments request: {auto_seed_error}")
-        finally:
-            total_count = Instrument.query.count()
-            active_count = Instrument.query.filter_by(is_active=True).count()
-            print(f"ℹ Instrument counts after auto-seed attempt: total={total_count}, active={active_count}")
+        # If no instruments exist at all, trigger auto-seeding on demand
         if total_count == 0:
-            return jsonify({"error": "Instruments unavailable", "detail": "Database seeding failed. Please run seed_instruments."}), 500
-    
-    if active_count == 0 and total_count > 0:
-        print(f"⚠ Warning: No active instruments found (total: {total_count}). Activating all instruments...")
-        # Activate all inactive instruments
-        Instrument.query.filter_by(is_active=False).update({Instrument.is_active: True})
-        db.session.commit()
-        print(f"✓ Activated {total_count} instruments")
-    elif active_count < 10:
-        print(f"⚠ Warning: Only {active_count} active instruments found (total: {total_count}). Consider re-seeding.")
-    
-    query = Instrument.query.filter_by(is_active=True)
-    
-    if instrument_type:
-        query = query.filter_by(type=instrument_type)
-    if sector:
-        query = query.filter_by(sector=sector)
-    
-    instruments = query.all()
-    
-    result = []
-    instruments_needing_prices = []
-    
-    for instrument in instruments:
-        # Get latest price
-        latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-            .order_by(Price.date.desc()).first()
+            print("⚠ No instruments found in database. Attempting automatic seeding...")
+            try:
+                auto_seed()
+            except Exception as auto_seed_error:
+                print(f"✗ Auto-seed failed during /api/instruments request: {auto_seed_error}")
+            finally:
+                total_count = Instrument.query.count()
+                active_count = Instrument.query.filter_by(is_active=True).count()
+                print(f"ℹ Instrument counts after auto-seed attempt: total={total_count}, active={active_count}")
+            if total_count == 0:
+                return jsonify({"error": "Instruments unavailable", "detail": "Database seeding failed. Please run seed_instruments."}), 500
         
-        # If no price data exists, try to fetch it on-demand
-        if not latest_price:
-            instruments_needing_prices.append(instrument)
+        if active_count == 0 and total_count > 0:
+            print(f"⚠ Warning: No active instruments found (total: {total_count}). Activating all instruments...")
+            # Activate all inactive instruments
+            Instrument.query.filter_by(is_active=False).update({Instrument.is_active: True})
+            db.session.commit()
+            print(f"✓ Activated {total_count} instruments")
+        elif active_count < 10:
+            print(f"⚠ Warning: Only {active_count} active instruments found (total: {total_count}). Consider re-seeding.")
         
-        # Get mini series for chart (last 30 days or last 30 price points)
-        mini_series_query = Price.query.filter_by(instrument_id=instrument.id)\
-            .order_by(Price.date.desc()).limit(30).all()
+        query = Instrument.query.filter_by(is_active=True)
         
-        mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+        if instrument_type:
+            query = query.filter_by(type=instrument_type)
+        if sector:
+            query = query.filter_by(sector=sector)
         
-        # Re-fetch latest price after potential on-demand fetch
-        if not latest_price:
+        instruments = query.all()
+        
+        result = []
+        
+        for instrument in instruments:
+            # Get latest price
             latest_price = Price.query.filter_by(instrument_id=instrument.id)\
                 .order_by(Price.date.desc()).first()
+            
+            # Get mini series for chart (last 30 days or last 30 price points)
+            mini_series_query = Price.query.filter_by(instrument_id=instrument.id)\
+                .order_by(Price.date.desc()).limit(30).all()
+            
+            mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+            
+            result.append({
+                "id": instrument.id,
+                "symbol": instrument.symbol,
+                "name": instrument.name,
+                "type": instrument.type,
+                "sector": instrument.sector,
+                "dividend_yield": instrument.dividend_yield,
+                "ter": instrument.ter,
+                "latest_price": latest_price.close if latest_price else None,
+                "price_date": latest_price.date.isoformat() if latest_price else None,
+                "mini_series": mini_series
+            })
         
-        result.append({
-            "id": instrument.id,
-            "symbol": instrument.symbol,
-            "name": instrument.name,
-            "type": instrument.type,
-            "sector": instrument.sector,
-            "dividend_yield": instrument.dividend_yield,
-            "ter": instrument.ter,
-            "latest_price": latest_price.close if latest_price else None,
-            "price_date": latest_price.date.isoformat() if latest_price else None,
-            "mini_series": mini_series
-        })
-    
-    # Fetch prices on-demand for instruments missing price data (batch, limit to avoid timeout)
-    if instruments_needing_prices and len(instruments_needing_prices) > 0:
-        print(f"⚠ {len(instruments_needing_prices)} instruments missing price data, attempting on-demand fetch...")
-        # Limit to first 10 to avoid timeout on the request
-        for instrument in instruments_needing_prices[:10]:
-            try:
-                _fetch_price_for_instrument(instrument)
-            except Exception as e:
-                print(f"⚠ Failed to fetch price for {instrument.symbol}: {e}")
+        # Return immediately - don't block on price fetching
+        # Prices will be backfilled by the scheduled backfill task or on first instrument view
+        return jsonify(result)
         
-        # Re-fetch prices from database for instruments we just fetched
-        for i, instrument_data in enumerate(result):
-            if instrument_data['latest_price'] is None:
-                latest = Price.query.filter_by(instrument_id=instrument_data['id'])\
+    except Exception as e:
+        print(f"✗ Error in /api/instruments endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return error but still try to return any instruments we have
+        try:
+            instruments = Instrument.query.filter_by(is_active=True).limit(100).all()
+            result = []
+            for instrument in instruments:
+                latest_price = Price.query.filter_by(instrument_id=instrument.id)\
                     .order_by(Price.date.desc()).first()
-                if latest:
-                    result[i]['latest_price'] = latest.close
-                    result[i]['price_date'] = latest.date.isoformat()
-                    # Update mini_series too
-                    mini_series_query = Price.query.filter_by(instrument_id=instrument_data['id'])\
-                        .order_by(Price.date.desc()).limit(30).all()
-                    result[i]['mini_series'] = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
-    
-    return jsonify(result)
+                result.append({
+                    "id": instrument.id,
+                    "symbol": instrument.symbol,
+                    "name": instrument.name,
+                    "type": instrument.type,
+                    "sector": instrument.sector,
+                    "dividend_yield": instrument.dividend_yield or 0,
+                    "ter": instrument.ter or 0,
+                    "latest_price": latest_price.close if latest_price else None,
+                    "price_date": latest_price.date.isoformat() if latest_price else None,
+                    "mini_series": []
+                })
+            return jsonify(result)
+        except:
+            return jsonify({"error": "Failed to load instruments", "detail": str(e)}), 500
 
 
 def _fetch_price_for_instrument(instrument):
