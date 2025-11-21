@@ -18,7 +18,7 @@ interface OnboardingData {
 
 const Signup: React.FC = () => {
   const navigate = useNavigate()
-  const { login, refreshUser } = useAuth()
+  const { login } = useAuth()
   
   // Account creation state (Step 0)
   const [email, setEmail] = useState('')
@@ -210,18 +210,18 @@ const Signup: React.FC = () => {
       const data = await response.json()
       console.log('Registration successful:', { user_id: data.user_id, email: data.email, is_onboarded: data.is_onboarded })
       
-      // Immediately log the user in using the same credentials to sync auth state
+      // Use the login function from auth context to properly set all state
+      // This ensures the auth context is fully updated
       await login(email.trim().toLowerCase(), password)
       
-      // Ensure auth context has the latest onboarding status
-      await refreshUser()
-      
-      // Navigate based on onboarding completion
-      if (data.is_onboarded) {
-        navigate('/portfolio')
-      } else {
-        navigate('/onboarding')
-      }
+      // Small delay to ensure auth state is updated before navigation
+      setTimeout(() => {
+        if (data.is_onboarded) {
+          navigate('/portfolio')
+        } else {
+          navigate('/onboarding')
+        }
+      }, 150)
     } catch (err: any) {
       console.error('Registration catch block:', err)
       

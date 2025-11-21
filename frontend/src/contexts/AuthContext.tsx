@@ -44,13 +44,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (currentToken) {
-        await refreshUser()
+        // Only refresh if we don't already have a user (to avoid unnecessary calls)
+        // The login/register functions already set the user, so we don't need to refresh immediately
+        if (!user) {
+          await refreshUser()
+        }
       } else {
         setUser(null)
       }
     }
     
-    fetchUser()
+    // Add a small delay to avoid race conditions after signup/login
+    const timeoutId = setTimeout(() => {
+      fetchUser()
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -84,18 +93,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           is_onboarded: data.is_onboarded
         })
       } else {
-        // Token invalid, clear it
+        // Only clear if we get a 401/403 - don't clear on other errors
+        if (response.status === 401 || response.status === 403) {
+          setToken(null)
+          localStorage.removeItem('stockbuddy_token')
+          localStorage.removeItem('stockbuddy_user_id')
+          setUser(null)
+        } else {
+          // For other errors, log but don't clear user - might be temporary
+          console.error('Error fetching current user:', response.status, response.statusText)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error)
+      // Only clear on network errors if we're sure the token is invalid
+      // Don't clear on temporary network issues
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('401') || errorMessage.includes('403')) {
         setToken(null)
         localStorage.removeItem('stockbuddy_token')
         localStorage.removeItem('stockbuddy_user_id')
         setUser(null)
       }
-    } catch (error) {
-      console.error('Error fetching current user:', error)
-      setToken(null)
-      localStorage.removeItem('stockbuddy_token')
-      localStorage.removeItem('stockbuddy_user_id')
-      setUser(null)
     }
   }, [token])
 
