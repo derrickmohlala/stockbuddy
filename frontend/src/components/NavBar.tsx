@@ -137,9 +137,12 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                     Admin
                   </NavLink>
                 )}
-                <div className="hidden md:flex items-center gap-2 text-sm text-muted">
+                <NavLink
+                  to="/profile"
+                  className="hidden md:flex items-center gap-2 text-sm text-muted hover:text-brand-coral transition-colors cursor-pointer"
+                >
                   <span>{user.first_name}</span>
-                </div>
+                </NavLink>
                 <button
                   onClick={handleLogout}
                   className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
@@ -240,9 +243,13 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                     Admin
                   </NavLink>
                 )}
-                <div className="rounded-xl border border-[#e7e9f3] px-4 py-3 text-muted">
+                <NavLink
+                  to="/profile"
+                  className="rounded-xl border border-[#e7e9f3] px-4 py-3 text-muted hover:border-brand-coral/40 hover:text-brand-coral transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
                   {user.first_name} ({user.email})
-                </div>
+                </NavLink>
                 <button onClick={handleStart} className="btn-cta mt-2 w-full">
                   {userIsOnboarded ? 'View portfolio' : 'Get started'}
                 </button>

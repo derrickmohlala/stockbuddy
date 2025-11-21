@@ -19,6 +19,8 @@ class User(db.Model):
     anchor_stock = db.Column(db.String(50), nullable=True)  # e.g. Capitec
     literacy_level = db.Column(db.String(20), nullable=True)# novice, intermediate, advanced
     interests = db.Column(db.Text)                           # JSON array of interests
+    cellphone = db.Column(db.String(20), nullable=True)      # Phone number
+    province = db.Column(db.String(50), nullable=True)       # South African province
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 class Instrument(db.Model):

@@ -387,6 +387,160 @@ def get_current_user():
         "is_onboarded": bool(user.goal and user.risk is not None)
     }), 200
 
+@app.route("/api/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    interests = []
+    if user.interests:
+        try:
+            interests = json.loads(user.interests)
+        except:
+            interests = []
+    
+    return jsonify({
+        "user_id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "cellphone": user.cellphone or "",
+        "province": user.province or "",
+        "age_band": user.age_band or "",
+        "experience": user.experience or "",
+        "goal": user.goal or "",
+        "risk": user.risk or 50,
+        "horizon": user.horizon or "",
+        "anchor_stock": user.anchor_stock or "",
+        "literacy_level": user.literacy_level or "",
+        "interests": interests,
+        "created_at": user.created_at.isoformat() if user.created_at else None
+    }), 200
+
+@app.route("/api/profile", methods=["PUT"])
+@jwt_required()
+def update_profile():
+    import re
+    from werkzeug.security import generate_password_hash, check_password_hash
+    
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    data = request.json or {}
+    
+    # Update email if provided
+    if 'email' in data:
+        new_email = data.get('email', '').strip().lower()
+        if new_email:
+            # Validate email format
+            email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+            if not re.match(email_pattern, new_email):
+                return jsonify({"error": "Please enter a valid email address"}), 400
+            
+            # Check if email is already taken by another user
+            existing = User.query.filter_by(email=new_email).first()
+            if existing and existing.id != user_id:
+                return jsonify({"error": "A user with this email already exists"}), 400
+            
+            user.email = new_email
+    
+    # Update password if provided
+    if 'password' in data and data.get('password'):
+        new_password = data.get('password')
+        if len(new_password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        
+        try:
+            password_hash = generate_password_hash(new_password)
+            if isinstance(password_hash, bytes):
+                password_hash = password_hash.decode('utf-8')
+            user.password_hash = password_hash
+        except Exception as hash_error:
+            print(f"Error hashing password: {hash_error}")
+            return jsonify({"error": "Unable to update password"}), 400
+    
+    # Update other profile fields
+    if 'first_name' in data:
+        first_name = data.get('first_name', '').strip()
+        if first_name:
+            user.first_name = first_name
+    
+    if 'cellphone' in data:
+        user.cellphone = data.get('cellphone', '').strip() or None
+    
+    if 'province' in data:
+        user.province = data.get('province', '').strip() or None
+    
+    if 'age_band' in data:
+        user.age_band = data.get('age_band', '').strip() or None
+    
+    if 'experience' in data:
+        user.experience = data.get('experience', '').strip() or None
+    
+    if 'goal' in data:
+        user.goal = data.get('goal', '').strip() or None
+    
+    if 'risk' in data:
+        try:
+            user.risk = int(data.get('risk', 50))
+        except (TypeError, ValueError):
+            pass
+    
+    if 'horizon' in data:
+        user.horizon = data.get('horizon', '').strip() or None
+    
+    if 'anchor_stock' in data:
+        user.anchor_stock = data.get('anchor_stock', '').strip() or None
+    
+    if 'literacy_level' in data:
+        user.literacy_level = data.get('literacy_level', '').strip() or None
+    
+    if 'interests' in data:
+        interests_value = data.get('interests', [])
+        if isinstance(interests_value, list):
+            user.interests = json.dumps(interests_value)
+        else:
+            user.interests = None
+    
+    try:
+        db.session.commit()
+        
+        # Return updated profile
+        interests = []
+        if user.interests:
+            try:
+                interests = json.loads(user.interests)
+            except:
+                interests = []
+        
+        return jsonify({
+            "user_id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "cellphone": user.cellphone or "",
+            "province": user.province or "",
+            "age_band": user.age_band or "",
+            "experience": user.experience or "",
+            "goal": user.goal or "",
+            "risk": user.risk or 50,
+            "horizon": user.horizon or "",
+            "anchor_stock": user.anchor_stock or "",
+            "literacy_level": user.literacy_level or "",
+            "interests": interests,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "message": "Profile updated successfully"
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating profile: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to update profile", "detail": str(e)}), 500
+
 @app.route("/api/auth/logout", methods=["POST"])
 @jwt_required()
 def logout():
