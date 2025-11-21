@@ -948,6 +948,20 @@ def get_instruments():
     # First check: get all instruments (both active and inactive) to diagnose
     total_count = Instrument.query.count()
     active_count = Instrument.query.filter_by(is_active=True).count()
+
+    # If no instruments exist at all, trigger auto-seeding on demand
+    if total_count == 0:
+        print("⚠ No instruments found in database. Attempting automatic seeding...")
+        try:
+            auto_seed()
+        except Exception as auto_seed_error:
+            print(f"✗ Auto-seed failed during /api/instruments request: {auto_seed_error}")
+        finally:
+            total_count = Instrument.query.count()
+            active_count = Instrument.query.filter_by(is_active=True).count()
+            print(f"ℹ Instrument counts after auto-seed attempt: total={total_count}, active={active_count}")
+        if total_count == 0:
+            return jsonify({"error": "Instruments unavailable", "detail": "Database seeding failed. Please run seed_instruments."}), 500
     
     if active_count == 0 and total_count > 0:
         print(f"⚠ Warning: No active instruments found (total: {total_count}). Activating all instruments...")
