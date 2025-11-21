@@ -1263,8 +1263,14 @@ def list_benchmarks():
 
 # Portfolio endpoints
 @app.route("/api/portfolio/<int:user_id>")
+@jwt_required()
 def get_portfolio(user_id):
     try:
+        # Verify the authenticated user matches the requested user_id
+        authenticated_user_id = get_jwt_identity()
+        if authenticated_user_id != user_id:
+            return jsonify({"error": "Unauthorized access to portfolio"}), 403
+        
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404

@@ -41,28 +41,16 @@ function AppContent() {
 
   // Sync auth user with legacy userId for backwards compatibility
   useEffect(() => {
-    if (user) {
+    if (user && user.user_id) {
+      // User is authenticated - use their user_id
       setUserId(user.user_id)
       setIsOnboarded(user.is_onboarded)
       localStorage.setItem('stockbuddy_user_id', user.user_id.toString())
     } else {
-      // Fallback to legacy localStorage for users without auth
-      const saved = localStorage.getItem('stockbuddy_user_id')
-      if (saved) {
-        const id = parseInt(saved)
-        if (Number.isFinite(id)) {
-          setUserId(id)
-          // Try to verify if user exists
-          apiFetch(`/api/users/${id}`).then(resp => {
-            setIsOnboarded(resp.ok)
-          }).catch(() => {
-            setIsOnboarded(false)
-          })
-        }
-      } else {
-        setUserId(null)
-        setIsOnboarded(false)
-      }
+      // User is not authenticated - clear userId and localStorage
+      setUserId(null)
+      setIsOnboarded(false)
+      localStorage.removeItem('stockbuddy_user_id')
     }
   }, [user])
 

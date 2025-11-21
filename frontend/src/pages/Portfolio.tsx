@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Coins, BarChart3, PiggyBank, ArrowRightLeft, 
 import { Line } from 'react-chartjs-2'
 import OnboardingCard from '../components/OnboardingCard'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -143,6 +144,8 @@ const MONTH_NAMES = [
 ]
 
 const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
+  const { user: authUser } = useAuth()
+  const navigate = useNavigate()
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [scenarioData, setScenarioData] = useState<any>(null)
@@ -326,8 +329,13 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   }, [timeframe, customStart, customEnd])
 
   useEffect(() => {
-    if (userId) {
+    // Only fetch portfolio if user is authenticated and userId is valid
+    if (userId && userId > 0) {
       fetchPortfolio()
+    } else {
+      // Clear portfolio data if not authenticated
+      setPortfolio(null)
+      setLoading(false)
     }
   }, [userId])
 
@@ -1550,6 +1558,22 @@ const handleResetScenario = async () => {
 
   const handleAdjustPreferences = () => {
     navigate('/onboarding')
+  }
+
+  // Check if user is authenticated - if not, show sign in prompt
+  if (!authUser || !authUser.user_id) {
+    return (
+      <OnboardingCard
+        icon={<BarChart3 className="w-10 h-10 text-primary-500" />}
+        title="Please sign in"
+        message="You need to sign in to view your portfolio. If you don't have an account, sign up to get started."
+        primaryLabel="Sign in"
+        onPrimary={() => navigate('/login')}
+        secondaryLabel="Sign up"
+        onSecondary={() => navigate('/signup')}
+        maxWidth="md"
+      />
+    )
   }
 
   if (!userId) {
