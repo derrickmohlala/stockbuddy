@@ -185,6 +185,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const [customError, setCustomError] = useState<string | null>(null)
   const [savingCustom, setSavingCustom] = useState(false)
   const [resettingPortfolio, setResettingPortfolio] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [processingReverse, setProcessingReverse] = useState<number | null>(null)
   const [activeInstrumentRow, setActiveInstrumentRow] = useState<string | null>(null)
   const [instrumentSearchTerm, setInstrumentSearchTerm] = useState('')
@@ -374,6 +375,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const fetchPortfolio = async () => {
     try {
       setLoading(true)
+      setError(null) // Clear any previous errors
       const response = await apiFetch(`/api/portfolio/${userId}`)
       
       if (response.ok) {
@@ -432,20 +434,70 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         let errorMessage = 'Failed to load portfolio'
         try {
           const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
+          errorMessage = errorData.error || errorData.detail || errorMessage
+          console.error('Portfolio API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorMessage,
+            detail: errorData.detail
+          })
         } catch {
           // If JSON parsing fails, try text
           try {
             const text = await response.text()
-            if (text) errorMessage = text
+            if (text) {
+              errorMessage = text
+              console.error('Portfolio API error (text):', {
+                status: response.status,
+                statusText: response.statusText,
+                text: text.substring(0, 200)
+              })
+            }
           } catch {}
         }
-        console.error('Error fetching portfolio:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorMessage
-        })
-        // Don't set portfolio to null if it already exists
+        
+        // For 401/403 errors, user might not be authenticated properly
+        if (response.status === 401 || response.status === 403) {
+          console.error('Authentication error when loading portfolio')
+          // Don't show error, let the auth system handle it
+          if (!portfolio) {
+            setPortfolio(null)
+          }
+          return
+        }
+        
+        // For 404, user might not have a portfolio yet - that's OK
+        if (response.status === 404) {
+          console.log('Portfolio not found for user - creating empty portfolio state')
+          // Create an empty portfolio state instead of showing error
+          setPortfolio({
+            user_id: userId || 0,
+            first_name: '',
+            archetype: null as any,
+            total_value: 0,
+            total_cost: 0,
+            total_pnl: 0,
+            total_pnl_pct: 0,
+            holdings: [],
+            allocation_targets: {},
+            plan_summary: null,
+            plan_persona: null,
+            plan_guidance: null,
+            plan_goal: null,
+            plan_risk_band: null,
+            plan_anchor_cap_pct: null,
+            suggestions: [],
+            applied_suggestions: [],
+            baseline_allocations: {},
+            alerts: []
+          })
+          // Don't set error for 404 - empty portfolio is expected for new users
+          // setError(errorMessage)
+          return
+        }
+        
+        // For other errors, show the error but don't clear existing portfolio
+        setError(errorMessage)
         if (!portfolio) {
           setPortfolio(null)
         }
@@ -453,6 +505,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     } catch (error) {
       console.error('Error fetching portfolio:', error)
       // Network or other errors
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load portfolio. Please try again.'
+      setError(errorMessage)
       if (!portfolio) {
         setPortfolio(null)
       }
@@ -1520,6 +1574,40 @@ const handleResetScenario = async () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
             <p className="text-muted dark:text-gray-300">Loading your portfolio...</p>
           </div>
+      </div>
+    )
+  }
+
+  if (loading && !portfolioLoaded) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="space-y-4 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-purple border-t-transparent"></div>
+          <p className="text-subtle">Loading portfolio...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !portfolio) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="mx-auto max-w-md space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-coral/10">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-primary-ink">Unable to load portfolio</h2>
+          <p className="text-subtle">{error}</p>
+          <button
+            onClick={() => {
+              setError(null)
+              fetchPortfolio()
+            }}
+            className="btn-cta mt-4 px-6 py-2"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     )
   }

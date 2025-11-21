@@ -1091,31 +1091,40 @@ def get_portfolio(user_id):
         holdings = []
         for position in positions:
             instrument = Instrument.query.filter_by(symbol=position.symbol).first()
-            if instrument:
-                latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-                    .order_by(Price.date.desc()).first()
+            if not instrument:
+                continue
                 
-                if latest_price:
-                    current_value = position.quantity * latest_price.close
-                    cost_basis = position.quantity * position.avg_price
-                    pnl = current_value - cost_basis
-                    pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0
-                    
-                    total_value += current_value
-                    total_cost += cost_basis
-                    
-                    holdings.append({
-                        "symbol": position.symbol,
-                        "name": instrument.name,
-                        "quantity": position.quantity,
-                        "avg_price": position.avg_price,
-                        "current_price": latest_price.close,
-                        "current_value": current_value,
-                        "cost_basis": cost_basis,
-                        "pnl": pnl,
-                        "pnl_pct": pnl_pct,
-                        "weight": 0  # Will calculate after getting total
-                    })
+            latest_price = Price.query.filter_by(instrument_id=instrument.id)\
+                .order_by(Price.date.desc()).first()
+            
+            # Skip positions without real price data (no mock prices)
+            if not latest_price or not latest_price.close or latest_price.close <= 0:
+                continue
+            
+            try:
+                current_value = position.quantity * latest_price.close
+                cost_basis = position.quantity * position.avg_price
+                pnl = current_value - cost_basis
+                pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0
+                
+                total_value += current_value
+                total_cost += cost_basis
+                
+                holdings.append({
+                    "symbol": position.symbol,
+                    "name": instrument.name,
+                    "quantity": position.quantity,
+                    "avg_price": position.avg_price,
+                    "current_price": latest_price.close,
+                    "current_value": current_value,
+                    "cost_basis": cost_basis,
+                    "pnl": pnl,
+                    "pnl_pct": pnl_pct,
+                    "weight": 0  # Will calculate after getting total
+                })
+            except Exception as pos_error:
+                print(f"Error processing position {position.symbol} for user {user_id}: {pos_error}")
+                continue
         
         # Calculate weights
         for holding in holdings:
@@ -1200,14 +1209,18 @@ def get_portfolio(user_id):
             "alerts": alerts,
             "weighted_dividend_yield_pct": round(weighted_dividend_yield_pct, 2) if weighted_dividend_yield_pct is not None else None,
             "current_annual_dividends": round(current_annual_dividends, 2) if current_annual_dividends is not None else None
-        })
+        }), 200
     except Exception as e:
         import traceback
         error_detail = str(e)
         error_traceback = traceback.format_exc()
         print(f"Error fetching portfolio for user {user_id}: {error_detail}")
         print(error_traceback)
-        return jsonify({"error": f"Failed to load portfolio: {error_detail}"}), 500
+        # Return a proper error response instead of crashing
+        return jsonify({
+            "error": "Failed to load portfolio",
+            "detail": error_detail
+        }), 500
 
 
 @app.route("/api/health/plan", methods=["POST"])
