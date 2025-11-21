@@ -18,7 +18,7 @@ interface OnboardingData {
 
 const Signup: React.FC = () => {
   const navigate = useNavigate()
-  const { refreshUser } = useAuth()
+  const { login, refreshUser } = useAuth()
   
   // Account creation state (Step 0)
   const [email, setEmail] = useState('')
@@ -210,24 +210,18 @@ const Signup: React.FC = () => {
       const data = await response.json()
       console.log('Registration successful:', { user_id: data.user_id, email: data.email, is_onboarded: data.is_onboarded })
       
-      // Use the auth context register function to properly set state
-      // But since we already have the token from the response, we'll manually update state
-      const accessToken = data.access_token
-      localStorage.setItem('stockbuddy_token', accessToken)
-      localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
+      // Immediately log the user in using the same credentials to sync auth state
+      await login(email.trim().toLowerCase(), password)
       
-      // Refresh auth context to get full user data including onboarding status
+      // Ensure auth context has the latest onboarding status
       await refreshUser()
       
-      // Wait a moment for state to update, then navigate
-      setTimeout(() => {
-        // Navigate based on onboarding status
-        if (data.is_onboarded) {
-          navigate('/portfolio')
-        } else {
-          navigate('/onboarding')
-        }
-      }, 100)
+      // Navigate based on onboarding completion
+      if (data.is_onboarded) {
+        navigate('/portfolio')
+      } else {
+        navigate('/onboarding')
+      }
     } catch (err: any) {
       console.error('Registration catch block:', err)
       
