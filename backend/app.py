@@ -247,6 +247,11 @@ def auto_seed():
         # If we have some instruments but not enough, re-seed (might be incomplete)
         if instrument_count > 0 and instrument_count < MIN_ACCEPTABLE:
             print(f"⚠ Database appears partially seeded ({instrument_count}/{EXPECTED_INSTRUMENTS} instruments), re-seeding...")
+            # Clear existing instruments to start fresh
+            print(f"Clearing {instrument_count} existing instruments before re-seeding...")
+            Instrument.query.delete()
+            db.session.commit()
+            print("✓ Cleared existing instruments")
         else:
             print("⚠ Database is empty, running automatic seeding...")
         
@@ -576,8 +581,12 @@ def get_current_user():
 def get_profile():
     try:
         user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({"error": "Authentication required"}), 401
+        
         user = User.query.get(user_id)
         if not user:
+            print(f"⚠ Profile endpoint: User {user_id} not found in database")
             return jsonify({"error": "User not found"}), 404
         
         interests = []
@@ -923,6 +932,19 @@ def onboarding():
 def get_instruments():
     instrument_type = request.args.get('type')
     sector = request.args.get('sector')
+    
+    # First check: get all instruments (both active and inactive) to diagnose
+    total_count = Instrument.query.count()
+    active_count = Instrument.query.filter_by(is_active=True).count()
+    
+    if active_count == 0 and total_count > 0:
+        print(f"⚠ Warning: No active instruments found (total: {total_count}). Activating all instruments...")
+        # Activate all inactive instruments
+        Instrument.query.filter_by(is_active=False).update({Instrument.is_active: True})
+        db.session.commit()
+        print(f"✓ Activated {total_count} instruments")
+    elif active_count < 10:
+        print(f"⚠ Warning: Only {active_count} active instruments found (total: {total_count}). Consider re-seeding.")
     
     query = Instrument.query.filter_by(is_active=True)
     

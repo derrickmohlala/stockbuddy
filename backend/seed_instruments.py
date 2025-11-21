@@ -137,11 +137,15 @@ def seed_instruments():
         ]
         
         for instrument_data in instruments:
+            # Ensure is_active is explicitly set to True
+            if 'is_active' not in instrument_data:
+                instrument_data['is_active'] = True
             instrument = Instrument(**instrument_data)
             db.session.add(instrument)
         
         db.session.commit()
-        print(f"Seeded {len(instruments)} instruments")
+        instrument_count = Instrument.query.count()
+        print(f"✓ Seeded {len(instruments)} instruments (total in database: {instrument_count})")
 
 if __name__ == "__main__":
     seed_instruments()
