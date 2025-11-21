@@ -17,6 +17,14 @@ from urllib.parse import quote_plus
 
 from models import db, User, Instrument, Price, Basket, UserPortfolio, UserPosition, UserTrade, CPI, PortfolioBaseline, SuggestionAction
 from news_sources import fetch_live_news, fetch_upcoming_earnings
+import requests
+import time
+
+# Try to import yfinance for price fetching
+try:
+    import yfinance as yf
+except ImportError:
+    yf = None
 
 ARCHETYPE_CONFIG = {
     "Dreamer": {
@@ -982,10 +990,16 @@ def get_instruments():
     instruments = query.all()
     
     result = []
+    instruments_needing_prices = []
+    
     for instrument in instruments:
         # Get latest price
         latest_price = Price.query.filter_by(instrument_id=instrument.id)\
             .order_by(Price.date.desc()).first()
+        
+        # If no price data exists, try to fetch it on-demand
+        if not latest_price:
+            instruments_needing_prices.append(instrument)
         
         # Get mini series for chart (last 30 days or last 30 price points)
         mini_series_query = Price.query.filter_by(instrument_id=instrument.id)\
@@ -993,9 +1007,10 @@ def get_instruments():
         
         mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
         
-        # If no price data exists, log a warning (no mock prices - only real data)
+        # Re-fetch latest price after potential on-demand fetch
         if not latest_price:
-            print(f"Warning: No price data found for {instrument.symbol} - price backfill may be needed")
+            latest_price = Price.query.filter_by(instrument_id=instrument.id)\
+                .order_by(Price.date.desc()).first()
         
         result.append({
             "id": instrument.id,
@@ -1010,7 +1025,104 @@ def get_instruments():
             "mini_series": mini_series
         })
     
+    # Fetch prices on-demand for instruments missing price data (batch, limit to avoid timeout)
+    if instruments_needing_prices and len(instruments_needing_prices) > 0:
+        print(f"⚠ {len(instruments_needing_prices)} instruments missing price data, attempting on-demand fetch...")
+        # Limit to first 10 to avoid timeout on the request
+        for instrument in instruments_needing_prices[:10]:
+            try:
+                _fetch_price_for_instrument(instrument)
+            except Exception as e:
+                print(f"⚠ Failed to fetch price for {instrument.symbol}: {e}")
+        
+        # Re-fetch prices from database for instruments we just fetched
+        for i, instrument_data in enumerate(result):
+            if instrument_data['latest_price'] is None:
+                latest = Price.query.filter_by(instrument_id=instrument_data['id'])\
+                    .order_by(Price.date.desc()).first()
+                if latest:
+                    result[i]['latest_price'] = latest.close
+                    result[i]['price_date'] = latest.date.isoformat()
+                    # Update mini_series too
+                    mini_series_query = Price.query.filter_by(instrument_id=instrument_data['id'])\
+                        .order_by(Price.date.desc()).limit(30).all()
+                    result[i]['mini_series'] = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+    
     return jsonify(result)
+
+
+def _fetch_price_for_instrument(instrument):
+    """Fetch current price for a single instrument from yfinance or Yahoo API (real prices only)."""
+    try:
+        # Try yfinance first
+        if yf:
+            ticker = yf.Ticker(instrument.symbol)
+            hist = ticker.history(period="1y", interval="1mo", auto_adjust=False)
+            if hist is not None and not hist.empty:
+                # Clear existing prices
+                Price.query.filter_by(instrument_id=instrument.id).delete()
+                
+                # Add new prices
+                for date_idx, row in hist.iterrows():
+                    close_price = float(row['Close'])
+                    if close_price > 0:
+                        price = Price(
+                            instrument_id=instrument.id,
+                            date=date_idx.date(),
+                            close=round(close_price, 2),
+                            dividend=round(float(row.get('Dividends', 0) or 0), 2)
+                        )
+                        db.session.add(price)
+                
+                db.session.commit()
+                print(f"  ✓ Fetched prices for {instrument.symbol} via yfinance")
+                return True
+    except Exception as e:
+        print(f"  ⚠ yfinance failed for {instrument.symbol}: {e}")
+    
+    # Fallback to Yahoo Chart API
+    try:
+        yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{instrument.symbol}"
+        response = requests.get(
+            yahoo_url,
+            params={"range": "1y", "interval": "1mo", "events": "div"},
+            headers={"User-Agent": "Mozilla/5.0 (StockBuddy/1.0)"},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        result = data.get("chart", {}).get("result", [])
+        if result:
+            chart = result[0]
+            timestamps = chart.get("timestamp", [])
+            indicators = chart.get("indicators", {})
+            quote = indicators.get("quote", [{}])[0] if indicators.get("quote") else {}
+            closes = quote.get("close", [])
+            
+            if timestamps and closes:
+                # Clear existing prices
+                Price.query.filter_by(instrument_id=instrument.id).delete()
+                
+                # Add new prices
+                for idx, ts in enumerate(timestamps):
+                    if idx < len(closes) and closes[idx] and closes[idx] > 0:
+                        dt = datetime.fromtimestamp(ts).date()
+                        price = Price(
+                            instrument_id=instrument.id,
+                            date=dt,
+                            close=round(float(closes[idx]), 2),
+                            dividend=0.0
+                        )
+                        db.session.add(price)
+                
+                db.session.commit()
+                print(f"  ✓ Fetched prices for {instrument.symbol} via Yahoo API")
+                return True
+    except Exception as e:
+        print(f"  ⚠ Yahoo API failed for {instrument.symbol}: {e}")
+    
+    return False
 
 
 @app.route("/api/users/<int:user_id>")
