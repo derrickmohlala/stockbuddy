@@ -52,10 +52,44 @@ const Discover: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedSector, setSelectedSector] = useState('')
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set())
+  const [refreshingPrices, setRefreshingPrices] = useState(false)
 
   useEffect(() => {
     fetchInstruments()
   }, [])
+
+  // Fetch prices in background after instruments load
+  useEffect(() => {
+    if (instruments.length > 0 && !refreshingPrices) {
+      // Check if any instruments are missing prices
+      const instrumentsWithoutPrices = instruments.filter(i => !i.latest_price)
+      if (instrumentsWithoutPrices.length > 0) {
+        // Auto-fetch prices in background after a short delay
+        const timer = setTimeout(() => {
+          refreshPrices()
+        }, 2000) // Wait 2 seconds before auto-fetching
+        
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [instruments])
+
+  const refreshPrices = async () => {
+    setRefreshingPrices(true)
+    try {
+      const response = await apiFetch('/api/instruments/fetch-prices', {
+        method: 'POST'
+      })
+      if (response.ok) {
+        // Refresh instruments after prices are fetched
+        await fetchInstruments()
+      }
+    } catch (err) {
+      console.error('Error refreshing prices:', err)
+    } finally {
+      setRefreshingPrices(false)
+    }
+  }
 
   useEffect(() => {
     filterInstruments()
@@ -295,7 +329,13 @@ const Discover: React.FC = () => {
           <div className="space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white px-5 py-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-primary-ink">Market mood board</p>
-              <span className="text-xs text-muted">Auto curated</span>
+              <button
+                onClick={refreshPrices}
+                disabled={refreshingPrices}
+                className="text-xs text-muted hover:text-brand-coral transition disabled:opacity-50"
+              >
+                {refreshingPrices ? 'Refreshing...' : 'Refresh prices'}
+              </button>
             </div>
             <div className="grid gap-4 text-sm text-subtle">
               <div className="flex items-center justify-between">

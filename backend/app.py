@@ -1122,6 +1122,66 @@ def _fetch_price_for_instrument(instrument):
     return False
 
 
+@app.route("/api/instruments/fetch-prices", methods=["POST"])
+def fetch_prices_background():
+    """Background endpoint to fetch prices for instruments missing price data."""
+    try:
+        # Get instruments without prices
+        instruments_without_prices = []
+        all_instruments = Instrument.query.filter_by(is_active=True).all()
+        
+        for instrument in all_instruments:
+            latest_price = Price.query.filter_by(instrument_id=instrument.id)\
+                .order_by(Price.date.desc()).first()
+            if not latest_price:
+                instruments_without_prices.append(instrument)
+        
+        if not instruments_without_prices:
+            return jsonify({
+                "message": "All instruments already have price data",
+                "count": 0,
+                "fetched": 0,
+                "failed": 0,
+                "remaining": 0
+            })
+        
+        # Fetch prices for up to 10 instruments (batch processing)
+        fetched = 0
+        failed = 0
+        
+        for instrument in instruments_without_prices[:10]:
+            try:
+                success = _fetch_price_for_instrument(instrument)
+                if success:
+                    fetched += 1
+                    print(f"✓ Successfully fetched prices for {instrument.symbol}")
+                else:
+                    failed += 1
+                    print(f"⚠ Failed to fetch prices for {instrument.symbol}")
+                # Small delay to avoid rate limiting
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"⚠ Error fetching price for {instrument.symbol}: {e}")
+                import traceback
+                traceback.print_exc()
+                failed += 1
+                continue
+        
+        remaining = len(instruments_without_prices) - fetched - failed
+        
+        return jsonify({
+            "message": f"Fetched prices for {fetched} instruments, {failed} failed, {remaining} remaining",
+            "fetched": fetched,
+            "failed": failed,
+            "remaining": remaining
+        })
+    except Exception as e:
+        print(f"✗ Error in fetch_prices_background: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/users/<int:user_id>")
 def get_user_profile(user_id):
     user = User.query.get(user_id)
