@@ -226,7 +226,6 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       minute: '2-digit'
     })
   }
-  const navigate = useNavigate()
 
   // Load instruments for holdings pickers
   useEffect(() => {

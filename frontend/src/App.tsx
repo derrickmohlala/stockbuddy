@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect, ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
-import { apiFetch } from './lib/api'
 import Onboarding from './pages/Onboarding'
 import Discover from './pages/Discover'
 import Portfolio from './pages/Portfolio'
