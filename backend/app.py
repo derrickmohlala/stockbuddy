@@ -190,8 +190,28 @@ app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
 db.init_app(app)
-CORS(app)
+# Configure CORS to allow requests from frontend
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["https://stockbuddy-frondend.onrender.com", "http://localhost:5173", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 jwt = JWTManager(app)
+
+# Add JWT error handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({"error": "Token has expired", "code": "TOKEN_EXPIRED"}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({"error": "Invalid token", "code": "INVALID_TOKEN", "detail": str(error)}), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return jsonify({"error": "Authorization required", "code": "MISSING_TOKEN", "detail": str(error)}), 401
 
 def run_sqlite_migrations():
     """Run SQLite-specific migrations (only for local development)"""
@@ -583,18 +603,27 @@ def login():
 @app.route("/api/auth/current", methods=["GET"])
 @jwt_required()
 def get_current_user():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    return jsonify({
-        "user_id": user.id,
-        "email": user.email,
-        "first_name": user.first_name,
-        "is_admin": user.is_admin,
-        "is_onboarded": bool(user.goal and user.risk is not None)
-    }), 200
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({"error": "Invalid token", "code": "INVALID_TOKEN"}), 401
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "user_id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "is_admin": user.is_admin,
+            "is_onboarded": bool(user.goal and user.risk is not None)
+        }), 200
+    except Exception as e:
+        print(f"Error in get_current_user: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to get current user", "detail": str(e)}), 500
 
 @app.route("/api/profile", methods=["GET"])
 @jwt_required()
@@ -1266,22 +1295,29 @@ def list_benchmarks():
 @jwt_required()
 def get_portfolio(user_id):
     try:
-        # Verify the authenticated user matches the requested user_id
+        # Get authenticated user ID from JWT token
         authenticated_user_id = get_jwt_identity()
-        if authenticated_user_id != user_id:
-            return jsonify({"error": "Unauthorized access to portfolio"}), 403
         
-        user = User.query.get(user_id)
+        # Use authenticated user's ID instead of URL parameter for security
+        # This ensures users can only access their own portfolio
+        effective_user_id = authenticated_user_id if authenticated_user_id else user_id
+        
+        # If URL user_id doesn't match authenticated user, use authenticated user's ID
+        if authenticated_user_id and authenticated_user_id != user_id:
+            print(f"⚠ Warning: User {authenticated_user_id} requested portfolio for user {user_id}, using authenticated user's ID")
+            effective_user_id = authenticated_user_id
+        
+        user = User.query.get(effective_user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
-        positions = UserPosition.query.filter_by(user_id=user_id).all()
+        portfolio = UserPortfolio.query.filter_by(user_id=effective_user_id).first()
+        positions = UserPosition.query.filter_by(user_id=effective_user_id).all()
         
         # Handle case where portfolio doesn't exist yet (newly registered user)
         if not portfolio:
             return jsonify({
-                "user_id": user_id,
+                "user_id": effective_user_id,
                 "first_name": user.first_name,
                 "archetype": None,
                 "total_value": 0,

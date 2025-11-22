@@ -384,7 +384,16 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     try {
       setLoading(true)
       setError(null) // Clear any previous errors
-      const response = await apiFetch(`/api/portfolio/${userId}`)
+      
+      // Use authenticated user's ID
+      const effectiveUserId = authUser?.user_id || userId
+      if (!effectiveUserId) {
+        setError('User not authenticated')
+        setLoading(false)
+        return
+      }
+      
+      const response = await apiFetch(`/api/portfolio/${effectiveUserId}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -464,13 +473,24 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           } catch {}
         }
         
-        // For 401/403 errors, user might not be authenticated properly
-        if (response.status === 401 || response.status === 403) {
-          console.error('Authentication error when loading portfolio')
+        // For 401/403/422 errors, user might not be authenticated properly
+        // 422 can also be returned by Flask-JWT-Extended for invalid tokens
+        if (response.status === 401 || response.status === 403 || response.status === 422) {
+          console.error('Authentication error when loading portfolio:', {
+            status: response.status,
+            error: errorMessage
+          })
+          // Clear token if it's invalid
+          if (response.status === 422 || response.status === 401) {
+            localStorage.removeItem('stockbuddy_token')
+            // Redirect to login
+            navigate('/login')
+          }
           // Don't show error, let the auth system handle it
           if (!portfolio) {
             setPortfolio(null)
           }
+          setLoading(false)
           return
         }
         
