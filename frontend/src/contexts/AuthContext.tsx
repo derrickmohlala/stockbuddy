@@ -17,6 +17,7 @@ interface AuthContextValue {
   register: (email: string, password: string, first_name: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
+  setAuthFromToken: (token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean }) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -228,8 +229,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('stockbuddy_user_id')
   }, [])
 
+  const setAuthFromToken = useCallback((token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean }) => {
+    setToken(token)
+    localStorage.setItem('stockbuddy_token', token)
+    localStorage.setItem('stockbuddy_user_id', userData.user_id.toString())
+    setUser({
+      user_id: userData.user_id,
+      email: userData.email,
+      first_name: userData.first_name,
+      is_admin: userData.is_admin,
+      is_onboarded: userData.is_onboarded
+    })
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, setAuthFromToken }}>
       {children}
     </AuthContext.Provider>
   )

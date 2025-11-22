@@ -18,7 +18,7 @@ interface OnboardingData {
 
 const Signup: React.FC = () => {
   const navigate = useNavigate()
-  const { login, user } = useAuth()
+  const { login, user, setAuthFromToken } = useAuth()
   
   // Redirect if already logged in
   React.useEffect(() => {
@@ -220,20 +220,45 @@ const Signup: React.FC = () => {
       }
 
       const data = await response.json()
-      console.log('Registration successful:', { user_id: data.user_id, email: data.email, is_onboarded: data.is_onboarded })
+      console.log('Registration successful:', { user_id: data.user_id, email: data.email, is_onboarded: data.is_onboarded, has_token: !!data.access_token })
       
-      // Use the login function from auth context to properly set all state
-      // This ensures the auth context is fully updated
-      await login(email.trim().toLowerCase(), password)
-      
-      // Small delay to ensure auth state is updated before navigation
-      setTimeout(() => {
-        if (data.is_onboarded) {
-          navigate('/portfolio')
-        } else {
-          navigate('/onboarding')
+      // Use the token from registration response directly instead of calling login()
+      // This avoids a redundant API call and potential race conditions
+      if (data.access_token) {
+        // Set auth state directly from registration response
+        setAuthFromToken(data.access_token, {
+          user_id: data.user_id,
+          email: data.email,
+          first_name: data.first_name,
+          is_admin: data.is_admin || false,
+          is_onboarded: data.is_onboarded || false
+        })
+        
+        // Small delay to ensure auth state is updated before navigation
+        setTimeout(() => {
+          if (data.is_onboarded) {
+            navigate('/portfolio')
+          } else {
+            navigate('/onboarding')
+          }
+        }, 100)
+      } else {
+        // Fallback: if no token in response, try login
+        console.warn('No access_token in registration response, attempting login')
+        try {
+          await login(email.trim().toLowerCase(), password)
+          setTimeout(() => {
+            if (data.is_onboarded) {
+              navigate('/portfolio')
+            } else {
+              navigate('/onboarding')
+            }
+          }, 100)
+        } catch (loginError) {
+          console.error('Login after registration failed:', loginError)
+          setError('Registration succeeded but login failed. Please try logging in manually.')
         }
-      }, 150)
+      }
     } catch (err: any) {
       console.error('Registration catch block:', err)
       
