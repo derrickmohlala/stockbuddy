@@ -191,13 +191,38 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
 db.init_app(app)
 # Configure CORS to allow requests from frontend
+# Note: "frondend" is intentional (matches the actual Render service name)
+# Using more permissive CORS for API routes
+allowed_origins = [
+    "https://stockbuddy-frondend.onrender.com",
+    "https://stockbuddy-frontend.onrender.com",  # In case of typo correction
+    "http://localhost:5173",
+    "http://localhost:3000"
+]
+
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://stockbuddy-frondend.onrender.com", "http://localhost:5173", "http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "origins": allowed_origins,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "supports_credentials": True,
+        "expose_headers": ["Content-Type", "Authorization"]
     }
-})
+}, supports_credentials=True)
+
+# Add after_request handler to log CORS issues
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin and origin not in allowed_origins:
+        print(f"⚠ CORS warning: Request from origin '{origin}' not in allowed list")
+        print(f"  Allowed origins: {allowed_origins}")
+    # Ensure CORS headers are always present
+    if origin in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 jwt = JWTManager(app)
 
 # Add JWT error handlers
