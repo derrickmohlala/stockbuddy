@@ -208,6 +208,8 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const instrumentSearchInputRef = useRef<HTMLInputElement | null>(null)
   const instrumentListRef = useRef<HTMLDivElement | null>(null)
   const customBuilderRef = useRef<HTMLDivElement | null>(null)
+  const fetchingPortfolioRef = useRef(false)
+  const authErrorRef = useRef(false)
   const formatLabel = (value?: string | null) => {
     if (!value) return ''
     return value.charAt(0).toUpperCase() + value.slice(1)
@@ -328,15 +330,19 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   }, [timeframe, customStart, customEnd])
 
   useEffect(() => {
-    // Only fetch portfolio if user is authenticated and userId is valid
-    if (userId && userId > 0) {
+    // Reset auth error flag when user changes (new login)
+    authErrorRef.current = false
+    
+    // Only fetch portfolio if user is authenticated, userId is valid, and token exists
+    const token = localStorage.getItem('stockbuddy_token')
+    if (userId && userId > 0 && token) {
       fetchPortfolio()
     } else {
       // Clear portfolio data if not authenticated
       setPortfolio(null)
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, authUser?.user_id]) // Also depend on authUser to refetch when auth state changes
 
   useEffect(() => {
     if (!userId) return
@@ -380,7 +386,18 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   }, [inflationAdjust])
 
   const fetchPortfolio = async () => {
+    // Prevent multiple simultaneous requests
+    if (fetchingPortfolioRef.current) {
+      return
+    }
+    
+    // Don't retry if we've already had an auth error
+    if (authErrorRef.current) {
+      return
+    }
+    
     try {
+      fetchingPortfolioRef.current = true
       setLoading(true)
       setError(null) // Clear any previous errors
       
@@ -389,6 +406,17 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       if (!effectiveUserId) {
         setError('User not authenticated')
         setLoading(false)
+        fetchingPortfolioRef.current = false
+        return
+      }
+      
+      // Check if token exists before making request
+      const token = localStorage.getItem('stockbuddy_token')
+      if (!token) {
+        setError('Authentication required. Please sign in.')
+        setLoading(false)
+        fetchingPortfolioRef.current = false
+        authErrorRef.current = true
         return
       }
       
@@ -479,9 +507,12 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
             status: response.status,
             error: errorMessage
           })
+          // Mark that we've had an auth error to prevent retry loops
+          authErrorRef.current = true
           // Clear token if it's invalid
           if (response.status === 422 || response.status === 401) {
             localStorage.removeItem('stockbuddy_token')
+            localStorage.removeItem('stockbuddy_user_id')
             // Redirect to login
             navigate('/login')
           }
@@ -490,6 +521,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
             setPortfolio(null)
           }
           setLoading(false)
+          fetchingPortfolioRef.current = false
           return
         }
         
@@ -540,6 +572,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     } finally {
       setLoading(false)
       setPortfolioLoaded(true)
+      fetchingPortfolioRef.current = false
     }
   }
 
