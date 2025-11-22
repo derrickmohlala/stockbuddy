@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { LogIn, AlertCircle } from 'lucide-react'
@@ -8,8 +8,20 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const navigate = useNavigate()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      // User is already logged in, redirect based on onboarding status
+      if (user.is_onboarded) {
+        navigate('/portfolio')
+      } else {
+        navigate('/onboarding')
+      }
+    }
+  }, [user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

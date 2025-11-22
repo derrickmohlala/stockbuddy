@@ -18,7 +18,19 @@ interface OnboardingData {
 
 const Signup: React.FC = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, user } = useAuth()
+  
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (user) {
+      // User is already logged in, redirect based on onboarding status
+      if (user.is_onboarded) {
+        navigate('/portfolio')
+      } else {
+        navigate('/onboarding')
+      }
+    }
+  }, [user, navigate])
   
   // Account creation state (Step 0)
   const [email, setEmail] = useState('')
