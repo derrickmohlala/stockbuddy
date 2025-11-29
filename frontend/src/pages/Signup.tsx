@@ -289,7 +289,18 @@ const Signup: React.FC = () => {
       // Show more helpful error messages
       const errorLower = errorMsg.toLowerCase()
       if (errorLower.includes('network') || errorLower.includes('fetch') || errorLower.includes('failed to fetch') || errorLower.includes('cors')) {
-        errorMsg = 'Unable to connect to the server. Please check your internet connection and try again.'
+        // Check if it's a CORS error specifically
+        if (errorLower.includes('cors') || errorLower.includes('access-control')) {
+          errorMsg = 'CORS error: The server is not allowing requests from this origin. Please check server configuration.'
+        } else {
+          errorMsg = 'Unable to connect to the server. Please check your internet connection and try again.'
+        }
+        // Log the actual error for debugging
+        console.error('Network/CORS error details:', {
+          error: err,
+          apiUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
+          message: errorMsg
+        })
       } else if (errorLower.includes('already exists') || errorLower.includes('duplicate')) {
         errorMsg = 'An account with this email already exists. Please try logging in instead.'
       } else if (errorLower.includes('required') || errorLower.includes('missing')) {

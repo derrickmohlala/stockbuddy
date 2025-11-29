@@ -11,6 +11,16 @@ export const apiFetch = (path: string, options?: RequestInit) => {
   const url = resolveApiUrl(path)
   const token = localStorage.getItem('stockbuddy_token')
   
+  // Log API calls in development or if there's an issue
+  if (import.meta.env.DEV || !import.meta.env.VITE_API_BASE_URL) {
+    console.log('API Fetch:', {
+      path,
+      resolvedUrl: url,
+      hasApiBaseUrl: !!import.meta.env.VITE_API_BASE_URL,
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'not set'
+    })
+  }
+  
   const headers = new Headers(options?.headers)
   
   // Set Content-Type if not already set
@@ -26,5 +36,14 @@ export const apiFetch = (path: string, options?: RequestInit) => {
   return fetch(url, {
     ...options,
     headers
+  }).catch(error => {
+    // Log fetch errors for debugging
+    console.error('Fetch error:', {
+      url,
+      error: error.message,
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
+      path
+    })
+    throw error
   })
 }
