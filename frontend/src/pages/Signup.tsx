@@ -235,13 +235,15 @@ const Signup: React.FC = () => {
         })
         
         // Small delay to ensure auth state is updated before navigation
+        // Also ensure userId is set in localStorage before navigation
+        localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
         setTimeout(() => {
           if (data.is_onboarded) {
             navigate('/portfolio')
           } else {
             navigate('/onboarding')
           }
-        }, 100)
+        }, 200)
       } else {
         // Fallback: if no token in response, try login
         console.warn('No access_token in registration response, attempting login')

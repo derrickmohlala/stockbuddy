@@ -58,9 +58,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             literacy_level: profile.literacy_level || '',
             interests: profile.interests || []
           })
+        } else if (response.status === 404) {
+          // User not found - that's OK for a new user, just use empty data
+          console.log('User profile not found (new user), using empty form')
         }
       } catch (error) {
         console.error('Error loading profile', error)
+        // Don't show error for 404s - new users won't have a profile yet
       } finally {
         setLoadingProfile(false)
       }
