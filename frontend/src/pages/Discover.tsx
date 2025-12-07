@@ -100,19 +100,61 @@ const Discover: React.FC = () => {
       setError(null)
       setLoading(true)
       const response = await apiFetch('/api/instruments')
+      
       if (response.ok) {
         const data = await response.json()
         setInstruments(data || [])
         if (!data || data.length === 0) {
           setError('No instruments found. Please seed the database with instruments.')
+        } else {
+          setError(null) // Clear any previous errors
         }
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch instruments' }))
-        setError(errorData.error || 'Failed to load instruments')
+        // HTTP error response
+        let errorMessage = 'Failed to load instruments'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.detail || errorMessage
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = `Server error (${response.status}): ${response.statusText || 'Unable to load instruments'}`
+        }
+        setError(errorMessage)
+        console.error('HTTP error fetching instruments:', response.status, errorMessage)
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Network error or fetch failed completely
       console.error('Error fetching instruments:', error)
-      setError('Failed to connect to the server. Please check your connection.')
+      
+      let errorMessage = 'Failed to connect to the server. '
+      const renderUrl = import.meta.env.VITE_API_BASE_URL
+      const isRenderBackend = renderUrl?.includes('onrender.com')
+      
+      if (error?.message) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          if (isRenderBackend) {
+            errorMessage += 'The Render backend may be slow to wake up (free tier). Please wait a moment and try again.'
+          } else {
+            errorMessage += 'Please ensure the backend server is running on port 5001.'
+          }
+        } else if (error.message.includes('timeout')) {
+          if (isRenderBackend) {
+            errorMessage += 'Render backend is taking too long to respond. Free tier services can be slow. Please try again.'
+          } else {
+            errorMessage += 'The request timed out. Please try again.'
+          }
+        } else {
+          errorMessage += error.message
+        }
+      } else {
+        if (isRenderBackend) {
+          errorMessage += 'Please check your connection. Render backends can take 30-60 seconds to wake up from sleep.'
+        } else {
+          errorMessage += 'Please check your connection and ensure the backend server is running.'
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -289,6 +331,10 @@ const Discover: React.FC = () => {
   }
 
   if (error) {
+    const isConnectionError = error.toLowerCase().includes('connect') || error.toLowerCase().includes('server')
+    const hasRenderUrl = import.meta.env.VITE_API_BASE_URL?.includes('onrender.com')
+    const isLocalDev = !import.meta.env.VITE_API_BASE_URL || import.meta.env.DEV
+    
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="mx-auto max-w-md space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white p-8 text-center">
@@ -297,6 +343,26 @@ const Discover: React.FC = () => {
           </div>
           <h2 className="text-xl font-semibold text-primary-ink">Unable to load instruments</h2>
           <p className="text-subtle">{error}</p>
+          {isConnectionError && (
+            <div className="mt-4 rounded-lg bg-gray-50 p-4 text-left text-sm text-muted">
+              <p className="font-semibold mb-2">Troubleshooting:</p>
+              {hasRenderUrl ? (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Your backend is configured to use Render: <code className="bg-white px-1 rounded">{import.meta.env.VITE_API_BASE_URL}</code></li>
+                  <li>Verify the Render backend service is running and accessible</li>
+                  <li>Check Render dashboard for any service errors or downtime</li>
+                  <li>Render free tier services can take 30-60 seconds to wake up from sleep</li>
+                </ul>
+              ) : isLocalDev ? (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>For local development: Start backend with <code className="bg-white px-1 rounded">cd backend && python3 app.py</code></li>
+                  <li>Backend should be accessible at <code className="bg-white px-1 rounded">http://localhost:5001</code></li>
+                  <li>For Render deployment: Create <code className="bg-white px-1 rounded">frontend/.env</code> with <code className="bg-white px-1 rounded">VITE_API_BASE_URL=https://your-backend.onrender.com</code></li>
+                  <li>Current API URL: <code className="bg-white px-1 rounded">{import.meta.env.VITE_API_BASE_URL || 'Not set (using proxy)'}</code></li>
+                </ul>
+              ) : null}
+            </div>
+          )}
           <button
             onClick={fetchInstruments}
             className="btn-cta mt-4 px-6 py-2"
