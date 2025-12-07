@@ -61,27 +61,23 @@ const Discover: React.FC = () => {
   // Fetch prices in background after instruments load
   useEffect(() => {
     if (instruments.length > 0 && !refreshingPrices) {
-      // Check if any instruments are missing prices
-      const instrumentsWithoutPrices = instruments.filter(i => !i.latest_price)
+      const instrumentsWithoutPrices = instruments.filter(i => i.latest_price == null)
       if (instrumentsWithoutPrices.length > 0) {
-        // Auto-fetch prices in background after a short delay
         const timer = setTimeout(() => {
           refreshPrices()
-        }, 2000) // Wait 2 seconds before auto-fetching
-        
+        }, 2000)
         return () => clearTimeout(timer)
       }
     }
-  }, [instruments])
+  }, [instruments, refreshingPrices])
 
   const refreshPrices = async () => {
     setRefreshingPrices(true)
     try {
       const response = await apiFetch('/api/instruments/fetch-prices', {
-        method: 'POST'
+        method: 'POST',
       })
       if (response.ok) {
-        // Refresh instruments after prices are fetched
         await fetchInstruments()
       }
     } catch (err) {
@@ -100,14 +96,38 @@ const Discover: React.FC = () => {
       setError(null)
       setLoading(true)
       const response = await apiFetch('/api/instruments')
-      
+
       if (response.ok) {
-        const data = await response.json()
+        const raw = await response.json()
+
+        // Normalise API data so the UI never explodes on nulls
+        const data: Instrument[] = (raw || []).map((item: any, idx: number) => ({
+          id: item.id ?? idx,
+          symbol: String(item.symbol || '').toUpperCase(),
+          name: item.name || item.symbol || 'Unknown instrument',
+          type: item.type || 'share',
+          sector: item.sector || 'Unclassified',
+          dividend_yield:
+            typeof item.dividend_yield === 'number' && !isNaN(item.dividend_yield)
+              ? item.dividend_yield
+              : 0,
+          ter:
+            typeof item.ter === 'number' && !isNaN(item.ter)
+              ? item.ter
+              : 0,
+          latest_price:
+            typeof item.latest_price === 'number' && !isNaN(item.latest_price)
+              ? item.latest_price
+              : null,
+          price_date: item.price_date || null,
+          mini_series: Array.isArray(item.mini_series) ? item.mini_series : [],
+        }))
+
         setInstruments(data || [])
         if (!data || data.length === 0) {
           setError('No instruments found. Please seed the database with instruments.')
         } else {
-          setError(null) // Clear any previous errors
+          setError(null)
         }
       } else {
         // HTTP error response
@@ -116,30 +136,32 @@ const Discover: React.FC = () => {
           const errorData = await response.json()
           errorMessage = errorData.error || errorData.detail || errorMessage
         } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = `Server error (${response.status}): ${response.statusText || 'Unable to load instruments'}`
+          errorMessage = `Server error (${response.status}): ${
+            response.statusText || 'Unable to load instruments'
+          }`
         }
         setError(errorMessage)
         console.error('HTTP error fetching instruments:', response.status, errorMessage)
       }
     } catch (error: any) {
-      // Network error or fetch failed completely
       console.error('Error fetching instruments:', error)
-      
+
       let errorMessage = 'Failed to connect to the server. '
       const renderUrl = import.meta.env.VITE_API_BASE_URL
       const isRenderBackend = renderUrl?.includes('onrender.com')
-      
+
       if (error?.message) {
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
           if (isRenderBackend) {
-            errorMessage += 'The Render backend may be slow to wake up (free tier). Please wait a moment and try again.'
+            errorMessage +=
+              'The Render backend may be slow to wake up (free tier). Please wait a moment and try again.'
           } else {
             errorMessage += 'Please ensure the backend server is running on port 5001.'
           }
         } else if (error.message.includes('timeout')) {
           if (isRenderBackend) {
-            errorMessage += 'Render backend is taking too long to respond. Free tier services can be slow. Please try again.'
+            errorMessage +=
+              'Render backend is taking too long to respond. Free tier services can be slow. Please try again.'
           } else {
             errorMessage += 'The request timed out. Please try again.'
           }
@@ -148,12 +170,14 @@ const Discover: React.FC = () => {
         }
       } else {
         if (isRenderBackend) {
-          errorMessage += 'Please check your connection. Render backends can take 30-60 seconds to wake up from sleep.'
+          errorMessage +=
+            'Please check your connection. Render backends can take 30-60 seconds to wake up from sleep.'
         } else {
-          errorMessage += 'Please check your connection and ensure the backend server is running.'
+          errorMessage +=
+            'Please check your connection and ensure the backend server is running.'
         }
       }
-      
+
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -161,7 +185,7 @@ const Discover: React.FC = () => {
   }
 
   const filterInstruments = () => {
-    let filtered = instruments
+    let filtered = [...instruments]
 
     // Filter by type
     if (activeTab !== 'all') {
@@ -169,10 +193,11 @@ const Discover: React.FC = () => {
     }
 
     // Filter by search term
-    if (searchTerm) {
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase()
       filtered = filtered.filter(instrument =>
-        instrument.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instrument.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+        (instrument.name || '').toLowerCase().includes(q) ||
+        (instrument.symbol || '').toLowerCase().includes(q)
       )
     }
 
@@ -181,17 +206,20 @@ const Discover: React.FC = () => {
       filtered = filtered.filter(instrument => instrument.sector === selectedSector)
     }
 
-    // Sort
+    // Sort with null-safe access
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name)
+          return (a.name || '').localeCompare(b.name || '')
         case 'price':
-          return (b.latest_price || 0) - (a.latest_price || 0)
-        case 'yield':
-          return b.dividend_yield - a.dividend_yield
+          return (b.latest_price ?? 0) - (a.latest_price ?? 0)
+        case 'yield': {
+          const ay = a.dividend_yield ?? 0
+          const by = b.dividend_yield ?? 0
+          return by - ay
+        }
         case 'sector':
-          return a.sector.localeCompare(b.sector)
+          return (a.sector || '').localeCompare(b.sector || '')
         default:
           return 0
       }
@@ -220,13 +248,19 @@ const Discover: React.FC = () => {
   }
 
   const getSectors = () => {
-    const sectors = Array.from(new Set(instruments.map(i => i.sector).filter(Boolean)))
+    const sectors = Array.from(
+      new Set(
+        instruments
+          .map(i => i.sector)
+          .filter(Boolean)
+      )
+    )
     return sectors.sort()
   }
 
   const renderMiniChart = (instrument: Instrument) => {
     // Check if we have valid price data
-    if (!instrument.mini_series || instrument.mini_series.length === 0 || !instrument.latest_price) {
+    if (!instrument.mini_series || instrument.mini_series.length === 0) {
       return (
         <div className="h-16 flex items-center justify-center text-muted text-xs">
           No price data available
@@ -235,8 +269,11 @@ const Discover: React.FC = () => {
     }
 
     // Filter out invalid data points
-    const validSeries = instrument.mini_series.filter(point => 
-      point && point.date && typeof point.close === 'number' && !isNaN(point.close)
+    const validSeries = instrument.mini_series.filter(point =>
+      point &&
+      point.date &&
+      typeof point.close === 'number' &&
+      !isNaN(point.close)
     )
 
     if (validSeries.length === 0) {
@@ -248,7 +285,7 @@ const Discover: React.FC = () => {
     }
 
     const data = {
-      labels: validSeries.map(point => 
+      labels: validSeries.map(point =>
         new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })
       ),
       datasets: [
@@ -273,17 +310,17 @@ const Discover: React.FC = () => {
           borderColor: 'transparent',
           borderWidth: 0,
           callbacks: {
-            label: (context: any) => formatCurrency(context.parsed.y)
-          }
-        }
+            label: (context: any) => formatCurrency(context.parsed.y),
+          },
+        },
       },
       scales: {
         x: { display: false },
-        y: { display: false }
+        y: { display: false },
       },
       elements: {
-        point: { radius: 0 }
-      }
+        point: { radius: 0 },
+      },
     }
 
     return (
@@ -334,7 +371,7 @@ const Discover: React.FC = () => {
     const isConnectionError = error.toLowerCase().includes('connect') || error.toLowerCase().includes('server')
     const hasRenderUrl = import.meta.env.VITE_API_BASE_URL?.includes('onrender.com')
     const isLocalDev = !import.meta.env.VITE_API_BASE_URL || import.meta.env.DEV
-    
+
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="mx-auto max-w-md space-y-4 rounded-[28px] border border-[#e7e9f3] bg-white p-8 text-center">
@@ -525,7 +562,7 @@ const Discover: React.FC = () => {
               <div className="mb-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-semibold text-primary-ink">
-                    {instrument.latest_price ? formatCurrency(instrument.latest_price) : 'N/A'}
+                    {instrument.latest_price != null ? formatCurrency(instrument.latest_price) : 'N/A'}
                   </span>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getTypeColor(instrument.type)}`}>
                     {instrument.type.toUpperCase()}
@@ -546,14 +583,14 @@ const Discover: React.FC = () => {
                 <div>
                   <p className="text-xs font-semibold text-muted">Dividend yield</p>
                   <p className="mt-1 text-base font-semibold text-primary-ink">
-                    {instrument.dividend_yield.toFixed(1)}%
+                    {(instrument.dividend_yield ?? 0).toFixed(1)}%
                   </p>
                 </div>
-                {instrument.ter > 0 && (
+                {(instrument.ter ?? 0) > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted">TER</p>
                     <p className="mt-1 text-base font-semibold text-primary-ink">
-                      {instrument.ter.toFixed(2)}%
+                      {(instrument.ter ?? 0).toFixed(2)}%
                     </p>
                   </div>
                 )}
