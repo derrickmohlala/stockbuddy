@@ -33,17 +33,40 @@ export const apiFetch = (path: string, options?: RequestInit) => {
     headers.set('Authorization', `Bearer ${token}`)
   }
   
+  // Add timeout for Render backend (free tier can be slow)
+  const isRenderBackend = import.meta.env.VITE_API_BASE_URL?.includes('onrender.com')
+  const timeout = isRenderBackend ? 60000 : 30000 // 60s for Render, 30s for local
+  
+  // Create abort controller for timeout
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+  
   return fetch(url, {
     ...options,
-    headers
-  }).catch(error => {
-    // Log fetch errors for debugging
-    console.error('Fetch error:', {
-      url,
-      error: error.message,
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
-      path
-    })
-    throw error
+    headers,
+    signal: controller.signal
   })
+    .then(response => {
+      clearTimeout(timeoutId)
+      return response
+    })
+    .catch(error => {
+      clearTimeout(timeoutId)
+      
+      // Handle timeout/abort errors
+      if (error.name === 'AbortError') {
+        const timeoutError = new Error('Request timeout. The server is taking too long to respond.')
+        timeoutError.name = 'TimeoutError'
+        throw timeoutError
+      }
+      
+      // Log fetch errors for debugging
+      console.error('Fetch error:', {
+        url,
+        error: error.message,
+        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
+        path
+      })
+      throw error
+    })
 }

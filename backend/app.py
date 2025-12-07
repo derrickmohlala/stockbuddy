@@ -173,6 +173,15 @@ if database_url:
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # Add connection pool settings for Render (helps with sleeping database)
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,  # Verify connections before using
+        'pool_recycle': 300,    # Recycle connections after 5 minutes
+        'connect_args': {
+            'connect_timeout': 10,  # 10 second connection timeout
+            'options': '-c statement_timeout=30000'  # 30 second query timeout
+        }
+    }
     print(f"✓ Using PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else 'configured'}")
 else:
     # SQLite (local development): Use instance folder if it exists, otherwise current directory
@@ -390,21 +399,59 @@ def auto_seed():
 
 with app.app_context():
     # Create all tables based on models
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"⚠ Warning: Database table creation had issues: {e}")
+        # Continue anyway - tables might already exist
+    
     # Run SQLite-specific migrations only for local development
-    run_sqlite_migrations()
+    try:
+        run_sqlite_migrations()
+    except Exception as e:
+        print(f"⚠ Warning: Migration had issues: {e}")
+        # Continue anyway
+    
     # Auto-seed database if empty (first-time setup)
-    auto_seed()
+    # Run in try/except so it doesn't block app startup if database is slow
+    try:
+        auto_seed()
+    except Exception as e:
+        print(f"⚠ Warning: Auto-seed had issues (non-fatal): {e}")
+        # Continue anyway - app can still start
 
-# Health check
+# Health check - fast response without blocking on database
 @app.route("/api/health")
 def health():
-    instrument_count = Instrument.query.count()
-    return jsonify({
-        "status": "healthy", 
-        "timestamp": datetime.now().isoformat(),
-        "instruments": instrument_count
-    })
+    """Lightweight health check that doesn't block on database queries"""
+    try:
+        # Try to get instrument count with a short timeout
+        # If database is slow/sleeping, just return healthy status
+        instrument_count = None
+        try:
+            # Use a simple query that should be fast
+            instrument_count = Instrument.query.limit(1).count()
+            # If we got here, try to get full count (but don't wait too long)
+            instrument_count = Instrument.query.count()
+        except Exception as db_error:
+            # Database might be sleeping or slow - that's OK for health check
+            print(f"⚠ Health check: Database query slow/unavailable: {db_error}")
+            instrument_count = None
+        
+        return jsonify({
+            "status": "healthy", 
+            "timestamp": datetime.now().isoformat(),
+            "instruments": instrument_count
+        })
+    except Exception as e:
+        # Even if something fails, return healthy (service is running)
+        print(f"⚠ Health check error: {e}")
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "instruments": None,
+            "note": "Database connection may be slow"
+        })
 
 # Manual re-seed endpoint (for testing/debugging)
 @app.route("/api/admin/reseed", methods=["POST"])

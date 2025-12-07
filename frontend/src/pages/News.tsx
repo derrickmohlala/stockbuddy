@@ -72,13 +72,44 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     try {
       const response = await apiFetch('/api/news/latest')
       if (!response.ok) {
-        throw new Error('Unable to load latest news.')
+        let errorMessage = 'Unable to load latest news.'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.detail || errorMessage
+        } catch (e) {
+          errorMessage = `Server error (${response.status}): ${response.statusText || errorMessage}`
+        }
+        throw new Error(errorMessage)
       }
       const data = await response.json()
       setGeneralNews(data.news || [])
       setIsPersonalized(false)
     } catch (err: any) {
-      setError(err.message || 'Something went wrong loading news.')
+      console.error('Error fetching latest news:', err)
+      
+      let errorMessage = 'Something went wrong loading news.'
+      const renderUrl = import.meta.env.VITE_API_BASE_URL
+      const isRenderBackend = renderUrl?.includes('onrender.com')
+      
+      if (err?.message) {
+        if (err.message.includes('timeout') || err.name === 'TimeoutError') {
+          if (isRenderBackend) {
+            errorMessage = 'The Render backend is taking too long to respond. Free tier services can be slow. Please try again in a moment.'
+          } else {
+            errorMessage = 'Request timed out. Please try again.'
+          }
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          if (isRenderBackend) {
+            errorMessage = 'Unable to connect to Render backend. The service may be waking up (free tier can take 30-60 seconds). Please wait and try again.'
+          } else {
+            errorMessage = 'Unable to connect to the server. Please check your connection.'
+          }
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -91,7 +122,14 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     try {
       const response = await apiFetch(`/api/news/${userId}`)
       if (!response.ok) {
-        throw new Error('Unable to load portfolio news right now.')
+        let errorMessage = 'Unable to load portfolio news right now.'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.detail || errorMessage
+        } catch (e) {
+          errorMessage = `Server error (${response.status}): ${response.statusText || errorMessage}`
+        }
+        throw new Error(errorMessage)
       }
       const data = await response.json()
       setAnchorData(data.anchor || null)
@@ -101,7 +139,31 @@ const News: React.FC<NewsProps> = ({ userId }) => {
       setEarningsSchedule(data.earnings_schedule || {})
       setIsPersonalized(true)
     } catch (err: any) {
-      setError(err.message || 'Something went wrong loading news.')
+      console.error('Error fetching personalized news:', err)
+      
+      let errorMessage = 'Something went wrong loading news.'
+      const renderUrl = import.meta.env.VITE_API_BASE_URL
+      const isRenderBackend = renderUrl?.includes('onrender.com')
+      
+      if (err?.message) {
+        if (err.message.includes('timeout') || err.name === 'TimeoutError') {
+          if (isRenderBackend) {
+            errorMessage = 'The Render backend is taking too long to respond. Free tier services can be slow. Please try again in a moment.'
+          } else {
+            errorMessage = 'Request timed out. Please try again.'
+          }
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          if (isRenderBackend) {
+            errorMessage = 'Unable to connect to Render backend. The service may be waking up (free tier can take 30-60 seconds). Please wait and try again.'
+          } else {
+            errorMessage = 'Unable to connect to the server. Please check your connection.'
+          }
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
