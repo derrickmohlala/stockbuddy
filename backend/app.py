@@ -196,8 +196,11 @@ db.init_app(app)
 allowed_origins = [
     "https://stockbuddy-frondend.onrender.com",
     "https://stockbuddy-frontend.onrender.com",  # In case of typo correction
+    "https://derrickmohlala.github.io",  # GitHub Pages deployment
     "http://localhost:5173",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://localhost:8000",  # Vite dev server port in this repo
+    "http://localhost:4173"   # Vite preview
 ]
 
 CORS(app, resources={

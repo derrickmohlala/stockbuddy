@@ -98,6 +98,7 @@ const Discover: React.FC = () => {
   const fetchInstruments = async () => {
     try {
       setError(null)
+      setLoading(true)
       const response = await apiFetch('/api/instruments')
       if (response.ok) {
         const data = await response.json()
