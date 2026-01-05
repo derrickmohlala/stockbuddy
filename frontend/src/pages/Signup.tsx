@@ -19,7 +19,7 @@ interface OnboardingData {
 const Signup: React.FC = () => {
   const navigate = useNavigate()
   const { login, user, setAuthFromToken } = useAuth()
-  
+
   // Redirect if already logged in
   React.useEffect(() => {
     if (user) {
@@ -31,12 +31,12 @@ const Signup: React.FC = () => {
       }
     }
   }, [user, navigate])
-  
+
   // Account creation state (Step 0)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  
+
   // Onboarding state (Steps 1-3)
   const [currentStep, setCurrentStep] = useState(0) // 0 = signup, 1-3 = onboarding
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
@@ -50,7 +50,7 @@ const Signup: React.FC = () => {
     literacy_level: '',
     interests: []
   })
-  
+
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -111,34 +111,34 @@ const Signup: React.FC = () => {
 
   const handleCompleteOnboarding = async () => {
     setError(null)
-    
+
     // Validate all required fields before submitting
     if (!email || !validateEmail(email)) {
       setError('Please enter a valid email address')
       return
     }
-    
+
     if (!password || password.length < 6) {
       setError('Password must be at least 6 characters')
       return
     }
-    
+
     if (!onboardingData.first_name || onboardingData.first_name.trim().length < 1) {
       setError('First name is required')
       return
     }
-    
-    if (!onboardingData.age_band || !onboardingData.experience || !onboardingData.goal || 
-        !onboardingData.horizon || !onboardingData.anchor_stock || !onboardingData.literacy_level) {
+
+    if (!onboardingData.age_band || !onboardingData.experience || !onboardingData.goal ||
+      !onboardingData.horizon || !onboardingData.anchor_stock || !onboardingData.literacy_level) {
       setError('Please complete all onboarding questions')
       return
     }
-    
+
     if (!onboardingData.interests || onboardingData.interests.length === 0) {
       setError('Please select at least one interest')
       return
     }
-    
+
     setSubmitting(true)
 
     try {
@@ -148,7 +148,7 @@ const Signup: React.FC = () => {
         ...onboardingData,
         first_name: onboardingData.first_name.trim() // Override with trimmed version
       }
-      
+
       console.log('Attempting registration with data:', {
         email: requestBody.email,
         hasPassword: !!requestBody.password,
@@ -162,7 +162,7 @@ const Signup: React.FC = () => {
         literacy_level: requestBody.literacy_level,
         interests: requestBody.interests
       })
-      
+
       // Register with onboarding data included
       const response = await apiFetch('/api/auth/register', {
         method: 'POST',
@@ -172,60 +172,15 @@ const Signup: React.FC = () => {
         body: JSON.stringify(requestBody)
       })
 
-      console.log('Registration response:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText
-      })
-
       if (!response.ok) {
-        let errorMessage = 'Registration failed'
-        let errorDetail = ''
-        
-        // Read the response body as text first (can only be read once)
-        try {
-          const text = await response.text()
-          console.log('Error response text:', text)
-          
-          if (text) {
-            try {
-              // Try to parse as JSON
-              const errorData = JSON.parse(text)
-              console.log('Error response data:', errorData)
-              errorMessage = errorData.error || errorData.message || errorMessage
-              errorDetail = errorData.detail || ''
-            } catch (jsonError) {
-              // If not JSON, use text as error message
-              errorMessage = text || errorMessage
-            }
-          } else {
-            // No body, use status text
-            errorMessage = response.statusText || `Server error (${response.status})`
-          }
-        } catch (textError) {
-          console.error('Failed to get error text:', textError)
-          // Use status text as fallback
-          errorMessage = response.statusText || `Server error (${response.status})`
-        }
-        
-        const fullError = errorDetail ? `${errorMessage}: ${errorDetail}` : errorMessage
-        console.error('Registration failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorMessage,
-          detail: errorDetail,
-          fullError
-        })
-        throw new Error(fullError)
+        const data = await response.json()
+        throw new Error(data.error || 'Registration failed')
       }
 
       const data = await response.json()
-      console.log('Registration successful:', { user_id: data.user_id, email: data.email, is_onboarded: data.is_onboarded, has_token: !!data.access_token })
-      
-      // Use the token from registration response directly instead of calling login()
-      // This avoids a redundant API call and potential race conditions
+
       if (data.access_token) {
-        // Set auth state directly from registration response
+        // Update context immediately
         setAuthFromToken(data.access_token, {
           user_id: data.user_id,
           email: data.email,
@@ -233,100 +188,20 @@ const Signup: React.FC = () => {
           is_admin: data.is_admin || false,
           is_onboarded: data.is_onboarded || false
         })
-        
-        // Small delay to ensure auth state is updated before navigation
-        // Also ensure userId is set in localStorage before navigation
-        localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
-        setTimeout(() => {
-          if (data.is_onboarded) {
-            navigate('/portfolio')
-          } else {
-            navigate('/onboarding')
-          }
-        }, 200)
+
+        // Use replace to prevent back navigation to signup
+        navigate('/portfolio', { replace: true })
       } else {
-        // Fallback: if no token in response, try login
-        console.warn('No access_token in registration response, attempting login')
-        try {
-          await login(email.trim().toLowerCase(), password)
-          setTimeout(() => {
-            if (data.is_onboarded) {
-              navigate('/portfolio')
-            } else {
-              navigate('/onboarding')
-            }
-          }, 100)
-        } catch (loginError) {
-          console.error('Login after registration failed:', loginError)
-          setError('Registration succeeded but login failed. Please try logging in manually.')
-        }
+        // Fallback to login if no token returned (shouldn't happen with new backend)
+        await login(email, password)
       }
     } catch (err: any) {
-      console.error('Registration catch block:', err)
-      
-      let errorMsg = 'Registration failed. Please try again.'
-      
-      // Extract error message from various error types
-      if (err?.message) {
-        errorMsg = String(err.message)
-      } else if (err?.error) {
-        errorMsg = String(err.error)
-      } else if (typeof err === 'string') {
-        errorMsg = err
-      } else if (err?.toString && err.toString() !== '[object Object]') {
-        errorMsg = err.toString()
-      } else {
-        // Last resort - stringify the error
-        try {
-          errorMsg = JSON.stringify(err)
-        } catch {
-          errorMsg = 'Registration failed. Please check the console for details.'
-        }
-      }
-      
-      console.log('Extracted error message:', errorMsg)
-      
-      // Show more helpful error messages
-      const errorLower = errorMsg.toLowerCase()
-      if (errorLower.includes('network') || errorLower.includes('fetch') || errorLower.includes('failed to fetch') || errorLower.includes('cors')) {
-        // Check if it's a CORS error specifically
-        if (errorLower.includes('cors') || errorLower.includes('access-control')) {
-          errorMsg = 'CORS error: The server is not allowing requests from this origin. Please check server configuration.'
-        } else {
-          errorMsg = 'Unable to connect to the server. Please check your internet connection and try again.'
-        }
-        // Log the actual error for debugging
-        console.error('Network/CORS error details:', {
-          error: err,
-          apiUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
-          message: errorMsg
-        })
-      } else if (errorLower.includes('already exists') || errorLower.includes('duplicate')) {
-        errorMsg = 'An account with this email already exists. Please try logging in instead.'
-      } else if (errorLower.includes('required') || errorLower.includes('missing')) {
-        errorMsg = 'Please fill in all required fields.'
-      } else if (errorLower.includes('valid email') || (errorLower.includes('email') && errorLower.includes('invalid'))) {
-        errorMsg = 'Please enter a valid email address.'
-      } else if (errorLower.includes('password') && errorLower.includes('6')) {
-        errorMsg = 'Password must be at least 6 characters long.'
-      } else if (errorMsg === 'Registration failed. Please try again.' && err) {
-        // If we still have the generic message, try to show something more useful
-        errorMsg = `Registration failed: ${errorLower.includes('detail') ? errorMsg : 'Please check all fields are filled correctly.'}`
-      }
-      
-      console.error('Final registration error:', {
-        originalError: err,
-        extractedMessage: errorMsg,
-        errorType: typeof err,
-        errorKeys: err ? Object.keys(err) : [],
-        errorString: String(err),
-        errorJSON: JSON.stringify(err, null, 2)
-      })
-      
-      setError(errorMsg)
+      console.error('Registration error:', err)
+      setError(err.message || 'Registration failed. Please try again.')
       setSubmitting(false)
     }
   }
+
 
   const renderStep0 = () => (
     <form onSubmit={handleAccountCreation} className="space-y-6" noValidate>
@@ -415,11 +290,10 @@ const Signup: React.FC = () => {
               key={age}
               type="button"
               onClick={() => updateData('age_band', age)}
-              className={`p-3 rounded-xl border text-center transition-colors ${
-                onboardingData.age_band === age
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`p-3 rounded-xl border text-center transition-colors ${onboardingData.age_band === age
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               {age}
             </button>
@@ -441,11 +315,10 @@ const Signup: React.FC = () => {
               key={exp.value}
               type="button"
               onClick={() => updateData('experience', exp.value)}
-              className={`w-full p-4 rounded-xl border text-left transition-colors ${
-                onboardingData.experience === exp.value
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.experience === exp.value
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               <div className="font-semibold">{exp.label}</div>
               <div className="text-sm text-subtle mt-1">{exp.desc}</div>
@@ -472,11 +345,10 @@ const Signup: React.FC = () => {
               key={goal.value}
               type="button"
               onClick={() => updateData('goal', goal.value)}
-              className={`w-full p-4 rounded-xl border text-left transition-colors ${
-                onboardingData.goal === goal.value
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.goal === goal.value
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               <div className="font-semibold">{goal.label}</div>
               <div className="text-sm text-subtle mt-1">{goal.desc}</div>
@@ -517,11 +389,10 @@ const Signup: React.FC = () => {
               key={horizon.value}
               type="button"
               onClick={() => updateData('horizon', horizon.value)}
-              className={`w-full p-4 rounded-xl border text-left transition-colors ${
-                onboardingData.horizon === horizon.value
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.horizon === horizon.value
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               <div className="font-semibold">{horizon.label}</div>
               <div className="text-sm text-subtle mt-1">{horizon.desc}</div>
@@ -559,7 +430,7 @@ const Signup: React.FC = () => {
         </label>
         <div className="grid grid-cols-2 gap-3">
           {[
-            'Banks', 'Resource counters', 'Retailers', 'Telcos', 
+            'Banks', 'Resource counters', 'Retailers', 'Telcos',
             'Property', 'Broad ETFs', 'Healthcare', 'Technology'
           ].map(interest => (
             <button
@@ -571,11 +442,10 @@ const Signup: React.FC = () => {
                   : [...onboardingData.interests, interest]
                 updateData('interests', newInterests)
               }}
-              className={`p-3 rounded-xl border text-center transition-colors ${
-                onboardingData.interests.includes(interest)
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`p-3 rounded-xl border text-center transition-colors ${onboardingData.interests.includes(interest)
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               {interest}
             </button>
@@ -597,11 +467,10 @@ const Signup: React.FC = () => {
               key={style.value}
               type="button"
               onClick={() => updateData('literacy_level', style.value)}
-              className={`w-full p-4 rounded-xl border text-left transition-colors ${
-                onboardingData.literacy_level === style.value
-                  ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                  : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
-              }`}
+              className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.literacy_level === style.value
+                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                }`}
             >
               <div className="font-semibold">{style.label}</div>
               <div className="text-sm text-subtle mt-1">{style.desc}</div>
@@ -644,7 +513,7 @@ const Signup: React.FC = () => {
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-brand-purple h-2 rounded-full transition-all duration-300"
               style={{ width: `${(stepNumber / totalSteps) * 100}%` }}
             />

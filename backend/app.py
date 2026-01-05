@@ -1071,6 +1071,7 @@ def onboarding():
 
 # Instruments endpoint
 @app.route("/api/instruments")
+@app.route("/api/instruments")
 def get_instruments():
     try:
         instrument_type = request.args.get('type')
@@ -1111,19 +1112,43 @@ def get_instruments():
             query = query.filter_by(sector=sector)
         
         instruments = query.all()
+        instrument_ids = [i.id for i in instruments]
+
+        # Optimization: Bulk fetch prices
+        # We need the latest price and the last 30 prices for the mini chart
+        # Fetching all prices for these instruments might be heavy if history is long,
+        # so let's limit to the last 45 lines per instrument roughly, or just fetch last 30 days globally if possible.
+        # Since SQL window functions can be complex in generic SQLAlchemy/SQLite, 
+        # we'll fetch the last 30 days of data for ALL active instruments.
         
+        from datetime import timedelta
+        thirty_days_ago = date.today() - timedelta(days=45) # Buffer for weekends
+        
+        # Get recent prices for all selected instruments
+        recent_prices = Price.query.filter(
+            Price.instrument_id.in_(instrument_ids), 
+            Price.date >= thirty_days_ago
+        ).order_by(Price.date.desc()).all()
+        
+        # Group prices by instrument_id in memory
+        price_map = {}
+        for p in recent_prices:
+            if p.instrument_id not in price_map:
+                price_map[p.instrument_id] = []
+            price_map[p.instrument_id].append(p)
+            
         result = []
         
         for instrument in instruments:
-            # Get latest price
-            latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-                .order_by(Price.date.desc()).first()
+            i_prices = price_map.get(instrument.id, [])
             
-            # Get mini series for chart (last 30 days or last 30 price points)
-            mini_series_query = Price.query.filter_by(instrument_id=instrument.id)\
-                .order_by(Price.date.desc()).limit(30).all()
+            # Latest price is the first one since we ordered by date desc
+            latest_price_obj = i_prices[0] if i_prices else None
             
-            mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_query)]
+            # Mini series: take up to 30 points
+            # Ensure chronological order for the chart (oldest to newest)
+            mini_series_objs = i_prices[:30]
+            mini_series = [{"date": p.date.isoformat(), "close": p.close} for p in reversed(mini_series_objs)]
             
             result.append({
                 "id": instrument.id,
@@ -1133,41 +1158,18 @@ def get_instruments():
                 "sector": instrument.sector,
                 "dividend_yield": instrument.dividend_yield,
                 "ter": instrument.ter,
-                "latest_price": latest_price.close if latest_price else None,
-                "price_date": latest_price.date.isoformat() if latest_price else None,
+                "latest_price": latest_price_obj.close if latest_price_obj else None,
+                "price_date": latest_price_obj.date.isoformat() if latest_price_obj else None,
                 "mini_series": mini_series
             })
         
-        # Return immediately - don't block on price fetching
-        # Prices will be backfilled by the scheduled backfill task or on first instrument view
         return jsonify(result)
         
     except Exception as e:
         print(f"✗ Error in /api/instruments endpoint: {e}")
         import traceback
         traceback.print_exc()
-        # Return error but still try to return any instruments we have
-        try:
-            instruments = Instrument.query.filter_by(is_active=True).limit(100).all()
-            result = []
-            for instrument in instruments:
-                latest_price = Price.query.filter_by(instrument_id=instrument.id)\
-                    .order_by(Price.date.desc()).first()
-                result.append({
-                    "id": instrument.id,
-                    "symbol": instrument.symbol,
-                    "name": instrument.name,
-                    "type": instrument.type,
-                    "sector": instrument.sector,
-                    "dividend_yield": instrument.dividend_yield or 0,
-                    "ter": instrument.ter or 0,
-                    "latest_price": latest_price.close if latest_price else None,
-                    "price_date": latest_price.date.isoformat() if latest_price else None,
-                    "mini_series": []
-                })
-            return jsonify(result)
-        except:
-            return jsonify({"error": "Failed to load instruments", "detail": str(e)}), 500
+        return jsonify({"error": "Failed to load instruments", "detail": str(e)}), 500
 
 
 def _fetch_price_for_instrument(instrument):

@@ -54,22 +54,26 @@ const Discover: React.FC = () => {
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set())
   const [refreshingPrices, setRefreshingPrices] = useState(false)
 
+  const [hasAutoRefreshed, setHasAutoRefreshed] = useState(false)
+
   useEffect(() => {
     fetchInstruments()
   }, [])
 
   // Fetch prices in background after instruments load
+  // Only attempt auto-refresh once to avoid infinite loops if prices are permanently unavailable
   useEffect(() => {
-    if (instruments.length > 0 && !refreshingPrices) {
+    if (instruments.length > 0 && !refreshingPrices && !hasAutoRefreshed) {
       const instrumentsWithoutPrices = instruments.filter(i => i.latest_price == null)
       if (instrumentsWithoutPrices.length > 0) {
+        setHasAutoRefreshed(true)
         const timer = setTimeout(() => {
           refreshPrices()
         }, 2000)
         return () => clearTimeout(timer)
       }
     }
-  }, [instruments, refreshingPrices])
+  }, [instruments, refreshingPrices, hasAutoRefreshed])
 
   const refreshPrices = async () => {
     setRefreshingPrices(true)
@@ -136,9 +140,8 @@ const Discover: React.FC = () => {
           const errorData = await response.json()
           errorMessage = errorData.error || errorData.detail || errorMessage
         } catch (e) {
-          errorMessage = `Server error (${response.status}): ${
-            response.statusText || 'Unable to load instruments'
-          }`
+          errorMessage = `Server error (${response.status}): ${response.statusText || 'Unable to load instruments'
+            }`
         }
         setError(errorMessage)
         console.error('HTTP error fetching instruments:', response.status, errorMessage)
@@ -524,11 +527,10 @@ const Discover: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                activeTab === tab.key
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key
                   ? 'border-brand-coral bg-brand-coral text-white'
                   : 'border-[#e7e9f3] bg-white text-muted hover:border-brand-coral/40 hover:text-brand-coral'
-              }`}
+                }`}
             >
               {tab.label} ({tab.count})
             </button>
@@ -548,11 +550,10 @@ const Discover: React.FC = () => {
                 </div>
                 <button
                   onClick={() => toggleWatchlist(instrument.symbol)}
-                  className={`rounded-full p-1 transition ${
-                    watchlist.has(instrument.symbol)
+                  className={`rounded-full p-1 transition ${watchlist.has(instrument.symbol)
                       ? 'text-brand-gold'
                       : 'text-muted hover:text-brand-gold'
-                  }`}
+                    }`}
                   aria-label={watchlist.has(instrument.symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
                 >
                   <Star className={`h-5 w-5 ${watchlist.has(instrument.symbol) ? 'fill-current' : ''}`} />

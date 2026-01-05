@@ -37,9 +37,12 @@ class Instrument(db.Model):
 
 class Price(db.Model):
     __tablename__ = "prices"
+    __table_args__ = (
+        db.Index('idx_price_instrument_date', 'instrument_id', 'date'),
+    )
     id = db.Column(db.Integer, primary_key=True)
-    instrument_id = db.Column(db.Integer, db.ForeignKey("instruments.id"), nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    instrument_id = db.Column(db.Integer, db.ForeignKey("instruments.id"), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
     close = db.Column(db.Float, nullable=False)
     dividend = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -57,7 +60,7 @@ class Basket(db.Model):
 class UserPortfolio(db.Model):
     __tablename__ = "user_portfolios"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     archetype = db.Column(db.String(50), nullable=False)     # Dreamer, Navigator, Anchor
     allocations = db.Column(db.Text)                         # JSON string
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -82,8 +85,8 @@ class SuggestionAction(db.Model):
 class UserPosition(db.Model):
     __tablename__ = "user_positions"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    symbol = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    symbol = db.Column(db.String(20), nullable=False, index=True)
     quantity = db.Column(db.Float, nullable=False)
     avg_price = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -91,16 +94,16 @@ class UserPosition(db.Model):
 class UserTrade(db.Model):
     __tablename__ = "user_trades"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    symbol = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    symbol = db.Column(db.String(20), nullable=False, index=True)
     side = db.Column(db.String(10), nullable=False)         # buy, sell
     quantity = db.Column(db.Float, nullable=False)
     price = db.Column(db.Float, nullable=False)
-    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+    timestamp = db.Column(db.DateTime, server_default=db.func.now(), index=True)
 
 class CPI(db.Model):
     __tablename__ = "cpi"
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.Date, nullable=False, index=True)
     value = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
