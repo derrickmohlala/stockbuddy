@@ -1,6 +1,8 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import sys
+import csv
+import io
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
@@ -973,21 +975,7 @@ def get_all_users():
     
     users = []
     for user in pagination.items:
-        users.append({
-            "id": user.id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "is_admin": user.is_admin,
-            "age_band": user.age_band,
-            "experience": user.experience,
-            "goal": user.goal,
-            "risk": user.risk,
-            "horizon": user.horizon,
-            "anchor_stock": user.anchor_stock,
-            "literacy_level": user.literacy_level,
-            "is_onboarded": bool(user.goal and user.risk is not None),
-            "created_at": user.created_at.isoformat() if user.created_at else None
-        })
+        users.append(user.to_dict())
     
     return jsonify({
         "users": users,
@@ -996,6 +984,70 @@ def get_all_users():
         "per_page": per_page,
         "pages": pagination.pages
     }), 200
+
+@app.route("/api/admin/users/<int:user_id>", methods=["PUT"])
+@jwt_required()
+def admin_update_user(user_id):
+    claims = get_jwt()
+    if not claims.get('is_admin'):
+        return jsonify({"error": "Admin access required"}), 403
+        
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    data = request.json or {}
+    
+    # Update allowed fields
+    if 'first_name' in data: user.first_name = str(data.get('first_name')).strip()
+    if 'email' in data: user.email = str(data.get('email')).strip().lower()
+    if 'cellphone' in data: user.cellphone = str(data.get('cellphone')).strip()
+    if 'province' in data: user.province = str(data.get('province')).strip()
+    if 'is_admin' in data: user.is_admin = bool(data.get('is_admin'))
+    
+    if 'goal' in data: user.goal = str(data.get('goal')).strip()
+    if 'risk' in data: user.risk = int(data.get('risk'))
+    if 'experience' in data: user.experience = str(data.get('experience')).strip()
+    if 'age_band' in data: user.age_band = str(data.get('age_band')).strip()
+    
+    try:
+        db.session.commit()
+        return jsonify(user.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update user: {str(e)}"}), 500
+
+@app.route("/api/admin/users/export", methods=["GET"])
+@jwt_required()
+def export_users():
+    claims = get_jwt()
+    if not claims.get('is_admin'):
+        return jsonify({"error": "Admin access required"}), 403
+    
+    users = User.query.all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([
+        "ID", "Email", "First Name", "Admin", "Phone", "Province", 
+        "Age", "Experience", "Goal", "Risk", "Horizon", "Created At"
+    ])
+    
+    for u in users:
+        writer.writerow([
+            u.id, u.email, u.first_name, u.is_admin, u.cellphone, u.province,
+            u.age_band, u.experience, u.goal, u.risk, u.horizon, 
+            u.created_at.isoformat() if u.created_at else ""
+        ])
+    
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=stockbuddy_users.csv"}
+    )
 
 # Onboarding endpoint
 @app.route("/api/onboarding", methods=["POST"])

@@ -23,6 +23,25 @@ class User(db.Model):
     province = db.Column(db.String(50), nullable=True)       # South African province
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "is_admin": self.is_admin,
+            "age_band": self.age_band,
+            "experience": self.experience,
+            "goal": self.goal,
+            "risk": self.risk,
+            "horizon": self.horizon,
+            "anchor_stock": self.anchor_stock,
+            "literacy_level": self.literacy_level,
+            "interests": json.loads(self.interests) if self.interests else [],
+            "cellphone": self.cellphone,
+            "province": self.province,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
 class Instrument(db.Model):
     __tablename__ = "instruments"
     id = db.Column(db.Integer, primary_key=True)
