@@ -10,9 +10,6 @@ interface NavItem {
 }
 
 const mainNav: NavItem[] = [
-  { label: 'Home', to: '/' },
-  { label: 'About', to: '/about' },
-  { label: 'News', to: '/news' },
   {
     label: 'Portfolio',
     to: '/portfolio',
@@ -23,13 +20,15 @@ const mainNav: NavItem[] = [
     ]
   },
   {
-    label: 'Terminology',
+    label: 'Resources',
     to: '/terminology',
     children: [
-      { label: 'Glossary', to: '/terminology' },
-      { label: 'Archetypes', to: '/archetypes' }
+      { label: 'Terminology', to: '/terminology' },
+      { label: 'Archetypes', to: '/archetypes' },
+      { label: 'News', to: '/news' }
     ]
-  }
+  },
+  { label: 'About', to: '/about' }
 ]
 
 const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
@@ -57,19 +56,14 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
 
   return (
     <header className="sticky top-0 z-50 bg-white">
-      <div className="border-b border-[#e7e9f3]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <NavLink to="/" aria-label="StockBuddy home" className="flex items-center gap-2">
-              <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-9 w-auto" loading="lazy" />
-            </NavLink>
-            <div className="hidden sm:flex flex-col">
-              <span className="text-sm font-semibold text-primary-ink">StockBuddy</span>
-              <span className="text-xs font-medium text-muted">Investment studio</span>
-            </div>
-          </div>
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-6 px-6 py-5">
+        <div className="flex items-center gap-8">
+          <NavLink to="/" aria-label="StockBuddy home" className="flex items-center gap-2">
+            <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-8 w-auto" loading="lazy" />
+            <span className="text-xl font-medium tracking-tight text-primary-ink">StockBuddy</span>
+          </NavLink>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-2 md:flex">
             {mainNav.map((item) => {
               if (item.children) {
                 const isGroupActive = item.children.some(child => isActiveLink(child.to))
@@ -84,31 +78,29 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   >
                     <NavLink
                       to={item.to}
-                      className={`flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-all ${isGroupActive
-                          ? 'bg-brand-coral/10 text-brand-coral'
-                          : isOpen
-                            ? 'text-brand-coral'
-                            : 'text-muted hover:text-brand-coral'
+                      className={`flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[15px] font-medium transition-all ${isOpen || isGroupActive
+                        ? 'bg-brand-coral/10 text-brand-coral'
+                        : 'text-muted hover:text-brand-coral'
                         }`}
                     >
                       {item.label}
                       <ChevronDown
-                        className={`h-3 w-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                       />
                     </NavLink>
 
-                    {/* Dropdown Menu */}
+                    {/* Dropdown Menu - Antigravity style (Clean list) */}
                     <div
-                      className={`absolute left-1/2 top-full w-48 -translate-x-1/2 pt-4 transition-all duration-200 ${isOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+                      className={`absolute left-0 top-full pt-2 transition-all duration-200 ${isOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-1'
                         }`}
                     >
-                      <div className="overflow-hidden rounded-2xl border border-[#e7e9f3] bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+                      <div className="w-56 overflow-hidden rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5">
                         {item.children.map((child) => (
                           <NavLink
                             key={child.to}
                             to={child.to}
                             className={({ isActive }) =>
-                              `block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${isActive
+                              `block rounded-xl px-4 py-3 text-[14px] font-medium transition-colors ${isActive
                                 ? 'bg-brand-coral/10 text-brand-coral'
                                 : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
                               }`
@@ -128,7 +120,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
+                    `rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
                     }`
                   }
                 >
@@ -194,7 +186,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
             </button>
           </div>
         </div>
-      </div>
+      </div >
 
       {menuOpen && (
         <div className="border-b border-[#e7e9f3] bg-white/95">
@@ -287,7 +279,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
           </nav>
         </div>
       )}
-    </header>
+    </header >
   )
 }
 
