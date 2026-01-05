@@ -13,8 +13,8 @@ services:
           name: stockbuddy-db
           property: internalConnectionString
 
-  - type: database
-    name: stockbuddy-db
+databases:
+  - name: stockbuddy-db
     plan: free
     databaseName: stockbuddy
     user: stockbuddy_user
