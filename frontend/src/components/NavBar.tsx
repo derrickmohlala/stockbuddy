@@ -32,10 +32,10 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  
+
   // Use user's onboarding status from auth context, fallback to prop
   const userIsOnboarded = user?.is_onboarded ?? isOnboarded
-  
+
   const isPortfolioActive = location.pathname.startsWith('/portfolio') || location.pathname.startsWith('/discover')
 
   const handleStart = () => {
@@ -50,8 +50,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
   }
 
   const renderLinkClass = ({ isActive }: NavLinkRender) =>
-    `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-      isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
+    `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
     }`
 
   return (
@@ -74,9 +73,9 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 {item.label}
               </NavLink>
             ))}
-            
+
             {/* Portfolio Dropdown */}
-            <div 
+            <div
               className="relative"
               onMouseEnter={() => setPortfolioDropdownOpen(true)}
               onMouseLeave={() => setPortfolioDropdownOpen(false)}
@@ -84,29 +83,27 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
               <NavLink
                 to="/portfolio"
                 className={() =>
-                  `rounded-full px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${
-                    isPortfolioActive
-                      ? 'bg-brand-coral/10 text-brand-coral' 
-                      : 'text-muted hover:text-brand-coral'
+                  `rounded-full px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1 ${isPortfolioActive
+                    ? 'bg-brand-coral/10 text-brand-coral'
+                    : 'text-muted hover:text-brand-coral'
                   }`
                 }
               >
                 Portfolio
                 <ChevronDown className={`h-3 w-3 transition-transform ${portfolioDropdownOpen ? 'rotate-180' : ''}`} />
               </NavLink>
-              
+
               {portfolioDropdownOpen && (
-                <div className="absolute top-full left-0 pt-2 w-40">
-                  <div className="rounded-xl border border-[#e7e9f3] bg-white shadow-lg py-2">
+                <div className="absolute top-full left-0 pt-4 w-48">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200/10 bg-slate-900/95 p-1.5 shadow-xl backdrop-blur-xl ring-1 ring-black/5">
                     {portfolioSubItems.map((item) => (
                       <NavLink
                         key={item.to}
                         to={item.to}
                         className={({ isActive }) =>
-                          `block px-4 py-2 text-sm font-medium transition-colors ${
-                            isActive 
-                              ? 'bg-brand-coral/10 text-brand-coral' 
-                              : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                          `block rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${isActive
+                            ? 'bg-brand-coral/15 text-brand-coral'
+                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
                           }`
                         }
                       >
@@ -117,7 +114,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 </div>
               )}
             </div>
-            
+
             {navItemsAfterPortfolio.map((item) => (
               <NavLink key={item.to} to={item.to} className={renderLinkClass}>
                 {item.label}
@@ -197,7 +194,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 {item.label}
               </NavLink>
             ))}
-            
+
             {/* Portfolio Section in Mobile Menu */}
             <div className="rounded-xl border border-[#e7e9f3] overflow-hidden">
               <div className="px-4 py-2 bg-[#f7f8fb] text-xs font-semibold text-muted">
@@ -208,10 +205,9 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `block px-4 py-3 font-medium transition-colors border-t border-[#e7e9f3] ${
-                      isActive
-                        ? 'bg-brand-coral/10 text-brand-coral border-brand-coral/20'
-                        : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                    `block px-4 py-3 font-medium transition-colors border-t border-[#e7e9f3] ${isActive
+                      ? 'bg-brand-coral/10 text-brand-coral border-brand-coral/20'
+                      : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
                     }`
                   }
                   onClick={() => setMenuOpen(false)}
@@ -220,7 +216,7 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
                 </NavLink>
               ))}
             </div>
-            
+
             {navItemsAfterPortfolio.map((item) => (
               <NavLink
                 key={item.to}
