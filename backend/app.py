@@ -232,15 +232,25 @@ jwt = JWTManager(app)
 # Add JWT error handlers
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
+    print(f"DEBUG: Token expired. Header: {jwt_header}, Payload: {jwt_payload}")
     return jsonify({"error": "Token has expired", "code": "TOKEN_EXPIRED"}), 401
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
+    print(f"DEBUG: Invalid token: {error}")
     return jsonify({"error": "Invalid token", "code": "INVALID_TOKEN", "detail": str(error)}), 401
 
 @jwt.unauthorized_loader
 def missing_token_callback(error):
+    print(f"DEBUG: Unauthorized (Missing Token): {error}")
+    print(f"DEBUG: Request headers: {dict(request.headers)}")
     return jsonify({"error": "Authorization required", "code": "MISSING_TOKEN", "detail": str(error)}), 401
+
+@app.before_request
+def debug_headers():
+    if request.path.startswith('/api/portfolio'):
+        print(f"DEBUG: Incoming request to {request.path}")
+        print(f"DEBUG: Headers: {dict(request.headers)}")
 
 def run_sqlite_migrations():
     """Run SQLite-specific migrations (only for local development)"""
