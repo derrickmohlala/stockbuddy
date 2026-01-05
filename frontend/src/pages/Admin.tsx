@@ -389,9 +389,6 @@ const Admin: React.FC = () => {
                   <p><strong>Age Band:</strong> {selectedUser.age_band || 'N/A'}</p>
                   <p><strong>Time Horizon:</strong> {selectedUser.horizon || 'N/A'}</p>
                   <p><strong>Anchor Choice:</strong> {selectedUser.anchor_stock || 'None'}</p>
-                  <p><strong>Income:</strong> {selectedUser.income_bracket || 'N/A'}</p>
-                  <p><strong>Industry:</strong> {selectedUser.employment_industry || 'N/A'}</p>
-                  <p><strong>Debt:</strong> {selectedUser.debt_level || 'N/A'}</p>
                 </div>
               </div>
             </div>
