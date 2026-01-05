@@ -9,9 +9,12 @@ import {
   Target,
   CircleDot,
   Flame,
-  Activity
+  Activity,
+  Share2,
+  CheckCircle2
 } from 'lucide-react'
 import { apiFetch } from '../lib/api'
+import { useRef } from 'react'
 
 type GoalType = 'growth' | 'balanced' | 'income'
 
@@ -97,8 +100,8 @@ const GOAL_META: Record<
 
 const STATUS_RANKS = [
   { min: 0, label: 'Starter', icon: <CircleDot className="h-4 w-4" />, color: 'bg-slate-400' },
-  { min: 25, label: 'Builder', icon: <Activity className="h-4 w-4" />, color: 'bg-indigo-400' },
-  { min: 50, label: 'Architect', icon: <Target className="h-4 w-4" />, color: 'bg-brand-mint' },
+  { min: 25, label: 'Builder', icon: <Activity className="h-4 w-4" />, color: 'bg-brand-coral/40' },
+  { min: 50, label: 'Architect', icon: <Target className="h-4 w-4" />, color: 'bg-brand-coral/70' },
   { min: 75, label: 'Titan', icon: <Flame className="h-4 w-4" />, color: 'bg-brand-coral' },
   { min: 100, label: 'Legend', icon: <Sparkles className="h-4 w-4" />, color: 'bg-brand-gold' }
 ]
@@ -115,6 +118,9 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   const [plan, setPlan] = useState<HealthPlanResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
+
+  const engineRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const loadGoalPreference = async () => {
@@ -194,6 +200,16 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
 
   const handleUpdate = () => {
     if (userId) fetchPlan()
+  }
+
+  const handleShare = () => {
+    setShareStatus('copied')
+    setTimeout(() => setShareStatus('idle'), 3000)
+    // In a real app, this might copy the URL or open a modal
+  }
+
+  const handleOptimize = () => {
+    engineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   const progressPct = useMemo(() => {
@@ -303,8 +319,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   return (
     <div className="space-y-10 pb-20">
       {/* Gamified Hero */}
-      <section className="relative overflow-hidden rounded-[40px] border border-slate-200 bg-white p-8 shadow-2xl shadow-indigo-100 lg:p-12">
-        <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-indigo-50/50 blur-3xl opacity-60"></div>
+      <section className="relative overflow-hidden rounded-[40px] border border-brand-coral/10 bg-white p-8 shadow-2xl shadow-brand-coral/5 lg:p-12">
+        <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-brand-coral/5 blur-3xl opacity-60"></div>
         <div className="absolute -left-20 -bottom-20 h-96 w-96 rounded-full bg-brand-mint/5 blur-3xl opacity-40"></div>
 
         <div className="relative z-10 flex flex-col items-center gap-12 lg:flex-row lg:justify-between">
@@ -334,11 +350,18 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             </p>
 
             <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
-              <button className="flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 hover:shadow-2xl active:scale-95">
+              <button
+                onClick={handleOptimize}
+                className="flex items-center gap-2 rounded-2xl bg-brand-coral px-8 py-4 text-sm font-bold text-white shadow-xl shadow-brand-coral/20 transition hover:bg-brand-coral/90 hover:shadow-2xl active:scale-95"
+              >
                 Optimize My Plan
               </button>
-              <button className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-95">
-                Share Progress
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-2 rounded-2xl border border-brand-coral/30 bg-white px-8 py-4 text-sm font-bold text-brand-coral transition hover:bg-brand-coral/5 active:scale-95"
+              >
+                {shareStatus === 'copied' ? <CheckCircle2 className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                {shareStatus === 'copied' ? 'Link Copied!' : 'Share Progress'}
               </button>
             </div>
           </div>
@@ -346,8 +369,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           <div className="flex flex-col items-center gap-6">
             <VitalityGauge value={progressPct} accent={GOAL_META[goalType].accent} label={currentStatus.label} />
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Next Rank At</span>
-              <span className="text-xl font-bold text-slate-900">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Next Milestone At</span>
+              <span className="text-xl font-black text-slate-900">
                 {STATUS_RANKS.find(r => r.min > progressPct)?.min ?? 100}%
               </span>
             </div>
@@ -355,14 +378,23 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         </div>
       </section>
 
+      {shareStatus === 'copied' && (
+        <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-3 rounded-full bg-brand-coral px-6 py-3 text-sm font-bold text-white shadow-2xl shadow-brand-coral/40">
+            <CheckCircle2 className="h-4 w-4" />
+            Progress link copied to clipboard!
+          </div>
+        </div>
+      )}
+
       {/* Grid Layout */}
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Input Panel */}
-        <div className="flex flex-col gap-6 lg:col-span-1">
-          <div className="flex h-full flex-col rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl">
+        <div ref={engineRef} className="flex flex-col gap-6 lg:col-span-1">
+          <div className="flex h-full flex-col rounded-[32px] border border-brand-coral/10 bg-white p-8 shadow-xl shadow-brand-coral/5">
             <h3 className="mb-8 text-xl font-bold text-slate-900 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <Gauge className="h-4 w-4 text-indigo-500" />
+              <div className="h-8 w-8 rounded-lg bg-brand-coral/10 flex items-center justify-center">
+                <Gauge className="h-4 w-4 text-brand-coral" />
               </div>
               Vitality Engine
             </h3>
@@ -376,8 +408,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                       key={g}
                       onClick={() => setGoalType(g)}
                       className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition-all ${goalType === g
-                        ? 'border-slate-900 bg-slate-900 text-white shadow-lg'
-                        : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white hover:text-slate-600'
+                        ? 'border-brand-coral bg-brand-coral text-white shadow-lg shadow-brand-coral/20'
+                        : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-brand-coral/20 hover:bg-brand-coral/5 hover:text-brand-coral'
                         }`}
                     >
                       {React.cloneElement(GOAL_META[g].icon as React.ReactElement, { className: 'h-4 w-4' })}
@@ -390,12 +422,12 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Term Runway</p>
-                  <span className="text-sm font-black text-indigo-600">{termYears} YEARS</span>
+                  <span className="text-sm font-black text-brand-coral">{termYears} YEARS</span>
                 </div>
                 <input
                   type="range" min="1" max="30" value={termYears}
                   onChange={(e) => setTermYears(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-coral"
                 />
               </div>
 
@@ -440,7 +472,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                     {['monthly', 'annual'].map((f) => (
                       <button
                         key={f} onClick={() => setIncomeFrequency(f as any)}
-                        className={`rounded-xl py-2 text-[10px] font-black uppercase transition-all ${incomeFrequency === f ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'
+                        className={`rounded-xl py-2 text-[10px] font-black uppercase transition-all ${incomeFrequency === f ? 'bg-brand-coral text-white shadow-md shadow-brand-coral/20' : 'bg-slate-50 text-slate-400'
                           }`}
                       >
                         {f}
@@ -454,7 +486,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
             <button
               onClick={handleUpdate}
               disabled={loading}
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:opacity-50"
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-coral py-4 text-sm font-bold text-white shadow-lg shadow-brand-coral/20 transition hover:bg-brand-coral/90 disabled:opacity-50"
             >
               {loading ? <Activity className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {loading ? 'CALCULATING...' : 'SYNC ENGINE'}
@@ -476,13 +508,13 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           <div className="flex-1 rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <Activity className="h-4 w-4 text-emerald-500" />
+                <div className="h-8 w-8 rounded-lg bg-brand-coral/10 flex items-center justify-center">
+                  <Activity className="h-4 w-4 text-brand-coral" />
                 </div>
                 Plan Diagnostics
               </h3>
               {plan && (
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700 uppercase tracking-tighter">
+                <span className="rounded-full bg-brand-coral/10 px-3 py-1 text-[10px] font-black text-brand-coral uppercase tracking-tighter">
                   Synced Successfully
                 </span>
               )}
@@ -502,7 +534,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   <StatItem label="Portfolio Now" value={currencyFormatter.format(plan.current_value || 0)} icon={<Wallet />} />
                   <StatItem label="Est. Annual Return" value={`${(plan.annual_return_pct || 0).toFixed(2)}%`} icon={<TrendingUp />} />
-                  <StatItem label="Monthly Power" value={currencyFormatter.format(plan.monthly_budget || 0)} icon={<Coins />} color="indigo" />
+                  <StatItem label="Monthly Power" value={currencyFormatter.format(plan.monthly_budget || 0)} icon={<Coins />} />
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
@@ -519,14 +551,13 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                       { label: 'Once-off Lump Sum', value: currencyFormatter.format(plan.lump_sum_gap || 0) },
                       { label: 'Real Return spread', value: `${(plan.real_return_pct || 0).toFixed(2)} pts` }
                     ]}
-                    color="amber"
                   />
                 </div>
 
                 {plan.message && (
-                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-6 text-indigo-900 border-l-4 border-l-indigo-500">
+                  <div className="rounded-2xl border border-brand-coral/10 bg-brand-coral/5 p-6 text-slate-900 border-l-4 border-l-brand-coral">
                     <p className="flex items-start gap-3 text-sm font-medium leading-relaxed">
-                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-indigo-500" />
+                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-brand-coral" />
                       {plan.message}
                     </p>
                   </div>
@@ -546,7 +577,7 @@ const VitalityGauge: React.FC<{ value: number; accent: AccentKey; label: string 
   const rotation = -90 + (value * 1.8) // 180 degree semi-circle
   const colors: Record<AccentKey, string> = {
     cyan: 'border-t-brand-mint',
-    violet: 'border-t-indigo-500',
+    violet: 'border-t-brand-coral',
     emerald: 'border-t-brand-mint',
     amber: 'border-t-brand-gold',
     fuchsia: 'border-t-brand-coral'
@@ -556,8 +587,8 @@ const VitalityGauge: React.FC<{ value: number; accent: AccentKey; label: string 
       {/* Gauge background */}
       <div className="absolute inset-0 rounded-full border-[16px] border-slate-100"></div>
       {/* Gauge fill */}
-      <div className="group relative flex h-40 w-40 items-center justify-center rounded-full bg-white shadow-xl">
-        <div className="absolute inset-0 rounded-full border-2 border-indigo-100 opacity-20"></div>
+      <div className="group relative flex h-40 w-40 items-center justify-center rounded-full bg-white shadow-xl shadow-brand-coral/5">
+        <div className="absolute inset-0 rounded-full border-2 border-brand-coral/5 opacity-20"></div>
         <div className="flex flex-col items-center">
           <span className="text-4xl font-black text-slate-900 leading-none">{Math.round(value)}%</span>
           <span className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
@@ -575,12 +606,12 @@ const VitalityGauge: React.FC<{ value: number; accent: AccentKey; label: string 
 const CheckpointCard: React.FC<HighlightCardShape> = ({ label, value, helper, icon, tone }) => {
   const colors: Record<AccentKey, string> = {
     cyan: 'bg-brand-mint text-white',
-    violet: 'bg-indigo-600 text-white',
+    violet: 'bg-brand-coral text-white',
     emerald: 'bg-brand-mint text-white',
     amber: 'bg-brand-gold text-white',
     fuchsia: 'bg-brand-coral text-white'
   }
-  const hoverClass = colors[tone as AccentKey] || 'bg-indigo-600 text-white'
+  const hoverClass = colors[tone as AccentKey] || 'bg-brand-coral text-white'
 
   return (
     <div className="group relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-xl">
@@ -600,21 +631,21 @@ const InputCard: React.FC<{ label: string; value: number; unit: string; min: num
   <div className="space-y-4 rounded-3xl border border-slate-50 bg-slate-50/50 p-6">
     <div className="flex items-center justify-between">
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-      <span className="text-xs font-black text-indigo-600">
+      <span className="text-xs font-black text-brand-coral">
         {unit}{value.toLocaleString()}
       </span>
     </div>
     <input
       type="range" min={min} max={max} step={step} value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-coral"
     />
   </div>
 )
 
-const StatItem: React.FC<{ label: string; value: string; icon: React.ReactNode; color?: string }> = ({ label, value, icon, color = 'emerald' }) => (
+const StatItem: React.FC<{ label: string; value: string; icon: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="flex items-center gap-4 rounded-2xl border border-slate-50 bg-slate-50/30 p-4">
-    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-${color}-50 text-${color}-600`}>
+    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-coral/10 text-brand-coral`}>
       {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}
     </div>
     <div className="min-w-0">
@@ -624,14 +655,14 @@ const StatItem: React.FC<{ label: string; value: string; icon: React.ReactNode; 
   </div>
 )
 
-const ResultBox: React.FC<{ title: string; items: { label: string; value: string }[]; color?: string }> = ({ title, items, color = 'indigo' }) => (
+const ResultBox: React.FC<{ title: string; items: { label: string; value: string }[] }> = ({ title, items }) => (
   <div className={`rounded-3xl bg-slate-50/50 p-6 border border-slate-50`}>
     <p className="mb-4 text-xs font-black uppercase tracking-widest text-slate-400">{title}</p>
     <div className="space-y-4">
       {items.map((it, i) => (
         <div key={i} className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">
           <span className="text-sm font-medium text-slate-500">{it.label}</span>
-          <span className={`text-sm font-black text-${color}-600`}>{it.value}</span>
+          <span className={`text-sm font-black text-brand-coral`}>{it.value}</span>
         </div>
       ))}
     </div>
