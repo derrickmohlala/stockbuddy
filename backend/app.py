@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify
+import sys
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
@@ -14,6 +15,8 @@ import hashlib
 import pandas as pd
 import statistics
 from urllib.parse import quote_plus
+
+print("DEBUG: Backend module loading - Debug logs enabled", file=sys.stderr)
 
 from models import db, User, Instrument, Price, Basket, UserPortfolio, UserPosition, UserTrade, CPI, PortfolioBaseline, SuggestionAction
 from news_sources import fetch_live_news, fetch_upcoming_earnings
@@ -232,25 +235,25 @@ jwt = JWTManager(app)
 # Add JWT error handlers
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
-    print(f"DEBUG: Token expired. Header: {jwt_header}, Payload: {jwt_payload}")
+    print(f"DEBUG: Token expired. Header: {jwt_header}, Payload: {jwt_payload}", file=sys.stderr)
     return jsonify({"error": "Token has expired", "code": "TOKEN_EXPIRED"}), 401
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
-    print(f"DEBUG: Invalid token: {error}")
+    print(f"DEBUG: Invalid token: {error}", file=sys.stderr)
     return jsonify({"error": "Invalid token", "code": "INVALID_TOKEN", "detail": str(error)}), 401
 
 @jwt.unauthorized_loader
 def missing_token_callback(error):
-    print(f"DEBUG: Unauthorized (Missing Token): {error}")
-    print(f"DEBUG: Request headers: {dict(request.headers)}")
+    print(f"DEBUG: Unauthorized (Missing Token): {error}", file=sys.stderr)
+    print(f"DEBUG: Request headers: {dict(request.headers)}", file=sys.stderr)
     return jsonify({"error": "Authorization required", "code": "MISSING_TOKEN", "detail": str(error)}), 401
 
 @app.before_request
 def debug_headers():
     if request.path.startswith('/api/portfolio'):
-        print(f"DEBUG: Incoming request to {request.path}")
-        print(f"DEBUG: Headers: {dict(request.headers)}")
+        print(f"DEBUG: Incoming request to {request.path}", file=sys.stderr)
+        print(f"DEBUG: Headers: {dict(request.headers)}", file=sys.stderr)
 
 def run_sqlite_migrations():
     """Run SQLite-specific migrations (only for local development)"""
