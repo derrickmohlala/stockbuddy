@@ -80,8 +80,8 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                     <NavLink
                       to={item.to}
                       className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium transition-all ${isOpen || isGroupActive
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-brand-coral/10 text-brand-coral'
+                        : 'text-slate-600 hover:text-brand-coral hover:bg-brand-coral/5'
                         }`}
                     >
                       {item.label}
@@ -102,8 +102,8 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                             to={child.to}
                             className={({ isActive }) =>
                               `block rounded-xl px-4 py-3 text-[14px] font-medium transition-colors ${isActive
-                                ? 'bg-slate-100 text-slate-900'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-brand-coral/10 text-brand-coral'
+                                : 'text-slate-600 hover:bg-brand-coral/5 hover:text-brand-coral'
                               }`
                             }
                           >
@@ -121,7 +121,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:text-slate-900'
+                    `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-slate-600 hover:text-brand-coral hover:bg-brand-coral/5'
                     }`
                   }
                 >
@@ -207,7 +207,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                         key={child.to}
                         to={child.to}
                         className={({ isActive }) =>
-                          `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
+                          `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-slate-600'
                           }`
                         }
                         onClick={() => setMenuOpen(false)}
@@ -220,7 +220,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   <NavLink
                     to={item.to}
                     className={({ isActive }) =>
-                      `block rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
+                      `block rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-slate-600'
                       }`
                     }
                     onClick={() => setMenuOpen(false)}
