@@ -17,6 +17,9 @@ interface UserData {
   literacy_level: string | null
   cellphone: string | null
   province: string | null
+  income_bracket: string | null
+  employment_industry: string | null
+  debt_level: string | null
   created_at: string | null
 }
 
@@ -314,6 +317,7 @@ const Admin: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <p className="text-primary-ink"><strong>Phone:</strong> {selectedUser.cellphone || 'N/A'}</p>
                       <p className="text-primary-ink"><strong>Province:</strong> {selectedUser.province || 'N/A'}</p>
+                      <p className="text-primary-ink"><strong>Industry:</strong> {selectedUser.employment_industry || 'N/A'}</p>
                     </div>
                   )}
                 </div>
@@ -344,12 +348,32 @@ const Admin: React.FC = () => {
                         />
                         <span className="text-xs font-bold text-brand-coral">{editData.risk}%</span>
                       </div>
+                      <input
+                        className="w-full rounded-xl border border-[#e7e9f3] p-3 text-sm"
+                        value={editData.income_bracket || ''}
+                        onChange={(e) => setEditData({ ...editData, income_bracket: e.target.value })}
+                        placeholder="Income (e.g. R0-R10k)"
+                      />
+                      <input
+                        className="w-full rounded-xl border border-[#e7e9f3] p-3 text-sm"
+                        value={editData.employment_industry || ''}
+                        onChange={(e) => setEditData({ ...editData, employment_industry: e.target.value })}
+                        placeholder="Industry"
+                      />
+                      <input
+                        className="w-full rounded-xl border border-[#e7e9f3] p-3 text-sm"
+                        value={editData.debt_level || ''}
+                        onChange={(e) => setEditData({ ...editData, debt_level: e.target.value })}
+                        placeholder="Debt Level"
+                      />
                     </div>
                   ) : (
                     <div className="space-y-2 text-sm text-primary-ink">
                       <p className="capitalize"><strong>Goal:</strong> {selectedUser.goal || 'Not set'}</p>
                       <p><strong>Risk:</strong> {selectedUser.risk}%</p>
                       <p className="capitalize"><strong>Experience:</strong> {selectedUser.experience || 'Novice'}</p>
+                      <p><strong>Income:</strong> {selectedUser.income_bracket || 'N/A'}</p>
+                      <p><strong>Debt:</strong> {selectedUser.debt_level || 'N/A'}</p>
                     </div>
                   )}
                 </div>
@@ -361,10 +385,13 @@ const Admin: React.FC = () => {
                   <Activity className="h-4 w-4" /> System Metadata
                 </h5>
                 <div className="grid gap-4 text-xs text-subtle md:grid-cols-2">
-                  <p><strong>Acount Created:</strong> {formatDate(selectedUser.created_at)}</p>
+                  <p><strong>Account Created:</strong> {formatDate(selectedUser.created_at)}</p>
                   <p><strong>Age Band:</strong> {selectedUser.age_band || 'N/A'}</p>
                   <p><strong>Time Horizon:</strong> {selectedUser.horizon || 'N/A'}</p>
                   <p><strong>Anchor Choice:</strong> {selectedUser.anchor_stock || 'None'}</p>
+                  <p><strong>Income:</strong> {selectedUser.income_bracket || 'N/A'}</p>
+                  <p><strong>Industry:</strong> {selectedUser.employment_industry || 'N/A'}</p>
+                  <p><strong>Debt:</strong> {selectedUser.debt_level || 'N/A'}</p>
                 </div>
               </div>
             </div>

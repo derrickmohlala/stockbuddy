@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Wallet } from 'lucide-react'
+import { Wallet, AlertCircle, ArrowRight } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface HomeProps {
   onGetStarted?: () => void
@@ -165,14 +166,38 @@ const flashcards = [
 
 const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It's Free", ctaPath = '/onboarding' }) => {
   const navigate = useNavigate()
+  const { user, token } = useAuth()
 
   const handleGetStarted = () => {
     onGetStarted?.()
     navigate(ctaPath)
   }
 
+  const showCompletenessBanner = !!token && user && !user.is_profile_complete
+
   return (
-    <div className="space-y-20">
+    <div className="space-y-12">
+      {/* Profile Completeness Nudge */}
+      {showCompletenessBanner && (
+        <div className="mx-auto max-w-6xl rounded-2xl bg-brand-coral/10 border border-brand-coral/20 px-6 py-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-coral/20">
+              <AlertCircle className="h-5 w-5 text-brand-coral" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary-ink">Sharpen your suggestions</p>
+              <p className="text-xs text-subtle">Complete your financial profile to get better archetype matching.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-1.5 text-xs font-bold text-brand-coral hover:underline"
+          >
+            Update Profile <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
       <section className="rounded-2xl border border-[#e7e9f3] bg-white px-8 py-14">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center">
           <div className="space-y-8">

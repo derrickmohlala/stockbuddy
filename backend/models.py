@@ -21,7 +21,23 @@ class User(db.Model):
     interests = db.Column(db.Text)                           # JSON array of interests
     cellphone = db.Column(db.String(20), nullable=True)      # Phone number
     province = db.Column(db.String(50), nullable=True)       # South African province
+    income_bracket = db.Column(db.String(50), nullable=True) # e.g. R0-R15k
+    employment_industry = db.Column(db.String(50), nullable=True)
+    debt_level = db.Column(db.String(20), nullable=True)    # None, Low, Medium, High
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    @property
+    def is_profile_complete(self):
+        """Returns True if essential profile fields are populated"""
+        critical_fields = [
+            self.cellphone, 
+            self.province, 
+            self.income_bracket, 
+            self.employment_industry,
+            self.age_band,
+            self.goal
+        ]
+        return all(f is not None and str(f).strip() != "" for f in critical_fields)
 
     def to_dict(self):
         return {
@@ -29,6 +45,7 @@ class User(db.Model):
             "email": self.email,
             "first_name": self.first_name,
             "is_admin": self.is_admin,
+            "is_profile_complete": self.is_profile_complete,
             "age_band": self.age_band,
             "experience": self.experience,
             "goal": self.goal,
@@ -39,6 +56,9 @@ class User(db.Model):
             "interests": json.loads(self.interests) if self.interests else [],
             "cellphone": self.cellphone,
             "province": self.province,
+            "income_bracket": self.income_bracket,
+            "employment_industry": self.employment_industry,
+            "debt_level": self.debt_level,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 

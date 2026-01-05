@@ -7,6 +7,7 @@ interface User {
   first_name: string
   is_admin: boolean
   is_onboarded: boolean
+  is_profile_complete: boolean
 }
 
 interface AuthContextValue {
@@ -17,7 +18,7 @@ interface AuthContextValue {
   register: (email: string, password: string, first_name: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
-  setAuthFromToken: (token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean }) => void
+  setAuthFromToken: (token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean; is_profile_complete: boolean }) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -43,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentToken && currentToken !== token) {
         setToken(currentToken)
       }
-      
+
       if (currentToken) {
         // Only refresh if we don't already have a user (to avoid unnecessary calls)
         // The login/register functions already set the user, so we don't need to refresh immediately
@@ -54,12 +55,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null)
       }
     }
-    
+
     // Add a small delay to avoid race conditions after signup/login
     const timeoutId = setTimeout(() => {
       fetchUser()
     }, 100)
-    
+
     return () => clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
@@ -91,7 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.email,
           first_name: data.first_name,
           is_admin: data.is_admin,
-          is_onboarded: data.is_onboarded
+          is_onboarded: data.is_onboarded,
+          is_profile_complete: data.is_profile_complete || false
         })
       } else {
         // Only clear if we get a 401/403 - don't clear on other errors
@@ -148,18 +150,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const data = await response.json()
     const accessToken = data.access_token
-    
+
     setToken(accessToken)
     localStorage.setItem('stockbuddy_token', accessToken)
     localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
-    
+
     // Set user with onboarding status from login response
     setUser({
       user_id: data.user_id,
       email: data.email,
       first_name: data.first_name,
       is_admin: data.is_admin,
-      is_onboarded: data.is_onboarded || false
+      is_onboarded: data.is_onboarded || false,
+      is_profile_complete: data.is_profile_complete || false
     })
   }, [])
 
@@ -179,11 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const data = await response.json()
     const accessToken = data.access_token
-    
+
     setToken(accessToken)
     localStorage.setItem('stockbuddy_token', accessToken)
     localStorage.setItem('stockbuddy_user_id', data.user_id.toString())
-    
+
     // Fetch full user data with onboarding status
     try {
       const currentResponse = await apiFetch('/api/auth/current', {
@@ -198,7 +201,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: currentData.email,
           first_name: currentData.first_name,
           is_admin: currentData.is_admin,
-          is_onboarded: currentData.is_onboarded
+          is_onboarded: currentData.is_onboarded,
+          is_profile_complete: currentData.is_profile_complete || false
         })
       } else {
         // Fallback to registration data
@@ -207,7 +211,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: data.email,
           first_name: data.first_name,
           is_admin: data.is_admin,
-          is_onboarded: data.is_onboarded || false
+          is_onboarded: data.is_onboarded || false,
+          is_profile_complete: data.is_profile_complete || false
         })
       }
     } catch {
@@ -217,7 +222,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         first_name: data.first_name,
         is_admin: data.is_admin,
-        is_onboarded: data.is_onboarded || false
+        is_onboarded: data.is_onboarded || false,
+        is_profile_complete: data.is_profile_complete || false
       })
     }
   }, [])
@@ -229,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('stockbuddy_user_id')
   }, [])
 
-  const setAuthFromToken = useCallback((token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean }) => {
+  const setAuthFromToken = useCallback((token: string, userData: { user_id: number; email: string; first_name: string; is_admin: boolean; is_onboarded: boolean; is_profile_complete: boolean }) => {
     setToken(token)
     localStorage.setItem('stockbuddy_token', token)
     localStorage.setItem('stockbuddy_user_id', userData.user_id.toString())
@@ -238,7 +244,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: userData.email,
       first_name: userData.first_name,
       is_admin: userData.is_admin,
-      is_onboarded: userData.is_onboarded
+      is_onboarded: userData.is_onboarded,
+      is_profile_complete: userData.is_profile_complete
     })
   }, [])
 

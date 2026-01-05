@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
-import { User, Mail, Phone, MapPin, Save, Lock, AlertCircle, Check } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Save, Lock, AlertCircle, Check, Briefcase, Wallet, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface ProfileProps {
@@ -22,18 +22,29 @@ interface ProfileData {
   anchor_stock: string
   literacy_level: string
   interests: string[]
+  income_bracket: string
+  employment_industry: string
+  debt_level: string
+  is_profile_complete: boolean
 }
 
 const SOUTH_AFRICAN_PROVINCES = [
-  'Eastern Cape',
-  'Free State',
-  'Gauteng',
-  'KwaZulu-Natal',
-  'Limpopo',
-  'Mpumalanga',
-  'Northern Cape',
-  'North West',
-  'Western Cape'
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo',
+  'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
+]
+
+const INCOME_BRACKETS = [
+  'R0 - R10,000', 'R10,001 - R25,000', 'R25,001 - R50,000',
+  'R50,001 - R100,000', 'R100,001+'
+]
+
+const INDUSTRIES = [
+  'Finance', 'Technology', 'Healthcare', 'Education', 'Manufacturing',
+  'Retail', 'Public Sector', 'Mining', 'Energy', 'Other'
+]
+
+const DEBT_LEVELS = [
+  'None', 'Low (Minor credit)', 'Medium (Vehicle/Personal)', 'High (Multiple loans)'
 ]
 
 const Profile: React.FC<ProfileProps> = ({ userId }) => {
@@ -53,6 +64,9 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   const [firstName, setFirstName] = useState('')
   const [cellphone, setCellphone] = useState('')
   const [province, setProvince] = useState('')
+  const [incomeBracket, setIncomeBracket] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [debtLevel, setDebtLevel] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
@@ -103,6 +117,9 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       setFirstName(data.first_name || '')
       setCellphone(data.cellphone || '')
       setProvince(data.province || '')
+      setIncomeBracket(data.income_bracket || '')
+      setIndustry(data.employment_industry || '')
+      setDebtLevel(data.debt_level || '')
     } catch (err: any) {
       console.error('Error fetching profile:', err)
       setError(err.message || 'Failed to load profile')
@@ -125,7 +142,10 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         email: email.trim(),
         first_name: firstName.trim(),
         cellphone: cellphone.trim(),
-        province: province.trim()
+        province: province.trim(),
+        income_bracket: incomeBracket,
+        employment_industry: industry,
+        debt_level: debtLevel
       }
 
       // Only include password if new password is provided
@@ -265,6 +285,32 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         </p>
       </div>
 
+      {/* Completion Banner */}
+      {!profile.is_profile_complete && (
+        <div className="mb-8 rounded-[28px] bg-gradient-to-r from-brand-coral to-[#ff6b6b] p-6 text-white shadow-lg shadow-brand-coral/20">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+                <Star className="h-6 w-6 text-white fill-current" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Profile Incomplete</h3>
+                <p className="text-white/80 text-sm">Fill in your details to unlock smarter suggestions.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider opacity-80">Strength:</span>
+              <div className="h-2 w-32 rounded-full bg-white/30 overflow-hidden">
+                <div
+                  className="h-full bg-white transition-all duration-500"
+                  style={{ width: `${Object.values(profile).filter(val => val && val !== '').length * 5}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success/Error Messages */}
       {success && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-brand-mint/40 bg-brand-mint/10 px-4 py-3 text-sm text-brand-mint">
@@ -352,6 +398,63 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
                 <option key={prov} value={prov}>
                   {prov}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Income Bracket */}
+          <div>
+            <label htmlFor="income" className="block text-sm font-semibold text-primary-ink mb-2 flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Monthly Income
+            </label>
+            <select
+              id="income"
+              value={incomeBracket}
+              onChange={(e) => setIncomeBracket(e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select income range</option>
+              {INCOME_BRACKETS.map((range) => (
+                <option key={range} value={range}>{range}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Employment Industry */}
+          <div>
+            <label htmlFor="industry" className="block text-sm font-semibold text-primary-ink mb-2 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Employment Industry
+            </label>
+            <select
+              id="industry"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select industry</option>
+              {INDUSTRIES.map((ind) => (
+                <option key={ind} value={ind}>{ind}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Debt Level */}
+          <div>
+            <label htmlFor="debt" className="block text-sm font-semibold text-primary-ink mb-2 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Debt Level
+            </label>
+            <select
+              id="debt"
+              value={debtLevel}
+              onChange={(e) => setDebtLevel(e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select debt level</option>
+              {DEBT_LEVELS.map((lvl) => (
+                <option key={lvl} value={lvl}>{lvl}</option>
               ))}
             </select>
           </div>

@@ -298,11 +298,54 @@ def run_sqlite_migrations():
             conn.commit()
             print("✓ Added province column to SQLite database")
         
+        # Add income_bracket if missing
+        if 'income_bracket' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN income_bracket VARCHAR(50)")
+            conn.commit()
+            print("✓ Added income_bracket column to SQLite database")
+            
+        # Add employment_industry if missing
+        if 'employment_industry' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN employment_industry VARCHAR(50)")
+            conn.commit()
+            print("✓ Added employment_industry column to SQLite database")
+            
+        # Add debt_level if missing
+        if 'debt_level' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN debt_level VARCHAR(20)")
+            conn.commit()
+            print("✓ Added debt_level column to SQLite database")
+        
         conn.close()
         print("✓ SQLite migrations complete")
     except Exception as e:
         # Don't fail startup if migration has issues - just log it
         print(f"SQLite migration warning (non-fatal): {e}")
+
+def run_schema_migrations():
+    """Run automated schema migrations for both SQLite and PostgreSQL (Universal)"""
+    from sqlalchemy import text
+    print("Running automated schema migrations...")
+    new_columns = [
+        ("income_bracket", "VARCHAR(50)"),
+        ("employment_industry", "VARCHAR(50)"),
+        ("debt_level", "VARCHAR(20)")
+    ]
+    
+    for col_name, col_type in new_columns:
+        try:
+            # PostgreSQL and SQLite both support simple ALTER TABLE
+            # We catch errors if the column already exists
+            db.session.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+            db.session.commit()
+            print(f"✓ Added column {col_name}")
+        except Exception as e:
+            db.session.rollback()
+            # Standard error message for "column already exists"
+            if "already exists" in str(e).lower() or "duplicate column" in str(e).lower():
+                pass # Already migrated
+            else:
+                print(f"⚠ Migration info (non-fatal): {e}")
 
 def auto_seed():
     """Automatically seed the database if it's empty or incomplete (first-time setup)"""
@@ -401,6 +444,13 @@ with app.app_context():
     except Exception as e:
         print(f"⚠ Warning: Migration had issues: {e}")
         # Continue anyway
+        
+    # Run Universal schema migrations (e.g. new profile fields)
+    try:
+        run_schema_migrations()
+    except Exception as e:
+        print(f"⚠ Warning: Universal migration had issues: {e}")
+        # Continue anyway
     
     # Auto-seed database if empty (first-time setup)
     # Run in try/except so it doesn't block app startup if database is slow
@@ -428,9 +478,12 @@ def health():
             print(f"⚠ Health check: Database query slow/unavailable: {db_error}")
             instrument_count = None
         
+        db_engine = "postgresql" if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'].lower() else "sqlite"
+        
         return jsonify({
             "status": "healthy", 
             "timestamp": datetime.now().isoformat(),
+            "database": db_engine,
             "instruments": instrument_count
         })
     except Exception as e:
@@ -875,6 +928,15 @@ def update_profile():
         
         if 'goal' in data:
             user.goal = data.get('goal', '').strip() or None
+
+        if 'income_bracket' in data:
+            user.income_bracket = data.get('income_bracket', '').strip() or None
+
+        if 'employment_industry' in data:
+            user.employment_industry = data.get('employment_industry', '').strip() or None
+
+        if 'debt_level' in data:
+            user.debt_level = data.get('debt_level', '').strip() or None
         
         if 'risk' in data:
             try:
@@ -1010,6 +1072,10 @@ def admin_update_user(user_id):
     if 'experience' in data: user.experience = str(data.get('experience')).strip()
     if 'age_band' in data: user.age_band = str(data.get('age_band')).strip()
     
+    if 'income_bracket' in data: user.income_bracket = str(data.get('income_bracket')).strip()
+    if 'employment_industry' in data: user.employment_industry = str(data.get('employment_industry')).strip()
+    if 'debt_level' in data: user.debt_level = str(data.get('debt_level')).strip()
+    
     try:
         db.session.commit()
         return jsonify(user.to_dict()), 200
@@ -1032,13 +1098,15 @@ def export_users():
     # Header
     writer.writerow([
         "ID", "Email", "First Name", "Admin", "Phone", "Province", 
-        "Age", "Experience", "Goal", "Risk", "Horizon", "Created At"
+        "Age", "Experience", "Goal", "Risk", "Horizon", 
+        "Income", "Industry", "Debt", "Created At"
     ])
     
     for u in users:
         writer.writerow([
             u.id, u.email, u.first_name, u.is_admin, u.cellphone, u.province,
             u.age_band, u.experience, u.goal, u.risk, u.horizon, 
+            u.income_bracket, u.employment_industry, u.debt_level,
             u.created_at.isoformat() if u.created_at else ""
         ])
     
