@@ -13,8 +13,9 @@ services:
           name: stockbuddy-db
           property: connectionString
 
-  - type: pspg  # PostgreSQL database
+  - type: database
     name: stockbuddy-db
-    plan: free  # Free tier available
+    plan: free
     databaseName: stockbuddy
     user: stockbuddy_user
+    ipAllowList: [] # Allow all for simplicity, or specify if needed

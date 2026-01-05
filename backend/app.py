@@ -170,6 +170,8 @@ app = Flask(__name__)
 
 # Database configuration: Use PostgreSQL on Render, SQLite for local development
 database_url = os.environ.get('DATABASE_URL')
+is_on_render = os.environ.get('RENDER') is not None
+
 if database_url:
     # PostgreSQL (Render): DATABASE_URL format is postgresql://user:pass@host:port/dbname
     # SQLAlchemy needs postgresql:// (not postgres://) for some versions
@@ -185,9 +187,14 @@ if database_url:
             'options': '-c statement_timeout=30000'  # 30 second query timeout
         }
     }
-    print(f"✓ Using PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else 'configured'}")
+    db_info = database_url.split('@')[1] if '@' in database_url else 'configured'
+    print(f"✓ DATABASE: Using PostgreSQL ({db_info})")
 else:
-    # SQLite (local development): Use instance folder if it exists, otherwise current directory
+    # SQLite (local development)
+    if is_on_render:
+        print("⚠ WARNING: No DATABASE_URL found on Render. Falling back to EPHEMERAL SQLite.")
+        print("⚠ ERROR: Data will be LOST on every redeploy/restart. Please connect a PostgreSQL database.")
+    
     instance_path = os.path.join(os.path.dirname(__file__), '..', 'instance')
     if os.path.exists(instance_path):
         os.makedirs(instance_path, exist_ok=True)
@@ -195,7 +202,7 @@ else:
     else:
         db_path = os.path.join(os.path.dirname(__file__), 'stockbuddy.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    print(f"✓ Using SQLite database: {db_path}")
+    print(f"✓ DATABASE: Using SQLite ({db_path})")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
