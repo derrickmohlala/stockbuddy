@@ -2521,15 +2521,20 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
                       <>
                         <div>
                           <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution cadence</p>
-                          <select
-                            value={scenarioFrequency}
-                            onChange={(e) => setScenarioFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
-                            className="input-field bg-slate-800/70 text-primary-100"
-                          >
-                            <option value="monthly">Monthly debit order</option>
-                            <option value="quarterly">Quarterly (every 3 months)</option>
-                            <option value="annual">Annual (once a year)</option>
-                          </select>
+                          <div className="relative">
+                            <select
+                              value={scenarioFrequency}
+                              onChange={(e) => setScenarioFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                              className="input-field w-full appearance-none bg-slate-800/70 text-primary-100 pr-10"
+                            >
+                              <option value="monthly">Monthly debit order</option>
+                              <option value="quarterly">Quarterly (every 3 months)</option>
+                              <option value="annual">Annual (once a year)</option>
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-300">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                            </div>
+                          </div>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution amount</p>
@@ -2545,15 +2550,20 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
                         {scenarioFrequency === 'annual' && (
                           <div>
                             <p className="text-[11px] font-semibold text-primary-200 mb-1">Annual contribution month</p>
-                            <select
-                              value={scenarioAnnualMonth}
-                              onChange={(e) => setScenarioAnnualMonth(e.target.value)}
-                              className="input-field bg-slate-800/70 text-primary-100"
-                            >
-                              {MONTH_NAMES.map((label, idx) => (
-                                <option key={label} value={idx + 1}>{label}</option>
-                              ))}
-                            </select>
+                            <div className="relative">
+                              <select
+                                value={scenarioAnnualMonth}
+                                onChange={(e) => setScenarioAnnualMonth(e.target.value)}
+                                className="input-field w-full appearance-none bg-slate-800/70 text-primary-100 pr-10"
+                              >
+                                {MONTH_NAMES.map((label, idx) => (
+                                  <option key={label} value={idx + 1}>{label}</option>
+                                ))}
+                              </select>
+                              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </>
