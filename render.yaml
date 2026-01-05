@@ -3,7 +3,7 @@ services:
     name: stockbuddy-backend
     env: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r backend/requirements.txt
     startCommand: gunicorn --pythonpath backend app:app -b 0.0.0.0:$PORT --timeout 60
     healthCheckPath: /api/health
     envVars:
