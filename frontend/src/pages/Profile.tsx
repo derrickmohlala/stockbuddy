@@ -44,6 +44,9 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Form state
   const [email, setEmail] = useState('')
@@ -184,6 +187,34 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       setError(err.message || 'Failed to update profile')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return
+
+    try {
+      setIsDeleting(true)
+      setError(null)
+
+      const response = await apiFetch('/api/profile', {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to delete account')
+      }
+
+      // Logout and redirect
+      localStorage.removeItem('stockbuddy_token')
+      localStorage.removeItem('stockbuddy_user_id')
+      window.location.href = '/'
+    } catch (err: any) {
+      console.error('Error deleting account:', err)
+      setError(err.message || 'Failed to delete account')
+      setIsDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -451,7 +482,13 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       )}
 
       {/* Save Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center mt-8">
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="text-sm font-semibold text-brand-coral hover:underline"
+        >
+          Delete Account
+        </button>
         <button
           onClick={handleSaveProfile}
           disabled={saving}
@@ -461,6 +498,67 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      {/* Danger Zone Section (Alternative UI) */}
+      <section className="mt-12 rounded-[28px] border border-brand-coral/20 bg-brand-coral/5 px-6 py-8">
+        <h2 className="text-xl font-semibold text-brand-coral mb-2">
+          Danger Zone
+        </h2>
+        <p className="text-sm text-subtle mb-6">
+          Permanently delete your account and all associated data, including your simulated portfolio and trading history. This action cannot be undone.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="rounded-full border border-brand-coral px-6 py-2 text-sm font-semibold text-brand-coral transition hover:bg-brand-coral hover:text-white"
+        >
+          Delete My Account
+        </button>
+      </section>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[32px] bg-white p-8 shadow-2xl">
+            <h3 className="text-2xl font-bold text-primary-ink mb-4">Are you absolutely sure?</h3>
+            <p className="text-subtle mb-6 leading-relaxed">
+              This will permanently delete your StockBuddy account and all simulate-trading progress. There is no way to recover your data.
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-primary-ink mb-2">
+                Type <span className="text-brand-coral font-bold italic">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none"
+                placeholder="DELETE"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                className="w-full rounded-full bg-brand-coral py-3 text-sm font-semibold text-white transition hover:bg-brand-coral/90 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Permanently Delete Account'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setDeleteConfirmText('')
+                }}
+                disabled={isDeleting}
+                className="w-full rounded-full border border-[#e7e9f3] py-3 text-sm font-semibold text-primary-ink transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

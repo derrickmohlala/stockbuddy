@@ -696,6 +696,17 @@ def login():
     if not check_password_hash(user.password_hash, password):
         return jsonify({"error": "Invalid email or password"}), 401
     
+    # Sync admin status from whitelist
+    admin_emails = os.environ.get('ADMIN_EMAILS', '').lower().split(',')
+    is_admin_whitelisted = email in [e.strip() for e in admin_emails if e.strip()]
+    if is_admin_whitelisted and not user.is_admin:
+        user.is_admin = True
+        db.session.commit()
+    elif not is_admin_whitelisted and user.is_admin:
+        # Optional: demote if removed from whitelist
+        user.is_admin = False
+        db.session.commit()
+    
     # Generate token
     access_token = create_access_token(identity=str(user.id), additional_claims={"is_admin": user.is_admin})
     
@@ -722,6 +733,16 @@ def get_current_user():
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
+            
+        # Sync admin status from whitelist
+        admin_emails = os.environ.get('ADMIN_EMAILS', '').lower().split(',')
+        is_admin_whitelisted = user.email.lower() in [e.strip() for e in admin_emails if e.strip()]
+        if is_admin_whitelisted and not user.is_admin:
+            user.is_admin = True
+            db.session.commit()
+        elif not is_admin_whitelisted and user.is_admin:
+            user.is_admin = False
+            db.session.commit()
         
         return jsonify({
             "user_id": user.id,
@@ -1036,9 +1057,51 @@ def onboarding():
     # Commit profile changes safely
     try:
         db.session.commit()
+        return jsonify(user.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Unable to save profile", "detail": str(e)}), 400
+        print(f"Error updating profile: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/profile", methods=["DELETE"])
+@jwt_required()
+def delete_profile():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Delete related data - UserPortfolio, Positions, etc.
+        # SQLAlchemy with cascades should handle this if configured, 
+        # but let's be explicit if needed.
+        
+        # Delete portfolio related items
+        portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
+        if portfolio:
+            # Delete positions first
+            Position.query.filter_by(portfolio_id=portfolio.id).delete()
+            # Delete baseline
+            PortfolioBaseline.query.filter_by(user_id=user_id).delete()
+            # Delete portfolio
+            db.session.delete(portfolio)
+            
+        # Delete watchlists
+        Watchlist.query.filter_by(user_id=user_id).delete()
+        
+        # Delete onboarding
+        Onboarding.query.filter_by(user_id=user_id).delete()
+        
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({"message": "Account deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting profile: {e}")
+        traceback.print_exc()
+        return jsonify({"error": "Failed to delete account. Please contact support."}), 500
 
     # Generate archetype and starter basket
     archetype = generate_archetype(user)
