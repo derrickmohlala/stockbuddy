@@ -159,7 +159,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
               </button>
               <button
                 onClick={handleStart}
-                className="hidden rounded-full bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg md:block"
+                className="btn-cta hidden whitespace-nowrap md:inline-flex"
               >
                 {userIsOnboarded ? 'Portfolio' : 'Get started'}
               </button>
@@ -174,7 +174,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
               </NavLink>
               <NavLink
                 to="/signup"
-                className="hidden rounded-full bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg md:block"
+                className="btn-cta hidden whitespace-nowrap md:inline-flex"
               >
                 Sign up
               </NavLink>
@@ -235,14 +235,14 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
               {user ? (
                 <>
                   <div className="px-4 py-2 text-sm text-slate-500">Logged in as {user.first_name}</div>
-                  <button onClick={handleStart} className="w-full rounded-full bg-slate-900 py-4 font-bold text-white">
+                  <button onClick={handleStart} className="btn-cta w-full">
                     {userIsOnboarded ? 'Go to Portfolio' : 'Get Started'}
                   </button>
                   <button onClick={handleLogout} className="w-full py-3 text-slate-600 font-medium">Logout</button>
                 </>
               ) : (
                 <>
-                  <NavLink to="/signup" onClick={() => setMenuOpen(false)} className="w-full rounded-full bg-slate-900 py-4 text-center font-bold text-white">
+                  <NavLink to="/signup" onClick={() => setMenuOpen(false)} className="btn-cta w-full text-center">
                     Sign up free
                   </NavLink>
                   <NavLink to="/login" onClick={() => setMenuOpen(false)} className="w-full py-4 text-center font-bold text-slate-600">
