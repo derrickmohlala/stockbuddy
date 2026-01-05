@@ -223,35 +223,9 @@ CORS(app, resources={
     }
 }, supports_credentials=True)
 
-# Handle OPTIONS preflight requests explicitly
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        origin = request.headers.get('Origin')
-        if origin in allowed_origins:
-            response = jsonify({})
-            response.headers.add("Access-Control-Allow-Origin", origin)
-            response.headers.add("Access-Control-Allow-Credentials", "true")
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept")
-            response.headers.add("Access-Control-Max-Age", "3600")
-            return response
-
-# Add after_request handler to ensure CORS headers are always present
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin and origin not in allowed_origins:
-        print(f"⚠ CORS warning: Request from origin '{origin}' not in allowed list")
-        print(f"  Allowed origins: {allowed_origins}")
-        # Don't block the request, but log it
-    elif origin and origin in allowed_origins:
-        # Explicitly set CORS headers for allowed origins
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
-    return response
+# Handle OPTIONS preflight requests explicitly - REMOVED to avoid conflict with Flask-CORS
+# The CORS(app) call above already handles this correctly.
+# Duplicate headers were causing browser errors.
 
 jwt = JWTManager(app)
 
