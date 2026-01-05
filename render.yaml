@@ -4,7 +4,8 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && gunicorn app:app -b 0.0.0.0:$PORT
+    startCommand: gunicorn --pythonpath backend app:app -b 0.0.0.0:$PORT --timeout 60
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHONPATH
         value: backend
