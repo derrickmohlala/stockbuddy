@@ -613,7 +613,7 @@ def register():
                 # Continue - user is created, portfolio can be set up later
         
         # Generate token
-        access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
+        access_token = create_access_token(identity=str(user.id), additional_claims={"is_admin": user.is_admin})
         
         # Determine if user is onboarded (has goal and risk)
         is_onboarded = bool(user.goal and user.risk is not None)
@@ -666,7 +666,7 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
     
     # Generate token
-    access_token = create_access_token(identity=user.id, additional_claims={"is_admin": user.is_admin})
+    access_token = create_access_token(identity=str(user.id), additional_claims={"is_admin": user.is_admin})
     
     # Determine if user is onboarded (has goal and risk)
     is_onboarded = bool(user.goal and user.risk is not None)
