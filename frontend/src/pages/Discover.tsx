@@ -473,7 +473,7 @@ const Discover: React.FC = () => {
                   placeholder="Search instruments or tickers"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-full border border-[#e7e9f3] bg-white px-12 py-3 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+                  className="h-12 w-full rounded-full border border-[#e7e9f3] bg-white px-12 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
                 />
               </div>
             </div>
@@ -481,7 +481,7 @@ const Discover: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+                className="h-12 rounded-2xl border border-[#e7e9f3] bg-white px-4 text-sm text-primary-ink focus:border-brand-coral/40 focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               >
                 <option value="name">Sort by name</option>
                 <option value="price">Sort by price</option>
@@ -490,7 +490,7 @@ const Discover: React.FC = () => {
               </select>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e7e9f3] px-4 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+                className="h-12 inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e7e9f3] px-4 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
               >
                 <Filter className="h-4 w-4" />
                 {showFilters ? 'Hide filters' : 'Advanced filters'}
@@ -528,8 +528,8 @@ const Discover: React.FC = () => {
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key
-                  ? 'border-brand-coral bg-brand-coral text-white'
-                  : 'border-[#e7e9f3] bg-white text-muted hover:border-brand-coral/40 hover:text-brand-coral'
+                ? 'border-brand-coral bg-brand-coral text-white'
+                : 'border-[#e7e9f3] bg-white text-muted hover:border-brand-coral/40 hover:text-brand-coral'
                 }`}
             >
               {tab.label} ({tab.count})
@@ -551,8 +551,8 @@ const Discover: React.FC = () => {
                 <button
                   onClick={() => toggleWatchlist(instrument.symbol)}
                   className={`rounded-full p-1 transition ${watchlist.has(instrument.symbol)
-                      ? 'text-brand-gold'
-                      : 'text-muted hover:text-brand-gold'
+                    ? 'text-brand-gold'
+                    : 'text-muted hover:text-brand-gold'
                     }`}
                   aria-label={watchlist.has(instrument.symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
                 >
