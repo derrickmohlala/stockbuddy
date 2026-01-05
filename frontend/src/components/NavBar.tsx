@@ -94,16 +94,16 @@ const NavBar: React.FC<NavBarProps> = ({ isOnboarded }) => {
               </NavLink>
 
               {portfolioDropdownOpen && (
-                <div className="absolute top-full left-0 pt-4 w-48">
-                  <div className="overflow-hidden rounded-2xl border border-slate-200/10 bg-slate-900/95 p-1.5 shadow-xl backdrop-blur-xl ring-1 ring-black/5">
+                <div className="absolute top-full left-0 pt-6 w-40 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex flex-col gap-1 pl-2">
                     {portfolioSubItems.map((item) => (
                       <NavLink
                         key={item.to}
                         to={item.to}
                         className={({ isActive }) =>
-                          `block rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${isActive
-                            ? 'bg-brand-coral/15 text-brand-coral'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                          `text-sm font-semibold transition-all duration-200 ${isActive
+                            ? 'text-brand-coral'
+                            : 'text-muted hover:text-primary-ink hover:translate-x-1'
                           }`
                         }
                       >
