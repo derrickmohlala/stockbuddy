@@ -189,15 +189,8 @@ def backfill_prices():
                     price_written = True
             
             if not price_written:
-                print("  ↺ Using synthetic fallback data")
-                synthetic_series = _generate_synthetic_series(instrument)
-                if synthetic_series:
-                    entries, latest = _persist_price_series(instrument, synthetic_series)
-                    print(f"  ~ Generated {entries} synthetic price points (latest: R{latest:.2f})")
-                    synthetic += 1
-                else:
-                    print("  ✗ Failed to generate synthetic prices")
-                    failed += 1
+                print(f"  ⚠ No data found for {instrument.symbol} (skipping synthetic as requested)")
+                failed += 1
         
         print(
             "\n✓ Price backfill completed: "

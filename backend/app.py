@@ -249,12 +249,6 @@ def missing_token_callback(error):
     print(f"DEBUG: Request headers: {dict(request.headers)}", file=sys.stderr)
     return jsonify({"error": "Authorization required", "code": "MISSING_TOKEN", "detail": str(error)}), 401
 
-@app.before_request
-def debug_headers():
-    if request.path.startswith('/api/portfolio'):
-        print(f"DEBUG: Incoming request to {request.path}", file=sys.stderr)
-        print(f"DEBUG: Headers: {dict(request.headers)}", file=sys.stderr)
-
 def run_sqlite_migrations():
     """Run SQLite-specific migrations (only for local development)"""
     if 'sqlite' not in app.config['SQLALCHEMY_DATABASE_URI'].lower():
@@ -462,16 +456,28 @@ def manual_reseed():
             backfill_prices = None
             print(f"⚠ Warning: Unable to import backfill_prices during manual reseed ({import_error}).")
         
-        print("Manual re-seed triggered by admin...")
+        print("Manual re-seed triggered by admin...", file=sys.stderr)
         
+        # 1. Clear and re-seed instruments
         seed_instruments()
         instrument_count = Instrument.query.count()
+        print(f"DEBUG: Reseeded {instrument_count} instruments", file=sys.stderr)
         
+        # 2. Seed CPI data
         seed_cpi()
+        print("DEBUG: Reseeded CPI data", file=sys.stderr)
+
+        # 3. Seed Baskets
         seed_baskets()
-        if backfill_prices:
-            backfill_prices()
+        print("DEBUG: Reseeded Baskets", file=sys.stderr)
         
+        # 4. Backfill Prices (Critical for charts)
+        if backfill_prices:
+            print("DEBUG: Starting price backfill...", file=sys.stderr)
+            backfill_prices()
+            print("DEBUG: Price backfill completed", file=sys.stderr)
+        else:
+            print("⚠ Warning: Price backfill skipped (failed to import)", file=sys.stderr)
         return jsonify({
             "success": True,
             "message": "Database re-seeded successfully",
@@ -480,6 +486,7 @@ def manual_reseed():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        print(f"✗ Manual re-seed error: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
 # Authentication endpoints
@@ -1159,6 +1166,9 @@ def get_instruments():
         return jsonify({"error": "Failed to load instruments", "detail": str(e)}), 500
 
 
+
+
+
 def _fetch_price_for_instrument(instrument):
     """Fetch current price for a single instrument from yfinance or Yahoo API (real prices only)."""
     try:
@@ -1230,6 +1240,7 @@ def _fetch_price_for_instrument(instrument):
     except Exception as e:
         print(f"  ⚠ Yahoo API failed for {instrument.symbol}: {e}")
     
+    print(f"  ⚠ No price data available for {instrument.symbol} (skipping synthetic data as requested)")
     return False
 
 

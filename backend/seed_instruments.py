@@ -134,6 +134,27 @@ def seed_instruments():
             {"symbol": "SAP.JO", "name": "Sappi", "type": "share", "sector": "Paper & Packaging", "dividend_yield": 3.8},
             {"symbol": "SUI.JO", "name": "Sun International", "type": "share", "sector": "Gaming", "dividend_yield": 2.5},
             {"symbol": "TSG.JO", "name": "Tsogo Sun Gaming", "type": "share", "sector": "Gaming", "dividend_yield": 3.0},
+            # ========== MISSING MAJORS (ADDED) ==========
+            {"symbol": "ANH.JO", "name": "Anheuser-Busch InBev", "type": "share", "sector": "Food & Beverage", "dividend_yield": 1.5},
+            {"symbol": "GFI.JO", "name": "Gold Fields", "type": "share", "sector": "Mining", "dividend_yield": 2.2},
+            {"symbol": "SSW.JO", "name": "Sibanye Stillwater", "type": "share", "sector": "Mining", "dividend_yield": 4.5},
+            {"symbol": "RNI.JO", "name": "Reinet Investments", "type": "share", "sector": "Diversified", "dividend_yield": 0.5},
+            {"symbol": "OUT.JO", "name": "OUTsurance Group", "type": "share", "sector": "Insurance", "dividend_yield": 2.8},
+            {"symbol": "CCO.JO", "name": "Coronation Fund Managers", "type": "share", "sector": "Financial Services", "dividend_yield": 5.5},
+            {"symbol": "QLT.JO", "name": "Quilter", "type": "share", "sector": "Financial Services", "dividend_yield": 3.8},
+            {"symbol": "MCG.JO", "name": "MultiChoice Group", "type": "share", "sector": "Media", "dividend_yield": 0.0},
+            {"symbol": "TXT.JO", "name": "Textainer Group", "type": "share", "sector": "Industrial", "dividend_yield": 2.5},
+            {"symbol": "SRE.JO", "name": "Sirius Real Estate", "type": "reit", "sector": "Property", "dividend_yield": 4.2},
+            {"symbol": "EQU.JO", "name": "Equites Property Fund", "type": "reit", "sector": "Property", "dividend_yield": 8.1},
+            {"symbol": "NHM.JO", "name": "Northam Platinum", "type": "share", "sector": "Mining", "dividend_yield": 3.0},
+            {"symbol": "TRM.JO", "name": "Transaction Capital", "type": "share", "sector": "Financial Services", "dividend_yield": 0.0},
+            {"symbol": "TCP.JO", "name": "Transaction Capital", "type": "share", "sector": "Financial Services", "dividend_yield": 0.0},
+            {"symbol": "DCP.JO", "name": "Dis-Chem Pharmacies", "type": "share", "sector": "Retail", "dividend_yield": 2.1},
+            {"symbol": "AVGV.JO", "name": "AVI Limited", "type": "share", "sector": "Food & Beverage", "dividend_yield": 4.1},
+            {"symbol": "PIK.JO", "name": "Pick n Pay Stores", "type": "share", "sector": "Retail", "dividend_yield": 0.0},
+            {"symbol": "MOT.JO", "name": "Motus Holdings", "type": "share", "sector": "Retail", "dividend_yield": 5.2},
+            {"symbol": "SNT.JO", "name": "Santam", "type": "share", "sector": "Insurance", "dividend_yield": 3.8},
+            {"symbol": "WBO.JO", "name": "Wilson Bayly Holmes-Ovcon", "type": "share", "sector": "Construction", "dividend_yield": 2.5},
         ]
         
         for instrument_data in instruments:
