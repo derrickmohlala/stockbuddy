@@ -971,35 +971,10 @@ def update_profile():
         
         db.session.commit()
         
-        # Return updated profile
-        interests = []
-        if user.interests:
-            try:
-                interests = json.loads(user.interests)
-            except:
-                interests = []
-        
-        # Safely get cellphone and province
-        cellphone = getattr(user, 'cellphone', None) or ""
-        province = getattr(user, 'province', None) or ""
-        
-        return jsonify({
-            "user_id": user.id,
-            "email": user.email or "",
-            "first_name": user.first_name or "",
-            "cellphone": cellphone,
-            "province": province,
-            "age_band": user.age_band or "",
-            "experience": user.experience or "",
-            "goal": user.goal or "",
-            "risk": user.risk or 50,
-            "horizon": user.horizon or "",
-            "anchor_stock": user.anchor_stock or "",
-            "literacy_level": user.literacy_level or "",
-            "interests": interests,
-            "created_at": user.created_at.isoformat() if user.created_at else None,
-            "message": "Profile updated successfully"
-        }), 200
+        # Return updated profile using to_dict for consistency
+        result = user.to_dict()
+        result["message"] = "Profile updated successfully"
+        return jsonify(result), 200
     except Exception as e:
         db.session.rollback()
         error_detail = str(e)
@@ -1526,19 +1501,7 @@ def get_user_profile(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify({
-        "id": user.id,
-        "first_name": user.first_name,
-        "age_band": user.age_band,
-        "experience": user.experience,
-        "goal": user.goal,
-        "risk": user.risk,
-        "horizon": user.horizon,
-        "anchor_stock": user.anchor_stock,
-        "literacy_level": user.literacy_level,
-        "interests": json.loads(user.interests or '[]'),
-        "created_at": user.created_at.isoformat() if user.created_at else None
-    })
+    return jsonify(user.to_dict())
 
 # Single instrument endpoint
 @app.route("/api/instruments/<symbol>")

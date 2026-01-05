@@ -12,6 +12,9 @@ interface OnboardingData {
   first_name: string
   age_band: string
   experience: string
+  income_bracket: string
+  employment_industry: string
+  debt_level: string
   goal: string
   risk: number
   horizon: string
@@ -20,6 +23,20 @@ interface OnboardingData {
   interests: string[]
 }
 
+const INCOME_BRACKETS = [
+  'R0 - R10,000', 'R10,001 - R25,000', 'R25,001 - R50,000',
+  'R50,001 - R100,000', 'R100,001+'
+]
+
+const INDUSTRIES = [
+  'Finance', 'Technology', 'Healthcare', 'Education', 'Manufacturing',
+  'Retail', 'Public Sector', 'Mining', 'Energy', 'Other'
+]
+
+const DEBT_LEVELS = [
+  'None', 'Low (Minor credit)', 'Medium (Vehicle/Personal)', 'High (Multiple loans)'
+]
+
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
@@ -27,6 +44,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
     first_name: '',
     age_band: '',
     experience: '',
+    income_bracket: '',
+    employment_industry: '',
+    debt_level: '',
     goal: '',
     risk: 50,
     horizon: '',
@@ -51,6 +71,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             first_name: profile.first_name || '',
             age_band: profile.age_band || '',
             experience: profile.experience || '',
+            income_bracket: profile.income_bracket || '',
+            employment_industry: profile.employment_industry || '',
+            debt_level: profile.debt_level || '',
             goal: profile.goal || '',
             risk: profile.risk ?? 50,
             horizon: profile.horizon || '',
@@ -160,8 +183,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               key={age}
               onClick={() => updateData('age_band', age)}
               className={`p-3 rounded-lg border text-center transition-colors ${data.age_band === age
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               {age}
@@ -184,14 +207,64 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               key={exp.value}
               onClick={() => updateData('experience', exp.value)}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${data.experience === exp.value
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               <div className="font-medium">{exp.label}</div>
               <div className="text-sm opacity-75">{exp.desc}</div>
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div>
+          <label className="block text-sm font-medium text-muted dark:text-gray-200 mb-2">
+            Monthly Income Bracket
+          </label>
+          <select
+            value={data.income_bracket}
+            onChange={(e) => updateData('income_bracket', e.target.value)}
+            className="input-field"
+          >
+            <option value="">Select income range</option>
+            {INCOME_BRACKETS.map(bracket => (
+              <option key={bracket} value={bracket}>{bracket}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-muted dark:text-gray-200 mb-2">
+            Employment Industry
+          </label>
+          <select
+            value={data.employment_industry}
+            onChange={(e) => updateData('employment_industry', e.target.value)}
+            className="input-field"
+          >
+            <option value="">Select industry</option>
+            {INDUSTRIES.map(industry => (
+              <option key={industry} value={industry}>{industry}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-muted dark:text-gray-200 mb-2">
+            Debt Level
+          </label>
+          <select
+            value={data.debt_level}
+            onChange={(e) => updateData('debt_level', e.target.value)}
+            className="input-field"
+          >
+            <option value="">Select debt level</option>
+            {DEBT_LEVELS.map(level => (
+              <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
@@ -213,8 +286,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               key={goal.value}
               onClick={() => updateData('goal', goal.value)}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${data.goal === goal.value
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               <div className="font-medium">{goal.label}</div>
@@ -256,8 +329,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               key={horizon.value}
               onClick={() => updateData('horizon', horizon.value)}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${data.horizon === horizon.value
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               <div className="font-medium">{horizon.label}</div>
@@ -308,8 +381,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
                 updateData('interests', newInterests)
               }}
               className={`p-3 rounded-lg border text-center transition-colors ${data.interests.includes(interest)
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               {interest}
@@ -332,8 +405,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               key={style.value}
               onClick={() => updateData('literacy_level', style.value)}
               className={`w-full p-4 rounded-lg border text-left transition-colors ${data.literacy_level === style.value
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
             >
               <div className="font-medium">{style.label}</div>
@@ -348,7 +421,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return data.first_name && data.age_band && data.experience
+        return data.first_name && data.age_band && data.experience && data.income_bracket && data.employment_industry
       case 2:
         return data.goal && data.horizon && data.anchor_stock
       case 3:
