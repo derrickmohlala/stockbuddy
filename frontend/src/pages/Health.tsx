@@ -4,7 +4,6 @@ import {
   Gauge,
   Coins,
   ShieldCheck,
-  ArrowUpRight,
   Wallet,
   Sparkles,
   Target,
@@ -60,32 +59,49 @@ const currencyFormatter = new Intl.NumberFormat('en-ZA', {
 
 type AccentKey = 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia'
 
+interface HighlightCardShape {
+  id: string
+  label: string
+  value: string
+  helper: string
+  icon: React.ReactNode
+  tone: AccentKey
+}
+
 const GOAL_META: Record<
   GoalType,
   { title: string; tone: string; icon: React.ReactNode; helper: string; accent: AccentKey }
 > = {
   growth: {
-    title: 'Growth runway',
-    tone: 'Aim higher without guesswork.',
-    icon: <TrendingUp className="h-6 w-6 text-cyan-300" />,
-    helper: 'Keep rand targets in sight by translating them into monthly actions.',
+    title: 'Growth Engine',
+    tone: 'Rocketing toward your target.',
+    icon: <TrendingUp className="h-6 w-6 text-cyan-400" />,
+    helper: 'Compounding is your superpower. Keep the momentum high.',
     accent: 'cyan'
   },
   balanced: {
-    title: 'Inflation shield',
-    tone: 'Stay safely ahead of rising prices.',
-    icon: <ShieldCheck className="h-6 w-6 text-amber-200" />,
-    helper: 'Track whether your rand return is beating the inflation line you care about.',
+    title: 'Inflation Shield',
+    tone: 'Fortifying against rising costs.',
+    icon: <ShieldCheck className="h-6 w-6 text-amber-400" />,
+    helper: 'Safety first. Beat the CPI line with precision.',
     accent: 'amber'
   },
   income: {
-    title: 'Income engine',
-    tone: 'Let dividends carry everyday costs.',
-    icon: <Coins className="h-6 w-6 text-emerald-300" />,
-    helper: 'See how today’s yield converts into tomorrow’s paycheck and what to do next.',
+    title: 'Passive Pulse',
+    tone: 'Generating cash while you sleep.',
+    icon: <Coins className="h-6 w-6 text-emerald-400" />,
+    helper: 'Let your dividends do the hard work.',
     accent: 'emerald'
   }
 }
+
+const STATUS_RANKS = [
+  { min: 0, label: 'Starter', icon: <CircleDot className="h-4 w-4" />, color: 'bg-slate-400' },
+  { min: 25, label: 'Builder', icon: <Activity className="h-4 w-4" />, color: 'bg-indigo-400' },
+  { min: 50, label: 'Architect', icon: <Target className="h-4 w-4" />, color: 'bg-brand-mint' },
+  { min: 75, label: 'Titan', icon: <Flame className="h-4 w-4" />, color: 'bg-brand-coral' },
+  { min: 100, label: 'Legend', icon: <Sparkles className="h-4 w-4" />, color: 'bg-brand-gold' }
+]
 
 const Health: React.FC<HealthProps> = ({ userId }) => {
   const [goalType, setGoalType] = useState<GoalType>('growth')
@@ -159,7 +175,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
       })
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || 'Unable to generate health plan right now.')
+        throw new Error(err.error || 'Unable to generate health plan.')
       }
       const data = await response.json()
       setPlan(data)
@@ -172,9 +188,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
   }
 
   useEffect(() => {
-    if (userId) {
-      fetchPlan()
-    }
+    if (userId) fetchPlan()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, goalType])
 
@@ -182,676 +196,446 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
     if (userId) fetchPlan()
   }
 
-  const derivedProgressPct = useMemo(() => {
-    if (!plan) return null
-    if (goalType === 'growth') {
-      return plan.progress_pct ?? null
-    }
+  const progressPct = useMemo(() => {
+    if (!plan) return 0
+    if (goalType === 'growth') return Math.min(plan.progress_pct ?? 0, 100)
     if (goalType === 'balanced') {
       const nominal = plan.nominal_return_pct ?? 0
       const inflation = plan.inflation_target_pct ?? sarbInflationTarget
-      if (inflation <= 0) return null
-      const ratio = nominal / inflation
-      return Math.min(Math.max(ratio * 50, 0), 100)
+      return inflation <= 0 ? 0 : Math.min(Math.max((nominal / inflation) * 50, 0), 100)
     }
     const current = plan?.current_monthly_income ?? plan?.current_annual_income ?? 0
-    const target = plan?.target_monthly_income ?? plan?.target_annual_income ?? 0
-    if (!target) return null
+    const target = plan?.target_monthly_income ?? plan?.target_annual_income ?? 1
     return Math.min((current / target) * 100, 100)
   }, [plan, goalType])
 
-  const heroContent = useMemo(() => {
-    const meta = GOAL_META[goalType]
-    if (!plan) {
-      return {
-        title: meta.title,
-        primary: meta.tone,
-        detail: meta.helper,
-        badge: 'Setup pending',
-        icon: meta.icon,
-        accent: meta.accent
-      }
-    }
-    if (goalType === 'growth') {
-      return {
-        title: meta.title,
-        primary: `Aim for ${currencyFormatter.format(plan.target_value || targetValue)}`,
-        detail: plan.message || meta.helper,
-        badge: `${(plan.progress_pct ?? 0).toFixed(1)}% complete`,
-        icon: meta.icon,
-        accent: meta.accent
-      }
-    }
-    if (goalType === 'balanced') {
-      const real = plan.real_return_pct ?? 0
-      const status = real >= 0 ? 'Ahead of inflation' : 'Lagging inflation'
-      return {
-        title: meta.title,
-        primary: `${real.toFixed(2)} pts real return`,
-        detail: plan.message || meta.helper,
-        badge: status,
-        icon: meta.icon,
-        accent: meta.accent
-      }
-    }
-    return {
-      title: meta.title,
-      primary: `${currencyFormatter.format(plan.current_monthly_income || 0)} / mo now`,
-      detail: plan.message || meta.helper,
-      badge: `Goal: ${currencyFormatter.format(plan.target_monthly_income || 0)} / mo`,
-      icon: meta.icon,
-      accent: meta.accent
-    }
-  }, [plan, goalType, targetValue])
+  const currentStatus = useMemo(() => {
+    return [...STATUS_RANKS].reverse().find(r => progressPct >= r.min) || STATUS_RANKS[0]
+  }, [progressPct])
 
   const highlightCards = useMemo<HighlightCardShape[]>(() => {
-    const accentHint = GOAL_META[goalType].accent
-
     if (goalType === 'growth') {
       return [
         {
           id: 'target',
-          label: 'Target runway',
+          label: 'Success Condition',
           value: currencyFormatter.format(plan?.target_value ?? targetValue),
-          helper: plan
-            ? 'The rand milestone you are compounding toward.'
-            : 'Set a stretch goal to see what it takes.',
+          helper: 'The milestone you’re chasing.',
           icon: <Target className="h-4 w-4" />,
-          tone: accentHint
+          tone: 'cyan'
         },
         {
           id: 'contribution',
-          label: 'Monthly power-up',
-          value: plan?.required_monthly_contribution
-            ? `R ${plan.required_monthly_contribution.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-            : plan?.monthly_budget
-            ? `R ${plan.monthly_budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-            : '--',
-          helper: plan
-            ? 'Keep this pace to land the target inside your term.'
-            : 'Add an optional budget to preview the pace.',
+          label: 'Power Fuel',
+          value: plan?.required_monthly_contribution ? `R${Math.round(plan.required_monthly_contribution)} / mo` : '--',
+          helper: 'Monthly energy for your plan.',
           icon: <Wallet className="h-4 w-4" />,
           tone: 'emerald'
         },
         {
           id: 'momentum',
-          label: 'Momentum score',
-          value: plan ? `${Math.round(plan.progress_pct ?? 0)}%` : '--',
-          helper: plan
-            ? 'Relative progress toward the growth milestone.'
-            : 'Progress shows once your plan is generated.',
-          icon: <Activity className="h-4 w-4" />,
-          tone: 'violet'
+          label: 'Vitality Score',
+          value: `${Math.round(progressPct)}%`,
+          helper: 'Live momentum tracking.',
+          icon: <Flame className="h-4 w-4" />,
+          tone: 'fuchsia'
         }
       ]
     }
-
     if (goalType === 'balanced') {
-      const chosenInflation =
-        plan?.inflation_target_pct ??
-        (inflationMode === 'sarb' ? sarbInflationTarget : Number(customInflation) || sarbInflationTarget)
-
+      const infl = plan?.inflation_target_pct ?? (inflationMode === 'sarb' ? sarbInflationTarget : Number(customInflation))
       return [
         {
           id: 'real-return',
-          label: 'Real return',
-          value: plan ? `${(plan.real_return_pct ?? 0).toFixed(2)} pts` : '--',
-          helper: plan ? plan.status ?? 'Comparison against your inflation guardrail.' : 'We evaluate once data syncs.',
-          icon: <Gauge className="h-4 w-4" />,
-          tone: accentHint
+          label: 'True Power',
+          value: `${(plan?.real_return_pct ?? 0).toFixed(2)}%`,
+          helper: 'Return above the inflation guardrail.',
+          icon: <ShieldCheck className="h-4 w-4" />,
+          tone: 'amber'
         },
         {
           id: 'inflation-line',
-          label: 'Inflation line',
-          value: `${chosenInflation.toFixed(1)}%`,
-          helper: inflationMode === 'sarb' ? 'SARB upper target baked in.' : 'Custom CPI line you set.',
+          label: 'CPI Shield',
+          value: `${infl}%`,
+          helper: 'Your barrier against inflation.',
           icon: <Sparkles className="h-4 w-4" />,
           tone: 'amber'
         },
         {
-          id: 'timeline',
-          label: 'Term in focus',
-          value: `${termYears} yrs`,
-          helper: 'Use the term slider to shorten or extend the runway.',
-          icon: <CircleDot className="h-4 w-4" />,
-          tone: 'violet'
+          id: 'status',
+          label: 'Shield Status',
+          value: (plan?.real_return_pct ?? 0) >= 0 ? 'ACTIVE' : 'WARNING',
+          helper: 'Real-time protection check.',
+          icon: <Activity className="h-4 w-4" />,
+          tone: (plan?.real_return_pct ?? 0) >= 0 ? 'emerald' : 'fuchsia'
         }
       ]
     }
-
-    const currentIncome =
-      plan?.current_monthly_income ??
-      (plan?.current_annual_income ? plan.current_annual_income / 12 : parsedMonthlyBudget ?? 0)
-    const targetIncome =
-      plan?.target_monthly_income ??
-      (plan?.target_annual_income ? plan.target_annual_income / 12 : Number(incomeGoal) || 0)
-    const gap = Math.max((targetIncome ?? 0) - (currentIncome ?? 0), 0)
-
+    const currentInc = plan?.current_monthly_income ?? 0
     return [
       {
-        id: 'passive-income',
-        label: 'Passive income now',
-        value: plan ? currencyFormatter.format(currentIncome || 0) : '--',
-        helper: plan ? 'What your holdings currently spin off per month.' : 'Fill in your goal to see projections.',
+        id: 'passive',
+        label: 'Passive Stream',
+        value: currencyFormatter.format(currentInc),
+        helper: 'Money acting on your behalf.',
         icon: <Coins className="h-4 w-4" />,
-        tone: accentHint
-      },
-      {
-        id: 'yield-pulse',
-        label: 'Yield pulse',
-        value: plan ? `${(plan.dividend_yield_pct ?? 0).toFixed(2)}%` : '--',
-        helper: 'Weighted dividend yield from your basket.',
-        icon: <TrendingUp className="h-4 w-4" />,
         tone: 'emerald'
       },
       {
-        id: 'goal-gap',
-        label: 'Goal gap',
-        value: plan ? currencyFormatter.format(gap) : '--',
-        helper: plan ? 'Close this gap with contributions or rebalancing.' : 'We’ll surface the gap post-calculation.',
+        id: 'yield',
+        label: 'Engine Efficiency',
+        value: `${(plan?.dividend_yield_pct ?? 0).toFixed(2)}%`,
+        helper: 'Current dividend output.',
+        icon: <TrendingUp className="h-4 w-4" />,
+        tone: 'cyan'
+      },
+      {
+        id: 'gap',
+        label: 'Goal Gap',
+        value: currencyFormatter.format(Math.max((plan?.target_monthly_income ?? 0) - currentInc, 0)),
+        helper: 'Distance to freedom.',
         icon: <Flame className="h-4 w-4" />,
         tone: 'fuchsia'
       }
     ]
-  }, [
-    customInflation,
-    goalType,
-    incomeGoal,
-    inflationMode,
-    parsedMonthlyBudget,
-    plan,
-    targetValue,
-    termYears
-  ])
-
-  const renderPlanSummary = () => {
-    if (!plan || plan.goal_type !== goalType) return null
-
-    if (goalType === 'growth') {
-      const timelineYears = plan.timeline_for_budget_months ? plan.timeline_for_budget_months / 12 : null
-      return (
-        <div className="space-y-6">
-          <PlanSectionHeader
-            title="Plan insights"
-            subtitle={`What it takes to reach ${currencyFormatter.format(plan.target_value ?? targetValue)}`}
-          />
-          <div className="grid auto-rows-fr gap-4 sm:grid-cols-3">
-            <ResultCard label="Current value" value={`R ${plan.current_value?.toLocaleString() ?? '0'}`} />
-            <ResultCard
-              label="Target value"
-              value={`R ${plan.target_value?.toLocaleString() ?? '0'}`}
-              helper="The number you’re compounding toward."
-            />
-            <ResultCard
-              label="Progress"
-              value={`${plan.progress_pct?.toFixed(1) ?? '0'}%`}
-              helper="How close you are to the growth goal."
-            />
-          </div>
-          <div className="grid auto-rows-fr gap-4 sm:grid-cols-3">
-            <ResultCard
-              label="Annual return assumption"
-              value={`${plan.annual_return_pct?.toFixed(2) ?? '0'}% p.a.`}
-              helper="Expected portfolio return used in projections."
-            />
-            <ResultCard
-              label="Monthly needed"
-              value={`R ${
-                plan.required_monthly_contribution?.toLocaleString(undefined, {
-                  maximumFractionDigits: 0
-                }) ?? '0'
-              }`}
-              helper="Keep contributing at this cadence to stay on track."
-            />
-            <ResultCard
-              label="Once-off gap"
-              value={`R ${plan.lump_sum_gap?.toLocaleString() ?? '0'}`}
-              helper="Capital boost required if you prefer a lump sum."
-            />
-          </div>
-          {plan.monthly_budget && (
-            <ResultCard
-              label="Budget timeline"
-              value={plan.timeline_for_budget_months ? `${(timelineYears ?? 0).toFixed(1)} yrs` : 'n/a'}
-              helper={`With a monthly budget of R ${plan.monthly_budget?.toLocaleString()}, this is how long it could take.`}
-            />
-          )}
-          {plan.message && <PlanCallout>{plan.message}</PlanCallout>}
-        </div>
-      )
-    }
-
-    if (goalType === 'balanced') {
-      return (
-        <div className="space-y-6">
-          <PlanSectionHeader title="Inflation defence" subtitle="Track the spread between returns and CPI." />
-          <div className="grid auto-rows-fr gap-4 sm:grid-cols-3">
-            <ResultCard label="Nominal return" value={`${plan.nominal_return_pct?.toFixed(2) ?? '0'}% p.a.`} />
-            <ResultCard
-              label="Inflation target"
-              value={`${plan.inflation_target_pct?.toFixed(2) ?? '0'}% p.a.`}
-              helper={inflationMode === 'sarb' ? 'SARB upper target' : 'Custom target selected'}
-            />
-            <ResultCard
-              label="Real return"
-              value={`${plan.real_return_pct?.toFixed(2) ?? '0'} pts`}
-              helper="Return minus inflation target."
-              status={plan.status}
-            />
-          </div>
-          {plan.message && <PlanCallout>{plan.message}</PlanCallout>}
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-6">
-        <PlanSectionHeader title="Income trajectory" subtitle="See how today’s yield stacks up against your lifestyle." />
-        <div className="grid auto-rows-fr gap-4 sm:grid-cols-3">
-          <ResultCard
-            label="Current monthly income"
-            value={`R ${
-              plan.current_monthly_income?.toLocaleString(undefined, {
-                maximumFractionDigits: 0
-              }) ?? '0'
-            }`}
-          />
-          <ResultCard
-            label="Target monthly income"
-            value={`R ${
-              plan.target_monthly_income?.toLocaleString(undefined, {
-                maximumFractionDigits: 0
-              }) ?? '0'
-            }`}
-          />
-          <ResultCard
-            label="Yield"
-            value={`${plan.dividend_yield_pct?.toFixed(2) ?? '0'}%`}
-            helper="Weighted dividend yield from your holdings."
-          />
-        </div>
-        <div className="grid auto-rows-fr gap-4 sm:grid-cols-3">
-          <ResultCard
-            label="Monthly needed"
-            value={`R ${
-              plan.required_monthly_contribution?.toLocaleString(undefined, {
-                maximumFractionDigits: 0
-              }) ?? '0'
-            }`}
-          />
-          <ResultCard
-            label="Once-off gap"
-            value={`R ${
-              plan.lump_sum_gap?.toLocaleString(undefined, {
-                maximumFractionDigits: 0
-              }) ?? '0'
-            }`}
-          />
-          {plan.monthly_budget && (
-            <ResultCard
-              label="Budget timeline"
-              value={plan.timeline_for_budget_months ? `${(plan.timeline_for_budget_months / 12).toFixed(1)} yrs` : 'n/a'}
-              helper={`With a monthly budget of R ${plan.monthly_budget?.toLocaleString()}, this is how long to hit the goal.`}
-            />
-          )}
-        </div>
-        {plan.message && <PlanCallout>{plan.message}</PlanCallout>}
-      </div>
-    )
-  }
-
-  const renderInputs = () => {
-    const goalOptions: Array<{ value: GoalType; label: string; helper: string }> = [
-      { value: 'growth', label: 'Growth target', helper: 'Focus on portfolio size' },
-      { value: 'balanced', label: 'Balanced', helper: 'Beat inflation steadily' },
-      { value: 'income', label: 'Income', helper: 'Cover monthly commitments' }
-    ]
-
-    return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold text-muted">Plan controls</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {goalOptions.map(({ value, label, helper }) => {
-              const active = goalType === value
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setGoalType(value)}
-                  className={`rounded-xl border px-4 py-3 text-left transition ${
-                    active ? 'border-brand-purple bg-brand-purple text-white' : 'border-soft bg-white text-primary-ink hover:border-brand-purple hover:text-brand-purple'
-                  }`}
-                >
-                  <span className="block text-sm font-semibold">{label}</span>
-                  {active ? (
-                    <span className="block text-xs font-normal text-white/80">{helper}</span>
-                  ) : (
-                    <span className="block text-xs font-normal text-muted">{helper}</span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <FieldShell label="Term (years)">
-          <input
-            type="number"
-            min={1}
-            value={termYears}
-            onChange={(e) => setTermYears(Number(e.target.value) || 1)}
-            className="input-field"
-          />
-        </FieldShell>
-
-        {goalType === 'growth' && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FieldShell label="Target portfolio value (ZAR)">
-              <input
-                type="number"
-                min={1}
-                value={targetValue}
-                onChange={(e) => setTargetValue(Number(e.target.value) || 0)}
-                className="input-field"
-              />
-            </FieldShell>
-            <FieldShell label="Monthly budget (optional)">
-              <input
-                type="number"
-                min={0}
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="input-field"
-              />
-            </FieldShell>
-          </div>
-        )}
-
-        {goalType === 'balanced' && (
-          <div className="space-y-4 rounded-2xl border border-soft bg-white px-5 py-5">
-            <p className="text-sm font-semibold text-primary-ink">Inflation guardrail</p>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-subtle">
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={inflationMode === 'sarb'}
-                  onChange={() => setInflationMode('sarb')}
-                  className="h-4 w-4 accent-brand-purple"
-                />
-                SARB upper target (6%)
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={inflationMode === 'custom'}
-                  onChange={() => setInflationMode('custom')}
-                  className="h-4 w-4 accent-brand-purple"
-                />
-                Custom line
-              </label>
-            </div>
-            {inflationMode === 'custom' && (
-              <FieldShell label="Custom inflation target (% p.a.)">
-                <input
-                  type="number"
-                  min={0}
-                  value={customInflation}
-                  onChange={(e) => setCustomInflation(e.target.value)}
-                  className="input-field"
-                />
-              </FieldShell>
-            )}
-          </div>
-        )}
-
-        {goalType === 'income' && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FieldShell label="Income goal">
-              <input
-                type="number"
-                min={0}
-                value={incomeGoal}
-                onChange={(e) => setIncomeGoal(e.target.value)}
-                className="input-field"
-              />
-            </FieldShell>
-            <FieldShell label="Frequency">
-              <select
-                value={incomeFrequency}
-                onChange={(e) => setIncomeFrequency(e.target.value as 'monthly' | 'annual')}
-                className="input-field"
-              >
-                <option value="monthly">Per month</option>
-                <option value="annual">Per year</option>
-              </select>
-            </FieldShell>
-            <FieldShell label="Monthly budget (optional)" className="sm:col-span-2">
-              <input
-                type="number"
-                min={0}
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(e.target.value)}
-                className="input-field"
-              />
-            </FieldShell>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-muted">Update any input and refresh for an instant recalculation.</p>
-          <button
-            type="button"
-            onClick={handleUpdate}
-            className="btn-cta px-5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Sparkles className="h-4 w-4 animate-spin" />
-                Updating…
-              </>
-            ) : (
-              <>
-                <ArrowUpRight className="h-4 w-4" />
-                Update health plan
-              </>
-            )}
-          </button>
-        </div>
-        {error && <p className="text-sm text-danger-500">{error}</p>}
-      </div>
-    )
-  }
+  }, [plan, goalType, targetValue, progressPct, inflationMode, customInflation])
 
   return (
-    <div className="space-y-16">
-      <section className="section-hero space-y-8">
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
-            <span className="badge bg-white">{heroContent.badge}</span>
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-soft bg-white">
-                {heroContent.icon}
-              </div>
-              <div className="space-y-2">
-                <p className="text-2xl font-semibold text-primary-ink">{heroContent.title}</p>
-                <p className="text-lg font-medium text-subtle">{heroContent.primary}</p>
-              </div>
-            </div>
-            <p className="text-subtle max-w-3xl">{heroContent.detail}</p>
-            <button
-              className="btn-secondary"
-              onClick={() => goalType !== 'growth' && setGoalType('growth')}
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              Start fresh goal
-            </button>
-          </div>
-          <div className="flex flex-col items-start gap-4 lg:w-72">
-            {derivedProgressPct !== null && (
-              <ProgressOrb
-                value={derivedProgressPct}
-                label={goalType === 'balanced' ? 'Real return gauge' : goalType === 'income' ? 'Income coverage' : 'Plan progress'}
-                accent={heroContent.accent}
-              />
-            )}
-            <div className="w-full rounded-2xl border border-soft bg-white px-4 py-3 text-sm text-subtle">
-              <p className="text-xs font-semibold text-muted">Term length</p>
-              <p className="text-xl font-semibold text-primary-ink">{termYears} year(s)</p>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="space-y-10 pb-20">
+      {/* Gamified Hero */}
+      <section className="relative overflow-hidden rounded-[40px] border border-slate-200 bg-white p-8 shadow-2xl shadow-indigo-100 lg:p-12">
+        <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-indigo-50/50 blur-3xl opacity-60"></div>
+        <div className="absolute -left-20 -bottom-20 h-96 w-96 rounded-full bg-brand-mint/5 blur-3xl opacity-40"></div>
 
-      {highlightCards.length > 0 && (
-        <section className="space-y-4 rounded-[28px] border border-soft bg-white px-6 py-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-semibold text-primary-ink">Plan checkpoints</h2>
-            <span className="text-xs font-semibold text-muted">Live metrics</span>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {highlightCards.map((card) => (
-              <HighlightCard key={card.id} {...card} />
-            ))}
-          </div>
-        </section>
-      )}
+        <div className="relative z-10 flex flex-col items-center gap-12 lg:flex-row lg:justify-between">
+          <div className="flex-1 space-y-8 text-center lg:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+              <span className={`flex items-center gap-2 rounded-full ${currentStatus.color} px-4 py-1.5 text-xs font-bold text-white shadow-lg`}>
+                {currentStatus.icon}
+                RANK: {currentStatus.label.toUpperCase()}
+              </span>
+              <span className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600">
+                <Target className="h-3 w-3" />
+                GOAL: {goalType.toUpperCase()}
+              </span>
+            </div>
 
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
-        <div className="surface-card p-6">
-          {renderInputs()}
-        </div>
-        <div className="surface-panel space-y-6 p-6">
-          {loading && <p className="text-sm text-subtle">Crunching the numbers…</p>}
-          {!loading && plan && renderPlanSummary()}
-          {!loading && !plan && !error && (
-            <div className="space-y-3 text-sm text-subtle">
-              <p>Enter your goal details and we’ll project the required steps.</p>
-              <p className="text-muted">
-                Tip: Save a snapshot once you like the configuration so you can compare what-if scenarios.
+            <div className="space-y-3">
+              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+                {GOAL_META[goalType].title}
+              </h1>
+              <p className="text-lg font-medium text-slate-500">
+                {GOAL_META[goalType].tone}
               </p>
             </div>
-          )}
-          {error && <p className="text-sm text-danger-500">{error}</p>}
+
+            <p className="max-w-xl text-slate-500">
+              {GOAL_META[goalType].helper}
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
+              <button className="flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 hover:shadow-2xl active:scale-95">
+                Optimize My Plan
+              </button>
+              <button className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-95">
+                Share Progress
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-6">
+            <VitalityGauge value={progressPct} accent={GOAL_META[goalType].accent} label={currentStatus.label} />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Next Rank At</span>
+              <span className="text-xl font-bold text-slate-900">
+                {STATUS_RANKS.find(r => r.min > progressPct)?.min ?? 100}%
+              </span>
+            </div>
+          </div>
         </div>
       </section>
-    </div>
-  )
-}
 
-interface ResultCardProps {
-  label: string
-  value: string
-  helper?: string
-  status?: string
-}
+      {/* Grid Layout */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Input Panel */}
+        <div className="flex flex-col gap-6 lg:col-span-1">
+          <div className="flex h-full flex-col rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl">
+            <h3 className="mb-8 text-xl font-bold text-slate-900 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Gauge className="h-4 w-4 text-indigo-500" />
+              </div>
+              Vitality Engine
+            </h3>
 
-const ResultCard: React.FC<ResultCardProps> = ({ label, value, helper, status }) => (
-  <div className="surface-card relative overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-pop">
-    <div className="pointer-events-none absolute -right-12 top-0 h-28 w-28 rounded-full bg-brand-purple/10 blur-3xl opacity-70"></div>
-    <p className="text-[11px] font-semibold text-muted">{label}</p>
-    <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
-    {status && <p className="mt-1 text-xs font-semibold text-brand-purple">Status: {status}</p>}
-    {helper && <p className="mt-3 text-xs text-subtle">{helper}</p>}
-  </div>
-)
+            <div className="flex-1 space-y-8">
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Target Strategy</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['growth', 'balanced', 'income'] as GoalType[]).map(g => (
+                    <button
+                      key={g}
+                      onClick={() => setGoalType(g)}
+                      className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition-all ${goalType === g
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-lg'
+                        : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white hover:text-slate-600'
+                        }`}
+                    >
+                      {React.cloneElement(GOAL_META[g].icon as React.ReactElement, { className: 'h-4 w-4' })}
+                      <span className="text-[10px] font-bold uppercase">{g}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-interface ProgressOrbProps {
-  value: number
-  label: string
-  accent?: AccentKey
-}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Term Runway</p>
+                  <span className="text-sm font-black text-indigo-600">{termYears} YEARS</span>
+                </div>
+                <input
+                  type="range" min="1" max="30" value={termYears}
+                  onChange={(e) => setTermYears(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                />
+              </div>
 
-const ProgressOrb: React.FC<ProgressOrbProps> = ({ value, label, accent = 'cyan' }) => {
-  const clamped = Math.min(Math.max(value, 0), 100)
-  const palette = ACCENT_TOKENS[accent]
+              {goalType === 'growth' && (
+                <>
+                  <InputCard label="Target Milestone" value={targetValue} unit="R" onChange={setTargetValue} min={1000} max={10000000} step={10000} />
+                  <InputCard label="Monthly Fuel" value={Number(monthlyBudget) || 0} unit="R" onChange={(v) => setMonthlyBudget(String(v))} min={0} max={100000} step={500} />
+                </>
+              )}
 
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className={`flex h-28 w-28 items-center justify-center rounded-full border-4 ${palette.ring} bg-white`}
-      >
-        <div className="text-center">
-          <p className="text-3xl font-semibold text-primary-ink">{clamped.toFixed(0)}%</p>
-          <p className="text-[11px] font-semibold text-muted">{label}</p>
+              {goalType === 'balanced' && (
+                <div className="space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Inflation Shield</p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setInflationMode('sarb')}
+                      className={`w-full flex items-center justify-between rounded-2xl border p-4 text-left transition-all ${inflationMode === 'sarb' ? 'border-brand-gold bg-amber-50 text-amber-900' : 'border-slate-100 text-slate-500'
+                        }`}
+                    >
+                      <span className="text-sm font-bold">SARB Target (6%)</span>
+                      <ShieldCheck className={`h-4 w-4 ${inflationMode === 'sarb' ? 'opacity-100' : 'opacity-0'}`} />
+                    </button>
+                    <button
+                      onClick={() => setInflationMode('custom')}
+                      className={`w-full flex items-center justify-between rounded-2xl border p-4 text-left transition-all ${inflationMode === 'custom' ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-slate-100 text-slate-500'
+                        }`}
+                    >
+                      <span className="text-sm font-bold">Custom Line</span>
+                      <Activity className={`h-4 w-4 ${inflationMode === 'custom' ? 'opacity-100' : 'opacity-0'}`} />
+                    </button>
+                    {inflationMode === 'custom' && (
+                      <InputCard label="Target %" value={Number(customInflation)} unit="%" onChange={(v) => setCustomInflation(String(v))} min={1} max={25} step={0.5} />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {goalType === 'income' && (
+                <>
+                  <InputCard label="Target Stream" value={Number(incomeGoal)} unit="R" onChange={(v) => setIncomeGoal(String(v))} min={100} max={500000} step={500} />
+                  <div className="grid grid-cols-2 gap-2">
+                    {['monthly', 'annual'].map((f) => (
+                      <button
+                        key={f} onClick={() => setIncomeFrequency(f as any)}
+                        className={`rounded-xl py-2 text-[10px] font-black uppercase transition-all ${incomeFrequency === f ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'
+                          }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={handleUpdate}
+              disabled={loading}
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {loading ? <Activity className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {loading ? 'CALCULATING...' : 'SYNC ENGINE'}
+            </button>
+            {error && <p className="mt-2 text-center text-xs font-bold text-red-500 uppercase tracking-widest">{error}</p>}
+          </div>
+        </div>
+
+        {/* Results Panel */}
+        <div className="flex flex-col gap-8 lg:col-span-2">
+          {/* Checkpoint Row */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            {highlightCards.map(c => (
+              <CheckpointCard key={c.id} {...c} />
+            ))}
+          </div>
+
+          {/* Detailed Stats */}
+          <div className="flex-1 rounded-[32px] border border-slate-200 bg-white p-8 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <Activity className="h-4 w-4 text-emerald-500" />
+                </div>
+                Plan Diagnostics
+              </h3>
+              {plan && (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700 uppercase tracking-tighter">
+                  Synced Successfully
+                </span>
+              )}
+            </div>
+
+            {!plan && !loading && (
+              <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-100 text-center">
+                <div className="mb-4 h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-slate-300" />
+                </div>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Sync your vitality engine to see diagnostics</p>
+              </div>
+            )}
+
+            {plan && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  <StatItem label="Portfolio Now" value={currencyFormatter.format(plan.current_value || 0)} icon={<Wallet />} />
+                  <StatItem label="Est. Annual Return" value={`${(plan.annual_return_pct || 0).toFixed(2)}%`} icon={<TrendingUp />} />
+                  <StatItem label="Monthly Power" value={currencyFormatter.format(plan.monthly_budget || 0)} icon={<Coins />} color="indigo" />
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <ResultBox
+                    title="Path to Success"
+                    items={[
+                      { label: 'Required Monthly Pace', value: currencyFormatter.format(plan.required_monthly_contribution || 0) },
+                      { label: 'Estimated Timeline', value: plan.timeline_for_budget_months ? `${(plan.timeline_for_budget_months / 12).toFixed(1)} Years` : 'TBD' }
+                    ]}
+                  />
+                  <ResultBox
+                    title="Capital Injection"
+                    items={[
+                      { label: 'Once-off Lump Sum', value: currencyFormatter.format(plan.lump_sum_gap || 0) },
+                      { label: 'Real Return spread', value: `${(plan.real_return_pct || 0).toFixed(2)} pts` }
+                    ]}
+                    color="amber"
+                  />
+                </div>
+
+                {plan.message && (
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-6 text-indigo-900 border-l-4 border-l-indigo-500">
+                    <p className="flex items-start gap-3 text-sm font-medium leading-relaxed">
+                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-indigo-500" />
+                      {plan.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+/* --- Components --- */
+
+const VitalityGauge: React.FC<{ value: number; accent: AccentKey; label: string }> = ({ value, accent, label }) => {
+  const rotation = -90 + (value * 1.8) // 180 degree semi-circle
+  const colors: Record<AccentKey, string> = {
+    cyan: 'border-t-brand-mint',
+    violet: 'border-t-indigo-500',
+    emerald: 'border-t-brand-mint',
+    amber: 'border-t-brand-gold',
+    fuchsia: 'border-t-brand-coral'
+  }
+  return (
+    <div className="relative h-48 w-48 overflow-hidden flex items-center justify-center">
+      {/* Gauge background */}
+      <div className="absolute inset-0 rounded-full border-[16px] border-slate-100"></div>
+      {/* Gauge fill */}
+      <div className="group relative flex h-40 w-40 items-center justify-center rounded-full bg-white shadow-xl">
+        <div className="absolute inset-0 rounded-full border-2 border-indigo-100 opacity-20"></div>
+        <div className="flex flex-col items-center">
+          <span className="text-4xl font-black text-slate-900 leading-none">{Math.round(value)}%</span>
+          <span className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+        </div>
+        {/* Animated border/ring effect */}
+        <div
+          className={`absolute inset-x-0 bottom-0 top-0 rounded-full border-[6px] border-transparent ${colors[accent]} transition-all duration-1000 ease-out`}
+          style={{ transform: `rotate(${rotation}deg)` }}
+        ></div>
+      </div>
+    </div>
+  )
+}
+
+const CheckpointCard: React.FC<HighlightCardShape> = ({ label, value, helper, icon, tone }) => {
+  const colors: Record<AccentKey, string> = {
+    cyan: 'bg-brand-mint text-white',
+    violet: 'bg-indigo-600 text-white',
+    emerald: 'bg-brand-mint text-white',
+    amber: 'bg-brand-gold text-white',
+    fuchsia: 'bg-brand-coral text-white'
+  }
+  const hoverClass = colors[tone as AccentKey] || 'bg-indigo-600 text-white'
+
+  return (
+    <div className="group relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-xl">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-900 group-hover:${hoverClass} transition-colors`}>
+          {icon}
+        </div>
+      </div>
+      <p className="text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-2 text-[10px] font-bold text-slate-400">{helper}</p>
+    </div>
+  )
+}
+
+const InputCard: React.FC<{ label: string; value: number; unit: string; min: number; max: number; step: number; onChange: (v: number) => void }> = ({ label, value, unit, min, max, step, onChange }) => (
+  <div className="space-y-4 rounded-3xl border border-slate-50 bg-slate-50/50 p-6">
+    <div className="flex items-center justify-between">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+      <span className="text-xs font-black text-indigo-600">
+        {unit}{value.toLocaleString()}
+      </span>
+    </div>
+    <input
+      type="range" min={min} max={max} step={step} value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+    />
+  </div>
+)
+
+const StatItem: React.FC<{ label: string; value: string; icon: React.ReactNode; color?: string }> = ({ label, value, icon, color = 'emerald' }) => (
+  <div className="flex items-center gap-4 rounded-2xl border border-slate-50 bg-slate-50/30 p-4">
+    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-${color}-50 text-${color}-600`}>
+      {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}
+    </div>
+    <div className="min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{label}</p>
+      <p className="text-lg font-black text-slate-900 truncate">{value}</p>
+    </div>
+  </div>
+)
+
+const ResultBox: React.FC<{ title: string; items: { label: string; value: string }[]; color?: string }> = ({ title, items, color = 'indigo' }) => (
+  <div className={`rounded-3xl bg-slate-50/50 p-6 border border-slate-50`}>
+    <p className="mb-4 text-xs font-black uppercase tracking-widest text-slate-400">{title}</p>
+    <div className="space-y-4">
+      {items.map((it, i) => (
+        <div key={i} className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+          <span className="text-sm font-medium text-slate-500">{it.label}</span>
+          <span className={`text-sm font-black text-${color}-600`}>{it.value}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)
 
 export default Health
-
-interface FieldShellProps {
-  label: string
-  className?: string
-  children: React.ReactNode
-}
-
-const FieldShell: React.FC<FieldShellProps> = ({ label, children, className }) => (
-  <label className={`flex flex-col gap-3 ${className ?? ''}`}>
-    <span className="text-[11px] font-semibold text-muted">{label}</span>
-    {children}
-  </label>
-)
-
-interface PlanSectionHeaderProps {
-  title: string
-  subtitle?: string
-}
-
-const PlanSectionHeader: React.FC<PlanSectionHeaderProps> = ({ title, subtitle }) => (
-  <div className="space-y-2">
-    <p className="text-[11px] font-semibold text-muted">Plan intel</p>
-    <h3 className="text-xl font-semibold text-primary-ink">{title}</h3>
-    {subtitle && <p className="text-sm text-subtle">{subtitle}</p>}
-  </div>
-)
-
-const PlanCallout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-2xl border border-brand-purple/25 bg-brand-purple/10 p-4 text-sm text-primary-ink shadow-inner shadow-brand-purple/20">
-    {children}
-  </div>
-)
-
-const ACCENT_TOKENS: Record<AccentKey, { icon: string; ring: string }> = {
-  cyan: { icon: 'text-brand-mint', ring: 'border-brand-mint' },
-  violet: { icon: 'text-brand-purple', ring: 'border-brand-purple' },
-  emerald: { icon: 'text-brand-mint', ring: 'border-brand-mint' },
-  amber: { icon: 'text-brand-gold', ring: 'border-brand-gold' },
-  fuchsia: { icon: 'text-brand-coral', ring: 'border-brand-coral' }
-}
-
-interface HighlightCardShape {
-  id: string
-  label: string
-  value: string
-  helper: string
-  icon: React.ReactNode
-  tone: AccentKey
-}
-
-interface HighlightCardProps extends HighlightCardShape {}
-
-const HighlightCard: React.FC<HighlightCardProps> = ({ label, value, helper, icon, tone }) => {
-  const accent = ACCENT_TOKENS[tone]
-  const iconElement =
-    React.isValidElement(icon) &&
-    React.cloneElement(icon, {
-      className: `${icon.props.className ?? ''} ${accent.icon}`
-    })
-  return (
-    <div className="rounded-2xl border border-soft bg-white px-5 py-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold text-muted">{label}</p>
-          <p className="mt-3 text-2xl font-semibold text-primary-ink">{value}</p>
-        </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft bg-white">
-          {iconElement || icon}
-        </div>
-      </div>
-      <p className="mt-3 text-xs text-subtle">{helper}</p>
-    </div>
-  )
-}
