@@ -128,7 +128,7 @@ body {
 
   .input-field:focus {
     outline: none;
-    border-color: var(--brand-purple);
+    border-color: var(--brand-coral);
     box-shadow: none;
   }
   

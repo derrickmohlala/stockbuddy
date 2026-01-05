@@ -1,5 +1,10 @@
-.hero-gradient { background: none; }
-.card-sheen { background: none; }
+.hero-gradient {
+  background: none;
+}
+
+.card-sheen {
+  background: none;
+}
 
 .btn-cta {
   @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors duration-200 ease-out;
@@ -7,9 +12,11 @@
   color: #ffffff;
   padding: 0.75rem 1.6rem;
 }
+
 .btn-cta:hover {
   filter: brightness(1.05);
 }
+
 .btn-cta:disabled {
   opacity: 0.65;
   cursor: not-allowed;
@@ -22,9 +29,10 @@
   color: var(--text-primary);
   padding: 0.75rem 1.6rem;
 }
+
 .btn-secondary:hover {
-  border-color: var(--brand-purple);
-  color: var(--brand-purple);
+  border-color: var(--brand-coral);
+  color: var(--brand-coral);
 }
 
 .badge {
@@ -66,7 +74,7 @@
 }
 
 .headline-gradient {
-  background: linear-gradient(120deg, var(--brand-purple) 0%, var(--brand-mint) 50%, var(--brand-gold) 100%);
+  background: linear-gradient(120deg, var(--brand-coral) 0%, #ff6464 50%, var(--brand-gold) 100%);
   -webkit-background-clip: text;
   color: transparent;
 }
