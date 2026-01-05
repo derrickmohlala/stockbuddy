@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
-import { Shield, Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Download, Edit2, X, Check, Phone, MapPin, Calendar, Target, Activity } from 'lucide-react'
+import { Shield, Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Download, Edit2, X, Phone, Target, Activity } from 'lucide-react'
 
 interface UserData {
   id: number
