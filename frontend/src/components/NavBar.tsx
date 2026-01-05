@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X, LogOut, Shield, ChevronDown } from 'lucide-react'
+import { Menu, X, LogOut, ChevronDown } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface NavItem {
@@ -25,7 +25,7 @@ const mainNav: NavItem[] = [
     children: [
       { label: 'Terminology', to: '/terminology' },
       { label: 'Archetypes', to: '/archetypes' },
-      { label: 'News', to: '/news' }
+      { label: 'Daily News', to: '/news' }
     ]
   },
   { label: 'About', to: '/about' }
@@ -55,15 +55,16 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
   const isActiveLink = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   return (
-    <header className="sticky top-0 z-50 bg-white">
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-6 px-6 py-5">
-        <div className="flex items-center gap-8">
-          <NavLink to="/" aria-label="StockBuddy home" className="flex items-center gap-2">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm transition-shadow">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4">
+        {/* Left: Logo & Nav */}
+        <div className="flex items-center gap-12">
+          <NavLink to="/" aria-label="StockBuddy home" className="flex items-center gap-2.5">
             <img src="/assets/stockbuddy_logo.svg" alt="StockBuddy" className="h-8 w-auto" loading="lazy" />
-            <span className="text-xl font-medium tracking-tight text-primary-ink">StockBuddy</span>
+            <span className="text-xl font-semibold tracking-tight text-slate-900">StockBuddy</span>
           </NavLink>
 
-          <nav className="hidden items-center gap-2 md:flex">
+          <nav className="hidden items-center gap-1 md:flex">
             {mainNav.map((item) => {
               if (item.children) {
                 const isGroupActive = item.children.some(child => isActiveLink(child.to))
@@ -78,9 +79,9 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   >
                     <NavLink
                       to={item.to}
-                      className={`flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[15px] font-medium transition-all ${isOpen || isGroupActive
-                        ? 'bg-brand-coral/10 text-brand-coral'
-                        : 'text-muted hover:text-brand-coral'
+                      className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[15px] font-medium transition-all ${isOpen || isGroupActive
+                        ? 'bg-slate-100 text-slate-900'
+                        : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
                       {item.label}
@@ -89,20 +90,20 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                       />
                     </NavLink>
 
-                    {/* Dropdown Menu - Antigravity style (Clean list) */}
+                    {/* Dropdown Menu */}
                     <div
                       className={`absolute left-0 top-full pt-2 transition-all duration-200 ${isOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-1'
                         }`}
                     >
-                      <div className="w-56 overflow-hidden rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5">
+                      <div className="w-60 overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-black/5">
                         {item.children.map((child) => (
                           <NavLink
                             key={child.to}
                             to={child.to}
                             className={({ isActive }) =>
                               `block rounded-xl px-4 py-3 text-[14px] font-medium transition-colors ${isActive
-                                ? 'bg-brand-coral/10 text-brand-coral'
-                                : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                                ? 'bg-slate-100 text-slate-900'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                               }`
                             }
                           >
@@ -120,7 +121,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors ${isActive ? 'bg-brand-coral/10 text-brand-coral' : 'text-muted hover:text-brand-coral'
+                    `rounded-full px-4 py-2 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:text-slate-900'
                     }`
                   }
                 >
@@ -129,87 +130,84 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
               )
             })}
           </nav>
-
-          <div className="flex items-center gap-3">
-            {user ? (
-              <>
-                {user.is_admin && (
-                  <NavLink
-                    to="/admin"
-                    className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
-                  >
-                    <Shield className="h-4 w-4" />
-                    Admin
-                  </NavLink>
-                )}
-                <NavLink
-                  to="/profile"
-                  className="hidden md:flex items-center gap-2 text-sm text-muted hover:text-brand-coral transition-colors cursor-pointer"
-                >
-                  <span>{user.first_name}</span>
-                </NavLink>
-                <button
-                  onClick={handleLogout}
-                  className="hidden md:inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleStart}
-                  className="btn-cta hidden whitespace-nowrap md:inline-flex"
-                >
-                  {userIsOnboarded ? 'View portfolio' : 'Get started'}
-                </button>
-              </>
-            ) : (
-              <>
-                <NavLink
-                  to="/login"
-                  className="hidden md:inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb]"
-                >
-                  Login
-                </NavLink>
-                <NavLink
-                  to="/signup"
-                  className="btn-cta hidden whitespace-nowrap md:inline-flex"
-                >
-                  Sign up
-                </NavLink>
-              </>
-            )}
-            <button
-              className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] p-2 text-primary-ink transition hover:border-brand-coral hover:text-brand-coral md:hidden"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              aria-label="Toggle navigation"
-            >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
         </div>
-      </div >
 
+        {/* Right: Auth Buttons (Right corner) */}
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-6">
+              {user.is_admin && (
+                <NavLink
+                  to="/admin"
+                  className="hidden text-[14px] font-medium text-slate-600 hover:text-slate-900 md:block"
+                >
+                  Admin
+                </NavLink>
+              )}
+              <NavLink
+                to="/profile"
+                className="hidden text-[14px] font-medium text-slate-600 hover:text-slate-900 md:block"
+              >
+                {user.first_name}
+              </NavLink>
+              <button
+                onClick={handleLogout}
+                className="hidden text-slate-400 hover:text-slate-600 transition-colors md:block"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleStart}
+                className="hidden rounded-full bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg md:block"
+              >
+                {userIsOnboarded ? 'Portfolio' : 'Get started'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <NavLink
+                to="/login"
+                className="hidden px-4 py-2 text-[15px] font-medium text-slate-600 hover:text-slate-900 md:block"
+              >
+                Sign in
+              </NavLink>
+              <NavLink
+                to="/signup"
+                className="hidden rounded-full bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg md:block"
+              >
+                Sign up
+              </NavLink>
+            </div>
+          )}
+
+          {/* Mobile Toggle */}
+          <button
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-50 md:hidden"
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
       {menuOpen && (
-        <div className="border-b border-[#e7e9f3] bg-white/95">
-          <nav className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-sm">
+        <div className="border-t border-slate-100 bg-white md:hidden">
+          <nav className="flex flex-col gap-1 p-4">
             {mainNav.map((item) => (
-              <div key={item.label}>
+              <div key={item.label} className="py-1">
+                <div className="px-4 py-2 text-[12px] font-bold uppercase tracking-wider text-slate-400">
+                  {item.label}
+                </div>
                 {item.children ? (
-                  <div className="rounded-xl border border-[#e7e9f3] overflow-hidden">
-                    <NavLink
-                      to={item.to}
-                      onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 bg-[#f7f8fb] text-xs font-semibold text-muted hover:text-brand-coral"
-                    >
-                      {item.label}
-                    </NavLink>
+                  <div className="mt-1 flex flex-col gap-1">
                     {item.children.map((child) => (
                       <NavLink
                         key={child.to}
                         to={child.to}
                         className={({ isActive }) =>
-                          `block px-4 py-3 font-medium transition-colors border-t border-[#e7e9f3] ${isActive
-                            ? 'bg-brand-coral/10 text-brand-coral border-brand-coral/20'
-                            : 'text-primary-ink hover:bg-[#f7f8fb] hover:text-brand-coral'
+                          `rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
                           }`
                         }
                         onClick={() => setMenuOpen(false)}
@@ -221,57 +219,34 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
                 ) : (
                   <NavLink
                     to={item.to}
-                    className="block rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+                    className={({ isActive }) =>
+                      `block rounded-xl px-4 py-3 text-[15px] font-medium transition-colors ${isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
+                      }`
+                    }
                     onClick={() => setMenuOpen(false)}
                   >
-                    {item.label}
+                    View {item.label}
                   </NavLink>
                 )}
               </div>
             ))}
 
-            <div className="mt-4 pt-4 border-t border-[#e7e9f3] space-y-2">
+            <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4">
               {user ? (
                 <>
-                  {user.is_admin && (
-                    <NavLink
-                      to="/admin"
-                      className="rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral flex items-center gap-2"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Shield className="h-4 w-4" />
-                      Admin
-                    </NavLink>
-                  )}
-                  <div className="px-4 py-2 text-xs font-medium text-muted">
-                    Signed in as {user.first_name}
-                  </div>
-                  <button onClick={handleStart} className="btn-cta w-full">
-                    {userIsOnboarded ? 'View portfolio' : 'Get started'}
+                  <div className="px-4 py-2 text-sm text-slate-500">Logged in as {user.first_name}</div>
+                  <button onClick={handleStart} className="w-full rounded-full bg-slate-900 py-4 font-bold text-white">
+                    {userIsOnboarded ? 'Go to Portfolio' : 'Get Started'}
                   </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral flex items-center justify-center gap-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
+                  <button onClick={handleLogout} className="w-full py-3 text-slate-600 font-medium">Logout</button>
                 </>
               ) : (
                 <>
-                  <NavLink
-                    to="/login"
-                    className="block rounded-xl border border-[#e7e9f3] px-4 py-3 font-medium text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral text-center"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Login
+                  <NavLink to="/signup" onClick={() => setMenuOpen(false)} className="w-full rounded-full bg-slate-900 py-4 text-center font-bold text-white">
+                    Sign up free
                   </NavLink>
-                  <NavLink
-                    to="/signup"
-                    className="btn-cta block w-full text-center"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Sign up
+                  <NavLink to="/login" onClick={() => setMenuOpen(false)} className="w-full py-4 text-center font-bold text-slate-600">
+                    Sign in
                   </NavLink>
                 </>
               )}
@@ -279,7 +254,7 @@ const NavBar: React.FC<{ isOnboarded: boolean }> = ({ isOnboarded }) => {
           </nav>
         </div>
       )}
-    </header >
+    </header>
   )
 }
 
