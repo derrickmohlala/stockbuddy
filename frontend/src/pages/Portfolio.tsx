@@ -1660,7 +1660,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-purple border-t-transparent"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-coral border-t-transparent"></div>
           <p className="text-subtle">Loading portfolio...</p>
         </div>
       </div>
@@ -1978,7 +1978,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           <div className="space-y-5 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-primary-ink">Plan quick actions</p>
-              <PiggyBank className="h-5 w-5 text-brand-purple" />
+              <PiggyBank className="h-5 w-5 text-brand-coral" />
             </div>
             <p className="text-sm text-subtle">Adjust your archetype inputs, rebuild sleeves, or revisit onboarding if your goals have shifted.</p>
             <div className="flex flex-col gap-3">
@@ -2005,7 +2005,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
               <div className="flex flex-wrap items-center gap-3 text-brand-ink/70">
                 {criticalCount > 0 && <span className="text-brand-coral">Critical: {criticalCount}</span>}
                 {warningCount > 0 && <span className="text-amber-600">Warnings: {warningCount}</span>}
-                <span className="text-brand-purple">{sortedAlerts.length} total</span>
+                <span className="text-brand-coral">{sortedAlerts.length} total</span>
               </div>
             </div>
             <div className="space-y-3">
@@ -2084,7 +2084,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
             <div className="space-y-4 text-muted dark:text-gray-300">
               <div className="flex flex-wrap gap-2">
                 {portfolio.plan_goal && (
-                  <span className="badge bg-white/90 text-brand-purple text-[11px] font-semibold">
+                  <span className="badge bg-white/90 text-brand-coral text-[11px] font-semibold">
                     Goal: {formatLabel(portfolio.plan_goal)}
                   </span>
                 )}

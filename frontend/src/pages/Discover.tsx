@@ -349,7 +349,7 @@ const Discover: React.FC = () => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'etf':
-        return 'bg-brand-purple/15 text-brand-purple'
+        return 'bg-brand-coral/15 text-brand-coral'
       case 'share':
         return 'bg-brand-mint/15 text-brand-mint'
       case 'reit':
@@ -363,7 +363,7 @@ const Discover: React.FC = () => {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-purple border-t-transparent"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-2 border-brand-coral border-t-transparent"></div>
           <p className="text-subtle">Loading instruments...</p>
         </div>
       </div>

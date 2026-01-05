@@ -527,8 +527,21 @@ def register():
         if not re.match(email_pattern, email):
             return jsonify({"error": "Please enter a valid email address"}), 400
         
-        if len(password) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        # Validate password complexity
+        is_valid_pass, pass_error = True, ""
+        if len(password) < 8:
+            is_valid_pass, pass_error = False, "Password must be at least 8 characters long"
+        elif not re.search(r'[A-Z]', password):
+            is_valid_pass, pass_error = False, "Password must contain at least one uppercase letter"
+        elif not re.search(r'[a-z]', password):
+            is_valid_pass, pass_error = False, "Password must contain at least one lowercase letter"
+        elif not re.search(r'\d', password):
+            is_valid_pass, pass_error = False, "Password must contain at least one number"
+        elif not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            is_valid_pass, pass_error = False, "Password must contain at least one special character"
+            
+        if not is_valid_pass:
+            return jsonify({"error": pass_error}), 400
         
         if len(first_name) < 1:
             return jsonify({"error": "First name is required"}), 400
@@ -548,11 +561,15 @@ def register():
             traceback.print_exc()
             return jsonify({"error": "Unable to process password"}), 400
         
+        # Automated Admin Assignment
+        admin_emails = os.environ.get('ADMIN_EMAILS', '').lower().split(',')
+        is_admin_user = email in [e.strip() for e in admin_emails if e.strip()]
+        
         user_data = {
             "email": email,
             "password_hash": password_hash,
             "first_name": first_name,
-            "is_admin": False
+            "is_admin": is_admin_user
         }
         
         # If onboarding data is provided, include it

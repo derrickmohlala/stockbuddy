@@ -75,7 +75,7 @@ const About: React.FC = () => {
       <section className="mx-auto max-w-6xl rounded-[36px] border border-[#e7e9f3] bg-white px-8 py-12 shadow-[0_40px_120px_-70px_rgba(94,102,135,0.45)]">
         <div className="grid gap-10 md:grid-cols-[280px_minmax(0,1fr)] md:items-center">
           <div className="flex flex-col items-center gap-4 text-center md:text-left">
-            <div className="flex h-48 w-48 items-center justify-center rounded-[32px] border border-[#e7e9f3] bg-[#f7f8fb] text-5xl font-bold text-brand-purple">
+            <div className="flex h-48 w-48 items-center justify-center rounded-[32px] border border-[#e7e9f3] bg-[#f7f8fb] text-5xl font-bold text-brand-coral">
               DM
             </div>
             <div>

@@ -111,7 +111,7 @@ const flashcards = [
   },
   {
     term: 'Price to-Book (P/B)',
-    analogy: 'P/B compares the sticker price of a house to the cost of bricks and mortar. Are you paying more than it’s worth on paper?' 
+    analogy: 'P/B compares the sticker price of a house to the cost of bricks and mortar. Are you paying more than it’s worth on paper?'
   },
   {
     term: 'Return on Equity (ROE)',
@@ -234,19 +234,19 @@ const Home: React.FC<HomeProps> = ({ onGetStarted, ctaLabel = "Get Started - It'
                 </div>
                 <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-3">
                   <p className="text-subtle">Inflation guardrail</p>
-                  <p className="text-lg font-semibold text-brand-purple">+3.1 pts</p>
+                  <p className="text-lg font-semibold text-brand-coral">+3.1 pts</p>
                 </div>
               </div>
             </div>
             <div className="grid gap-4 rounded-2xl border border-[#e7e9f3] bg-white px-6 py-6">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted">Daily rhythm</p>
-                <span className="text-xs font-medium text-brand-purple">Auto curated</span>
+                <span className="text-xs font-medium text-brand-coral">Auto curated</span>
               </div>
               <div className="space-y-3 text-sm text-subtle">
                 <div className="flex items-center justify-between">
                   <span>Rebalance insight: Top 40 vs Income basket</span>
-                  <span className="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">+6.3%</span>
+                  <span className="rounded-full bg-brand-coral/10 px-3 py-1 text-xs font-semibold text-brand-coral">+6.3%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Dividend calendar alert: Satrix DIVI</span>
@@ -386,7 +386,7 @@ const Flashcard: React.FC<FlashcardProps> = ({ term, analogy }) => {
       <div className={`relative h-52 w-full transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? 'rotate-y-180' : ''}`}>
         <div className="absolute inset-0 rounded-2xl border border-[#e7e9f3] bg-white p-6 [backface-visibility:hidden]">
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <Wallet className="h-8 w-8 text-brand-purple" />
+            <Wallet className="h-8 w-8 text-brand-coral" />
             <p className="text-lg font-semibold text-primary-ink">{term}</p>
             <p className="text-xs text-muted">Tap to flip</p>
           </div>
@@ -426,7 +426,7 @@ const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({ cards, perPage = 
         <button
           type="button"
           onClick={handlePrev}
-          className="rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/30 hover:text-brand-purple"
+          className="rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/30 hover:text-brand-coral"
         >
           Previous
         </button>
@@ -434,14 +434,14 @@ const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({ cards, perPage = 
           {Array.from({ length: totalPages }).map((_, idx) => (
             <span
               key={idx}
-              className={`h-2.5 w-2.5 rounded-full ${idx === page ? 'bg-brand-purple' : 'bg-[#d7d9e5]'}`}
+              className={`h-2.5 w-2.5 rounded-full ${idx === page ? 'bg-brand-coral' : 'bg-[#d7d9e5]'}`}
             />
           ))}
         </div>
         <button
           type="button"
           onClick={handleNext}
-          className="rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/30 hover:text-brand-purple"
+          className="rounded-full border border-[#e7e9f3] px-4 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/30 hover:text-brand-coral"
         >
           Next
         </button>

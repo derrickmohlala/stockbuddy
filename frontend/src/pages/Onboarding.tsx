@@ -120,7 +120,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
               message = String(err.error)
             }
           }
-        } catch {}
+        } catch { }
         setSubmitError(message)
       }
     } catch (error) {
@@ -159,11 +159,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             <button
               key={age}
               onClick={() => updateData('age_band', age)}
-              className={`p-3 rounded-lg border text-center transition-colors ${
-                data.age_band === age
+              className={`p-3 rounded-lg border text-center transition-colors ${data.age_band === age
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               {age}
             </button>
@@ -184,11 +183,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             <button
               key={exp.value}
               onClick={() => updateData('experience', exp.value)}
-              className={`w-full p-4 rounded-lg border text-left transition-colors ${
-                data.experience === exp.value
+              className={`w-full p-4 rounded-lg border text-left transition-colors ${data.experience === exp.value
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               <div className="font-medium">{exp.label}</div>
               <div className="text-sm opacity-75">{exp.desc}</div>
@@ -214,11 +212,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             <button
               key={goal.value}
               onClick={() => updateData('goal', goal.value)}
-              className={`w-full p-4 rounded-lg border text-left transition-colors ${
-                data.goal === goal.value
+              className={`w-full p-4 rounded-lg border text-left transition-colors ${data.goal === goal.value
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               <div className="font-medium">{goal.label}</div>
               <div className="text-sm opacity-75">{goal.desc}</div>
@@ -258,11 +255,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             <button
               key={horizon.value}
               onClick={() => updateData('horizon', horizon.value)}
-              className={`w-full p-4 rounded-lg border text-left transition-colors ${
-                data.horizon === horizon.value
+              className={`w-full p-4 rounded-lg border text-left transition-colors ${data.horizon === horizon.value
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               <div className="font-medium">{horizon.label}</div>
               <div className="text-sm opacity-75">{horizon.desc}</div>
@@ -300,7 +296,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
         </label>
         <div className="grid grid-cols-2 gap-3">
           {[
-            'Banks', 'Resource counters', 'Retailers', 'Telcos', 
+            'Banks', 'Resource counters', 'Retailers', 'Telcos',
             'Property', 'Broad ETFs', 'Healthcare', 'Technology'
           ].map(interest => (
             <button
@@ -311,11 +307,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
                   : [...data.interests, interest]
                 updateData('interests', newInterests)
               }}
-              className={`p-3 rounded-lg border text-center transition-colors ${
-                data.interests.includes(interest)
+              className={`p-3 rounded-lg border text-center transition-colors ${data.interests.includes(interest)
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               {interest}
             </button>
@@ -336,11 +331,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             <button
               key={style.value}
               onClick={() => updateData('literacy_level', style.value)}
-              className={`w-full p-4 rounded-lg border text-left transition-colors ${
-                data.literacy_level === style.value
+              className={`w-full p-4 rounded-lg border text-left transition-colors ${data.literacy_level === style.value
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
+                }`}
             >
               <div className="font-medium">{style.label}</div>
               <div className="text-sm opacity-75">{style.desc}</div>
@@ -383,7 +377,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             </span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
+            <div
               className="bg-primary-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 3) * 100}%` }}
             />
@@ -432,7 +426,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
       {submitting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="card max-w-md w-full text-center space-y-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-purple mx-auto" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-coral mx-auto" />
             <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">Setting up your plan…</h3>
             <p className="text-sm text-muted dark:text-gray-300">
               We’re saving your preferences and preparing your starter options.

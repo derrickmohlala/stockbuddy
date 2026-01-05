@@ -44,7 +44,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  
+
   // Form state
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -56,7 +56,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
   useEffect(() => {
     // Use authUser.user_id if available, otherwise fall back to userId prop
     const effectiveUserId = authUser?.user_id || userId
-    
+
     if (effectiveUserId || token) {
       fetchProfile()
     } else {
@@ -69,15 +69,15 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     try {
       setLoading(true)
       setError(null)
-      
+
       // Check if user is authenticated
       if (!token && !authUser) {
         navigate('/login')
         return
       }
-      
+
       const response = await apiFetch('/api/profile')
-      
+
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           navigate('/login')
@@ -91,10 +91,10 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || 'Failed to load profile')
       }
-      
+
       const data = await response.json()
       setProfile(data)
-      
+
       // Populate form fields
       setEmail(data.email || '')
       setFirstName(data.first_name || '')
@@ -116,7 +116,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     setError(null)
     setSuccess(null)
     setSaving(true)
-    
+
     try {
       const updateData: any = {
         email: email.trim(),
@@ -124,24 +124,33 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         cellphone: cellphone.trim(),
         province: province.trim()
       }
-      
+
       // Only include password if new password is provided
       if (newPassword) {
-        if (newPassword.length < 6) {
-          setError('Password must be at least 6 characters')
+        const requirements = [
+          { met: newPassword.length >= 8, error: 'Password must be at least 8 characters long' },
+          { met: /[A-Z]/.test(newPassword), error: 'Password must contain at least one uppercase letter' },
+          { met: /[a-z]/.test(newPassword), error: 'Password must contain at least one lowercase letter' },
+          { met: /\d/.test(newPassword), error: 'Password must contain at least one number' },
+          { met: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword), error: 'Password must contain at least one special character' }
+        ]
+
+        const unmet = requirements.find(r => !r.met)
+        if (unmet) {
+          setError(unmet.error)
           setSaving(false)
           return
         }
-        
+
         if (newPassword !== confirmPassword) {
           setError('New passwords do not match')
           setSaving(false)
           return
         }
-        
+
         updateData.password = newPassword
       }
-      
+
       const response = await apiFetch('/api/profile', {
         method: 'PUT',
         headers: {
@@ -149,25 +158,25 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         },
         body: JSON.stringify(updateData)
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to update profile')
       }
-      
+
       const updatedData = await response.json()
       setProfile(updatedData)
       setSuccess('Profile updated successfully!')
-      
+
       // Clear password fields
       setNewPassword('')
       setConfirmPassword('')
-      
+
       // Refresh auth context to update user info in navbar
       if (authUser) {
         await refreshUser()
       }
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
     } catch (err: any) {
@@ -182,7 +191,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     return (
       <div className="flex min-h-[80vh] items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-purple mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-coral mx-auto mb-4"></div>
           <p className="text-subtle">Loading profile...</p>
         </div>
       </div>
@@ -197,13 +206,13 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => fetchProfile()}
-              className="w-full sm:w-auto rounded-full border border-[#e7e9f3] px-6 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/40 hover:text-brand-purple"
+              className="w-full sm:w-auto rounded-full border border-[#e7e9f3] px-6 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
             >
               Try again
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="w-full sm:w-auto rounded-full bg-brand-purple px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-purple/90"
+              className="w-full sm:w-auto rounded-full bg-brand-coral px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-coral/90"
             >
               Sign in again
             </button>
@@ -243,10 +252,10 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       {/* Profile Information Section */}
       <section className="mb-8 rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-8">
         <h2 className="text-2xl font-semibold text-primary-ink mb-6 flex items-center gap-2">
-          <User className="h-6 w-6 text-brand-purple" />
+          <User className="h-6 w-6 text-brand-coral" />
           Personal Information
         </h2>
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           {/* First Name */}
           <div>
@@ -258,7 +267,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               placeholder="Enter your first name"
             />
           </div>
@@ -274,7 +283,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               placeholder="you@example.com"
             />
           </div>
@@ -290,7 +299,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               type="tel"
               value={cellphone}
               onChange={(e) => setCellphone(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               placeholder="082 123 4567"
             />
           </div>
@@ -305,7 +314,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               id="province"
               value={province}
               onChange={(e) => setProvince(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
             >
               <option value="">Select a province</option>
               {SOUTH_AFRICAN_PROVINCES.map((prov) => (
@@ -321,10 +330,10 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       {/* Password Change Section */}
       <section className="mb-8 rounded-[28px] border border-[#e7e9f3] bg-white px-6 py-8">
         <h2 className="text-2xl font-semibold text-primary-ink mb-6 flex items-center gap-2">
-          <Lock className="h-6 w-6 text-brand-purple" />
+          <Lock className="h-6 w-6 text-brand-coral" />
           Change Password
         </h2>
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <label htmlFor="newPassword" className="block text-sm font-semibold text-primary-ink mb-2">
@@ -335,10 +344,23 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               placeholder="Leave blank to keep current password"
             />
-            <p className="mt-1 text-xs text-subtle">Minimum 6 characters</p>
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+              {[
+                { label: '8+ characters', met: newPassword.length >= 8 },
+                { label: 'Uppercase', met: /[A-Z]/.test(newPassword) },
+                { label: 'Lowercase', met: /[a-z]/.test(newPassword) },
+                { label: 'Number', met: /\d/.test(newPassword) },
+                { label: 'Special char', met: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword) }
+              ].map((req, i) => (
+                <div key={i} className={`flex items-center gap-1.5 text-[11px] font-bold ${req.met ? 'text-brand-mint' : 'text-slate-400'}`}>
+                  <div className={`h-1.5 w-1.5 rounded-full ${req.met ? 'bg-brand-mint' : 'bg-slate-300'}`} />
+                  {req.label}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -350,7 +372,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
               placeholder="Confirm new password"
             />
           </div>
@@ -363,7 +385,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
           <h2 className="text-2xl font-semibold text-primary-ink mb-6">
             Investment Profile
           </h2>
-          
+
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
@@ -371,35 +393,35 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               </label>
               <p className="text-primary-ink">{profile.age_band}</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
                 Experience Level
               </label>
               <p className="text-primary-ink capitalize">{profile.experience}</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
                 Investment Goal
               </label>
               <p className="text-primary-ink capitalize">{profile.goal}</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
                 Risk Tolerance
               </label>
               <p className="text-primary-ink">{profile.risk}%</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
                 Time Horizon
               </label>
               <p className="text-primary-ink capitalize">{profile.horizon}</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-subtle mb-1">
                 Anchor Stock
@@ -407,7 +429,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
               <p className="text-primary-ink">{profile.anchor_stock}</p>
             </div>
           </div>
-          
+
           {profile.interests && profile.interests.length > 0 && (
             <div className="mt-6">
               <label className="block text-sm font-semibold text-subtle mb-2">
@@ -417,7 +439,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
                 {profile.interests.map((interest, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-brand-purple/10 text-brand-purple rounded-full text-sm font-medium"
+                    className="px-3 py-1 bg-brand-coral/10 text-brand-coral rounded-full text-sm font-medium"
                   >
                     {interest}
                   </span>

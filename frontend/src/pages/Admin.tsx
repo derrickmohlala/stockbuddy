@@ -40,7 +40,7 @@ const Admin: React.FC = () => {
       if (search.trim()) {
         params.append('search', search.trim())
       }
-      
+
       const response = await apiFetch(`/api/admin/users?${params.toString()}`)
       if (!response.ok) {
         if (response.status === 403) {
@@ -48,7 +48,7 @@ const Admin: React.FC = () => {
         }
         throw new Error('Failed to fetch users')
       }
-      
+
       const data = await response.json()
       setUsers(data.users || [])
       setTotalPages(data.pages || 1)
@@ -131,7 +131,7 @@ const Admin: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search users by email or name..."
-              className="w-full rounded-full border border-[#e7e9f3] bg-white pl-10 pr-4 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+              className="w-full rounded-full border border-[#e7e9f3] bg-white pl-10 pr-4 py-2 text-sm text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
             />
           </div>
           <div className="text-sm font-semibold text-subtle">
@@ -141,7 +141,7 @@ const Admin: React.FC = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-brand-purple" />
+            <RefreshCw className="h-8 w-8 animate-spin text-brand-coral" />
           </div>
         ) : users.length === 0 ? (
           <div className="py-12 text-center text-subtle">
@@ -171,7 +171,7 @@ const Admin: React.FC = () => {
                       <td className="px-4 py-3 text-subtle">{user.email}</td>
                       <td className="px-4 py-3">
                         {user.is_admin ? (
-                          <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-2 py-1 text-xs font-semibold text-brand-purple">
+                          <span className="inline-flex items-center rounded-full bg-brand-coral/10 px-2 py-1 text-xs font-semibold text-brand-coral">
                             Admin
                           </span>
                         ) : (

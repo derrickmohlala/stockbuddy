@@ -37,8 +37,8 @@ interface NewsGroup {
   news: PortfolioNewsItem[]
 }
 
-interface BenchmarkPayload extends NewsGroup {}
-interface AnchorPayload extends NewsGroup {}
+interface BenchmarkPayload extends NewsGroup { }
+interface AnchorPayload extends NewsGroup { }
 
 type EarningsContext = 'anchor' | 'benchmark' | 'portfolio'
 
@@ -290,7 +290,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         })
       }
       holdingGroups.forEach((group) => {
-        ;(group.news || []).forEach((story) => {
+        ; (group.news || []).forEach((story) => {
           personalized.push({ ...story, portfolioImpact: `In your portfolio: ${group.name}` })
         })
       })
@@ -301,7 +301,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
     } else {
       const general: PortfolioNewsItem[] = []
       generalNews.forEach((group) => {
-        ;(group.news || []).forEach((story) => {
+        ; (group.news || []).forEach((story) => {
           general.push(story)
         })
       })
@@ -510,7 +510,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 {story.symbol}
               </span>
               {story.portfolioImpact && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-purple/10 text-brand-purple text-[10px] font-semibold border border-brand-purple/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-coral/10 text-brand-coral text-[10px] font-semibold border border-brand-coral/30">
                   <TrendingUp className="h-3 w-3" />
                   Portfolio
                 </span>
@@ -523,9 +523,8 @@ const News: React.FC<NewsProps> = ({ userId }) => {
               className="block group"
             >
               <h3
-                className={`font-bold text-primary-ink leading-tight mb-3 group-hover:text-brand-purple transition-colors cursor-pointer ${
-                  isHeadline ? 'text-2xl' : 'text-lg'
-                }`}
+                className={`font-bold text-primary-ink leading-tight mb-3 group-hover:text-brand-coral transition-colors cursor-pointer ${isHeadline ? 'text-2xl' : 'text-lg'
+                  }`}
               >
                 {story.headline}
               </h3>
@@ -539,9 +538,8 @@ const News: React.FC<NewsProps> = ({ userId }) => {
         </div>
 
         <p
-          className={`text-subtle leading-relaxed mb-4 ${
-            isHeadline ? 'text-base' : 'text-sm'
-          }`}
+          className={`text-subtle leading-relaxed mb-4 ${isHeadline ? 'text-base' : 'text-sm'
+            }`}
         >
           {story.summary}
         </p>
@@ -558,7 +556,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
             href={articleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-brand-purple hover:underline font-semibold cursor-pointer"
+            className="inline-flex items-center gap-1 text-brand-coral hover:underline font-semibold cursor-pointer"
           >
             {isFallback ? `View ${story.symbol} news` : 'Read more'}
             <ExternalLink className="h-3 w-3" />
@@ -619,7 +617,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 onChange={(event) => setNewsSearch(event.target.value)}
                 placeholder="Search symbol or company"
                 aria-label="Search news by symbol or company"
-                className="w-full appearance-none rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-purple focus:outline-none placeholder:text-muted"
+                className="w-full appearance-none rounded-full border border-[#d7d9e5] bg-white pl-9 pr-10 py-2 text-sm text-primary-ink focus:border-brand-coral focus:outline-none placeholder:text-muted"
                 autoComplete="off"
               />
               {newsSearch && (
@@ -703,7 +701,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                   <button
                     type="button"
                     onClick={() => setHeadlinePage((page) => Math.max(page - 1, 0))}
-                    className="inline-flex items-center gap-1 rounded-full border border-[#d7d9e5] px-2 py-1 hover:border-brand-purple hover:text-brand-purple disabled:opacity-40 disabled:hover:border-[#d7d9e5]"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#d7d9e5] px-2 py-1 hover:border-brand-coral hover:text-brand-coral disabled:opacity-40 disabled:hover:border-[#d7d9e5]"
                     disabled={!hasPreviousHeadlines}
                   >
                     <ChevronLeft className="h-3 w-3" />
@@ -717,7 +715,7 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                         Math.min(page + 1, totalHeadlinePages - 1),
                       )
                     }
-                    className="inline-flex items-center gap-1 rounded-full border border-[#d7d9e5] px-2 py-1 hover:border-brand-purple hover:text-brand-purple disabled:opacity-40 disabled:hover:border-[#d7d9e5]"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#d7d9e5] px-2 py-1 hover:border-brand-coral hover:text-brand-coral disabled:opacity-40 disabled:hover:border-[#d7d9e5]"
                     disabled={!hasNextHeadlines}
                   >
                     Next
@@ -766,14 +764,14 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                 <section className="border-2 border-[#d7d9e5] p-6 bg-white">
                   <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#d7d9e5]">
                     <div>
-                      <h3 className="text-xs font-black text-brand-purple tracking-widest mb-1">
+                      <h3 className="text-xs font-black text-brand-coral tracking-widest mb-1">
                         ANCHOR WATCH
                       </h3>
                       <p className="text-sm font-bold text-primary-ink">
                         {anchorData?.name ?? anchorData?.symbol}
                       </p>
                     </div>
-                    <Newspaper className="h-5 w-5 text-brand-purple" />
+                    <Newspaper className="h-5 w-5 text-brand-coral" />
                   </div>
                   {renderStory(
                     { ...anchorHeadline, portfolioImpact: 'Your anchor stock' },
@@ -808,11 +806,11 @@ const News: React.FC<NewsProps> = ({ userId }) => {
                     <h3 className="text-xs font-black text-primary-ink tracking-widest">
                       EARNINGS CALENDAR
                     </h3>
-                    <CalendarDays className="h-5 w-5 text-brand-purple" />
+                    <CalendarDays className="h-5 w-5 text-brand-coral" />
                   </div>
                   {nextEarnings ? (
                     <div className="space-y-3">
-                      <div className="border-l-4 border-brand-purple pl-4">
+                      <div className="border-l-4 border-brand-coral pl-4">
                         <p className="text-lg font-black text-primary-ink mb-1">
                           {nextEarnings.symbol}
                         </p>

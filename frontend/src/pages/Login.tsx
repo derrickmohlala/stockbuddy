@@ -26,17 +26,17 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    
+
     if (!email || !password) {
       setError('Please enter your email and password')
       return
     }
-    
+
     setLoading(true)
 
     try {
       await login(email.trim().toLowerCase(), password)
-      
+
       // Login successful - navigate will happen after auth state updates
       // The App component will handle routing based on onboarding status
       // Navigate to home first, which will redirect appropriately
@@ -55,8 +55,8 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-[#e7e9f3] bg-white p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-purple/10">
-              <LogIn className="h-8 w-8 text-brand-purple" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-coral/10">
+              <LogIn className="h-8 w-8 text-brand-coral" />
             </div>
             <h1 className="text-3xl font-bold text-primary-ink mb-2">Welcome back</h1>
             <p className="text-subtle">Sign in to your StockBuddy account</p>
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
                 placeholder="you@example.com"
                 disabled={loading}
               />
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
                 placeholder="••••••••"
                 disabled={loading}
               />
@@ -106,7 +106,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-full bg-brand-coral px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-coral/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -114,7 +114,7 @@ const Login: React.FC = () => {
 
           <div className="mt-6 text-center text-sm text-subtle">
             Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-brand-purple hover:underline">
+            <Link to="/signup" className="font-semibold text-brand-coral hover:underline">
               Sign up
             </Link>
           </div>

@@ -153,7 +153,7 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
     }
 
     const data = {
-      labels: instrument.mini_series.map(point => 
+      labels: instrument.mini_series.map(point =>
         new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })
       ),
       datasets: [
@@ -188,7 +188,7 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
       scales: {
         y: {
           ticks: {
-            callback: function(value: any) {
+            callback: function (value: any) {
               return formatCurrency(value)
             },
             color: axisColor,
@@ -273,7 +273,7 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
                 <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">
                   Paper Trading
                 </h3>
-                <span className="inline-flex items-center rounded-full border border-brand-purple/30 bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+                <span className="inline-flex items-center rounded-full border border-brand-coral/30 bg-brand-coral/10 px-3 py-1 text-xs font-semibold text-brand-coral">
                   Simulation
                 </span>
               </div>
@@ -302,22 +302,20 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => setTradeType('buy')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                    tradeType === 'buy'
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${tradeType === 'buy'
                       ? 'bg-green-600 text-white'
                       : 'bg-gray-200 dark:bg-gray-700 text-muted dark:text-gray-200 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
+                    }`}
                 >
                   <TrendingUp className="w-4 h-4 inline mr-2" />
                   Buy
                 </button>
                 <button
                   onClick={() => setTradeType('sell')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                    tradeType === 'sell'
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${tradeType === 'sell'
                       ? 'bg-red-600 text-white'
                       : 'bg-gray-200 dark:bg-gray-700 text-muted dark:text-gray-200 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
+                    }`}
                 >
                   <TrendingDown className="w-4 h-4 inline mr-2" />
                   Sell
@@ -417,7 +415,7 @@ const Trade: React.FC<TradeProps> = ({ userId }) => {
                     Educational Trading Only
                   </h4>
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    This is a simulated trading experience for learning purposes. 
+                    This is a simulated trading experience for learning purposes.
                     No real money is involved and this is not financial advice.
                   </p>
                 </div>

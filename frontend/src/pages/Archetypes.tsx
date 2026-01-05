@@ -43,7 +43,7 @@ const Archetypes: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                   <div className="md:w-1/2 space-y-3">
                     <div className="flex flex-wrap gap-2">
-                      <span className="badge bg-white/90 text-brand-purple text-xs font-semibold">
+                      <span className="badge bg-white/90 text-brand-coral text-xs font-semibold">
                         Onboarding ready
                       </span>
                       <span className="badge bg-brand-mint/20 text-brand-mint text-xs font-semibold">

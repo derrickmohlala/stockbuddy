@@ -84,8 +84,17 @@ const Signup: React.FC = () => {
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    const requirements = [
+      { met: password.length >= 8, error: 'Password must be at least 8 characters long' },
+      { met: /[A-Z]/.test(password), error: 'Password must contain at least one uppercase letter' },
+      { met: /[a-z]/.test(password), error: 'Password must contain at least one lowercase letter' },
+      { met: /\d/.test(password), error: 'Password must contain at least one number' },
+      { met: /[!@#$%^&*(),.?":{}|<>]/.test(password), error: 'Password must contain at least one special character' }
+    ]
+
+    const unmet = requirements.find(r => !r.met)
+    if (unmet) {
+      setError(unmet.error)
       return
     }
 
@@ -118,8 +127,17 @@ const Signup: React.FC = () => {
       return
     }
 
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters')
+    const requirements = [
+      { met: password.length >= 8, error: 'Password must be at least 8 characters long' },
+      { met: /[A-Z]/.test(password), error: 'Password must contain at least one uppercase letter' },
+      { met: /[a-z]/.test(password), error: 'Password must contain at least one lowercase letter' },
+      { met: /\d/.test(password), error: 'Password must contain at least one number' },
+      { met: /[!@#$%^&*(),.?":{}|<>]/.test(password), error: 'Password must contain at least one special character' }
+    ]
+
+    const unmet = requirements.find(r => !r.met)
+    if (unmet) {
+      setError(unmet.error)
       return
     }
 
@@ -215,7 +233,7 @@ const Signup: React.FC = () => {
           value={onboardingData.first_name}
           onChange={(e) => updateData('first_name', e.target.value)}
           required
-          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
           placeholder="John"
         />
       </div>
@@ -231,7 +249,7 @@ const Signup: React.FC = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
           placeholder="you@example.com"
         />
       </div>
@@ -246,11 +264,23 @@ const Signup: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
-          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
           placeholder="••••••••"
         />
-        <p className="mt-1 text-xs text-muted">At least 6 characters</p>
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+          {[
+            { label: '8+ characters', met: password.length >= 8 },
+            { label: 'Uppercase', met: /[A-Z]/.test(password) },
+            { label: 'Lowercase', met: /[a-z]/.test(password) },
+            { label: 'Number', met: /\d/.test(password) },
+            { label: 'Special char', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) }
+          ].map((req, i) => (
+            <div key={i} className={`flex items-center gap-1.5 text-[11px] font-bold ${req.met ? 'text-brand-mint' : 'text-slate-400'}`}>
+              <div className={`h-1.5 w-1.5 rounded-full ${req.met ? 'bg-brand-mint' : 'bg-slate-300'}`} />
+              {req.label}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -264,14 +294,14 @@ const Signup: React.FC = () => {
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
           placeholder="••••••••"
         />
       </div>
 
       <button
         type="submit"
-        className="w-full rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90"
+        className="w-full rounded-full bg-brand-coral px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-coral/90"
       >
         Continue
       </button>
@@ -291,8 +321,8 @@ const Signup: React.FC = () => {
               type="button"
               onClick={() => updateData('age_band', age)}
               className={`p-3 rounded-xl border text-center transition-colors ${onboardingData.age_band === age
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               {age}
@@ -316,8 +346,8 @@ const Signup: React.FC = () => {
               type="button"
               onClick={() => updateData('experience', exp.value)}
               className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.experience === exp.value
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               <div className="font-semibold">{exp.label}</div>
@@ -346,8 +376,8 @@ const Signup: React.FC = () => {
               type="button"
               onClick={() => updateData('goal', goal.value)}
               className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.goal === goal.value
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               <div className="font-semibold">{goal.label}</div>
@@ -367,7 +397,7 @@ const Signup: React.FC = () => {
           max="100"
           value={onboardingData.risk}
           onChange={(e) => updateData('risk', parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-purple"
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-coral"
         />
         <div className="flex justify-between text-sm text-subtle mt-1">
           <span>Conservative</span>
@@ -390,8 +420,8 @@ const Signup: React.FC = () => {
               type="button"
               onClick={() => updateData('horizon', horizon.value)}
               className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.horizon === horizon.value
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               <div className="font-semibold">{horizon.label}</div>
@@ -408,7 +438,7 @@ const Signup: React.FC = () => {
         <select
           value={onboardingData.anchor_stock}
           onChange={(e) => updateData('anchor_stock', e.target.value)}
-          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+          className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
         >
           <option value="">Select an anchor stock</option>
           <option value="SBK.JO">Standard Bank</option>
@@ -443,8 +473,8 @@ const Signup: React.FC = () => {
                 updateData('interests', newInterests)
               }}
               className={`p-3 rounded-xl border text-center transition-colors ${onboardingData.interests.includes(interest)
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               {interest}
@@ -468,8 +498,8 @@ const Signup: React.FC = () => {
               type="button"
               onClick={() => updateData('literacy_level', style.value)}
               className={`w-full p-4 rounded-xl border text-left transition-colors ${onboardingData.literacy_level === style.value
-                ? 'border-brand-purple bg-brand-purple/10 text-brand-purple'
-                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-purple/40'
+                ? 'border-brand-coral bg-brand-coral/10 text-brand-coral'
+                : 'border-[#e7e9f3] bg-white text-primary-ink hover:border-brand-coral/40'
                 }`}
             >
               <div className="font-semibold">{style.label}</div>
@@ -514,7 +544,7 @@ const Signup: React.FC = () => {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-brand-purple h-2 rounded-full transition-all duration-300"
+              className="bg-brand-coral h-2 rounded-full transition-all duration-300"
               style={{ width: `${(stepNumber / totalSteps) * 100}%` }}
             />
           </div>
@@ -522,8 +552,8 @@ const Signup: React.FC = () => {
 
         <div className="rounded-2xl border border-[#e7e9f3] bg-white p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-purple/10">
-              <UserPlus className="h-8 w-8 text-brand-purple" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-coral/10">
+              <UserPlus className="h-8 w-8 text-brand-coral" />
             </div>
             <h1 className="text-3xl font-bold text-primary-ink mb-2">
               {currentStep === 0 && "Create your account"}
@@ -559,7 +589,7 @@ const Signup: React.FC = () => {
               <button
                 onClick={handleBack}
                 disabled={submitting}
-                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-6 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-purple/40 hover:text-brand-purple disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-6 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Back</span>
@@ -568,7 +598,7 @@ const Signup: React.FC = () => {
               <button
                 onClick={handleNext}
                 disabled={!isStepValid() || submitting}
-                className="inline-flex items-center gap-2 rounded-full bg-brand-purple px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-purple/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-coral px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-coral/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>{submitting ? 'Creating...' : (currentStep === 3 ? 'Complete Setup' : 'Next')}</span>
                 {currentStep === 3 ? <Check className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -579,7 +609,7 @@ const Signup: React.FC = () => {
           {currentStep === 0 && (
             <div className="mt-6 text-center text-sm text-subtle">
               Already have an account?{' '}
-              <Link to="/login" className="font-semibold text-brand-purple hover:underline">
+              <Link to="/login" className="font-semibold text-brand-coral hover:underline">
                 Sign in
               </Link>
             </div>
