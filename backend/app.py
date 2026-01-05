@@ -804,7 +804,8 @@ def get_current_user():
             "email": user.email,
             "first_name": user.first_name,
             "is_admin": user.is_admin,
-            "is_onboarded": bool(user.goal and user.risk is not None)
+            "is_onboarded": bool(user.goal and user.risk is not None),
+            "is_profile_complete": getattr(user, 'is_profile_complete', False)
         }), 200
     except Exception as e:
         print(f"Error in get_current_user: {e}")
@@ -832,9 +833,13 @@ def get_profile():
             except:
                 interests = []
         
-        # Safely get cellphone and province (may not exist if migration hasn't run)
+        # Safely get new fields (may not exist if migration hasn't run)
         cellphone = getattr(user, 'cellphone', None) or ""
         province = getattr(user, 'province', None) or ""
+        income_bracket = getattr(user, 'income_bracket', None) or ""
+        employment_industry = getattr(user, 'employment_industry', None) or ""
+        debt_level = getattr(user, 'debt_level', None) or ""
+        is_complete = getattr(user, 'is_profile_complete', False)
         
         return jsonify({
             "user_id": user.id,
@@ -842,6 +847,10 @@ def get_profile():
             "first_name": user.first_name or "",
             "cellphone": cellphone,
             "province": province,
+            "income_bracket": income_bracket,
+            "employment_industry": employment_industry,
+            "debt_level": debt_level,
+            "is_profile_complete": is_complete,
             "age_band": user.age_band or "",
             "experience": user.experience or "",
             "goal": user.goal or "",
