@@ -332,7 +332,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   useEffect(() => {
     // Reset auth error flag when user changes (new login)
     authErrorRef.current = false
-    
+
     // Only fetch portfolio if user is authenticated, userId is valid, and token exists
     const token = localStorage.getItem('stockbuddy_token')
     if (userId && userId > 0 && token) {
@@ -357,7 +357,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     }
 
     loadInitial()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, benchmarkResolved])
 
   // Removed automatic refetch; fetch happens only when inputs change via explicit actions.
@@ -372,7 +372,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem('stockbuddy_distribution_policy', distributionPolicy)
-    } catch {}
+    } catch { }
   }, [distributionPolicy])
 
   useEffect(() => {
@@ -382,7 +382,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       return
     }
     fetchPerformanceData(false, true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inflationAdjust])
 
   const fetchPortfolio = async () => {
@@ -390,17 +390,17 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     if (fetchingPortfolioRef.current) {
       return
     }
-    
+
     // Don't retry if we've already had an auth error
     if (authErrorRef.current) {
       return
     }
-    
+
     try {
       fetchingPortfolioRef.current = true
       setLoading(true)
       setError(null) // Clear any previous errors
-      
+
       // Use authenticated user's ID
       const effectiveUserId = authUser?.user_id || userId
       if (!effectiveUserId) {
@@ -409,7 +409,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         fetchingPortfolioRef.current = false
         return
       }
-      
+
       // Check if token exists before making request
       const token = localStorage.getItem('stockbuddy_token')
       if (!token) {
@@ -419,9 +419,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         authErrorRef.current = true
         return
       }
-      
+
       const response = await apiFetch(`/api/portfolio/${effectiveUserId}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         setPortfolio(data)
@@ -476,8 +476,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       } else {
         // Handle error response
         let errorMessage = 'Failed to load portfolio'
+        let errorData: any = {}
         try {
-          const errorData = await response.json()
+          errorData = await response.json()
           errorMessage = errorData.error || errorData.detail || errorMessage
           console.error('Portfolio API error:', {
             status: response.status,
@@ -497,15 +498,16 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
                 text: text.substring(0, 200)
               })
             }
-          } catch {}
+          } catch { }
         }
-        
+
         // For 401/403/422 errors, user might not be authenticated properly
         // 422 can also be returned by Flask-JWT-Extended for invalid tokens
         if (response.status === 401 || response.status === 403 || response.status === 422) {
           console.error('Authentication error when loading portfolio:', {
             status: response.status,
-            error: errorMessage
+            error: errorMessage,
+            fullError: JSON.stringify(errorData)
           })
           // Mark that we've had an auth error to prevent retry loops
           authErrorRef.current = true
@@ -524,7 +526,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           fetchingPortfolioRef.current = false
           return
         }
-        
+
         // For 404, user might not have a portfolio yet - that's OK
         if (response.status === 404) {
           console.log('Portfolio not found for user - creating empty portfolio state')
@@ -554,7 +556,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
           // setError(errorMessage)
           return
         }
-        
+
         // For other errors, show the error but don't clear existing portfolio
         setError(errorMessage)
         if (!portfolio) {
@@ -749,7 +751,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
               total_dividends: Number(baselinePayload?.total_dividends) || null
             }
             localStorage.setItem('stockbuddy_last_simulation_plan', JSON.stringify(plan))
-          } catch {}
+          } catch { }
         }
         setScenarioData(scenarioPayloadResponse || null)
         setMetrics(computeMetrics(baselinePayload, distributionPolicy))
@@ -1311,7 +1313,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const benchmarkRef = useRef<HTMLDivElement | null>(null)
 
-const handleRunScenario = async () => {
+  const handleRunScenario = async () => {
     if (scenarioMode === 'monthly' && scenarioFrequency === 'annual') {
       const monthNumber = Number(scenarioAnnualMonth)
       if (!Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
@@ -1326,7 +1328,7 @@ const handleRunScenario = async () => {
     await fetchPerformanceData(true)
   }
 
-const handleResetScenario = async () => {
+  const handleResetScenario = async () => {
     setScenarioEnabled(false)
     setScenarioInitialDraft(String(initialInvestment))
     setScenarioMonthlyDraft(String(investmentMode === 'monthly' ? monthlyContribution : lastMonthlyContributionRef.current))
@@ -1526,18 +1528,18 @@ const handleResetScenario = async () => {
   }, [scenarioMode, scenarioFrequency, scenarioAnnualMonth])
   const scenarioRecurringLabel = scenarioMode === 'monthly'
     ? (() => {
-        const amountLabel = formatCurrency(scenarioParsedRecurringValue)
-        if (scenarioFrequency === 'monthly') {
-          return `${amountLabel}/month`
-        }
-        if (scenarioFrequency === 'quarterly') {
-          return `${amountLabel}/quarter`
-        }
-        if (scenarioFrequency === 'annual') {
-          return `${amountLabel}/year`
-        }
-        return amountLabel
-      })()
+      const amountLabel = formatCurrency(scenarioParsedRecurringValue)
+      if (scenarioFrequency === 'monthly') {
+        return `${amountLabel}/month`
+      }
+      if (scenarioFrequency === 'quarterly') {
+        return `${amountLabel}/quarter`
+      }
+      if (scenarioFrequency === 'annual') {
+        return `${amountLabel}/year`
+      }
+      return amountLabel
+    })()
     : ''
   const valueDelta = scenarioTotalValue !== null ? scenarioTotalValue - totalValue : null
   const investedDelta = scenarioTotalInvested !== null ? scenarioTotalInvested - totalInvested : null
@@ -1545,8 +1547,8 @@ const handleResetScenario = async () => {
   const dividendDisplayValue = effectiveDistributionPolicy === 'cash_out' ? dividendsDistributed : totalDividends
   const annualisedReturn = performanceData
     ? (inflationAdjust && performanceData.annual_return_real !== null
-        ? performanceData.annual_return_real
-        : performanceData.annual_return)
+      ? performanceData.annual_return_real
+      : performanceData.annual_return)
     : null
   const benchmarkReturnPct = typeof performanceData?.benchmark_total_return_pct === 'number' ? performanceData.benchmark_total_return_pct : null
   const benchmarkVolatility = typeof performanceData?.benchmark_volatility === 'number' ? performanceData.benchmark_volatility : null
@@ -1644,12 +1646,12 @@ const handleResetScenario = async () => {
   const initialLoading = loading || !portfolioLoaded
 
   if (initialLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-muted dark:text-gray-300">Loading your portfolio...</p>
-          </div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-muted dark:text-gray-300">Loading your portfolio...</p>
+        </div>
       </div>
     )
   }
@@ -1910,7 +1912,7 @@ const handleResetScenario = async () => {
       y: {
         beginAtZero: false,
         ticks: {
-          callback: function(value: any) {
+          callback: function (value: any) {
             const numeric = typeof value === 'string' ? Number(value) : value
             if (!Number.isFinite(numeric)) {
               return value
@@ -2149,14 +2151,14 @@ const handleResetScenario = async () => {
           <div className="card relative overflow-hidden">
             <div className="pr-16">
               <p className="text-sm font-medium text-muted dark:text-gray-300">Annualised return</p>
-              <p className={`text-2xl font-bold ${ (annualisedReturn ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400' }`}>
+              <p className={`text-2xl font-bold ${(annualisedReturn ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {annualisedReturn !== null ? formatPercentage(annualisedReturn) : '+0.00%'}
               </p>
               <p className="text-xs text-muted dark:text-gray-300 min-h-[32px] flex items-center">
                 {(inflationAdjust ? 'Real' : 'Nominal') + ' CAGR · ' + timeframeLabel.toLowerCase()}
               </p>
             </div>
-            <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${ (annualisedReturn ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
+            <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${(annualisedReturn ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
               {(annualisedReturn ?? 0) >= 0 ? (
                 <TrendingUp className="w-6 h-6" />
               ) : (
@@ -2200,7 +2202,7 @@ const handleResetScenario = async () => {
 
         {/* Performance */}
         <div className="mb-8">
-            <div ref={containerRef} className="card space-y-6">
+          <div ref={containerRef} className="card space-y-6">
             <div className="space-y-4">
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Portfolio performance</h3>
@@ -2332,17 +2334,15 @@ const handleResetScenario = async () => {
                   <button
                     type="button"
                     onClick={() => setInflationAdjust(!inflationAdjust)}
-                    className={`flex h-10 items-center justify-between gap-3 rounded-full border px-3 text-xs font-medium shadow-sm transition-colors ${
-                      inflationAdjust
-                        ? 'border-primary-500 bg-primary-500 text-white'
-                        : 'border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-800/70 text-muted dark:text-gray-300 hover:border-primary-400'
-                    }`}
+                    className={`flex h-10 items-center justify-between gap-3 rounded-full border px-3 text-xs font-medium shadow-sm transition-colors ${inflationAdjust
+                      ? 'border-primary-500 bg-primary-500 text-white'
+                      : 'border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-800/70 text-muted dark:text-gray-300 hover:border-primary-400'
+                      }`}
                   >
                     <span>View real returns</span>
                     <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                        inflationAdjust ? 'border-white bg-white text-primary-600' : 'border-gray-300 bg-white text-transparent'
-                      }`}
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${inflationAdjust ? 'border-white bg-white text-primary-600' : 'border-gray-300 bg-white text-transparent'
+                        }`}
                     >
                       ✓
                     </span>
@@ -2625,7 +2625,7 @@ const handleResetScenario = async () => {
                       <div className="text-right">
                         <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
                         <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkVolatility)}</p>
-                    </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2870,102 +2870,102 @@ const handleResetScenario = async () => {
                   const disableHoldingPlus = holdingWeight >= 100
                   return (
                     <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-3 pl-4 pr-10 align-top text-center">
-                      <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
-                        <button
-                          type="button"
-                          onClick={() => handleMoveHoldingRow(index, 'up')}
-                          disabled={index === 0}
-                          aria-label="Move holding up"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveHoldingRow(index, 'down')}
-                          disabled={index === displayHoldings.length - 1}
-                          aria-label="Move holding down"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-4 pl-10 text-center w-72">
-                      <div className="space-y-1">
-                        <div className="font-medium text-brand-ink dark:text-gray-100">
-                          {holding.symbol}
+                      <td className="py-3 pl-4 pr-10 align-top text-center">
+                        <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveHoldingRow(index, 'up')}
+                            disabled={index === 0}
+                            aria-label="Move holding up"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveHoldingRow(index, 'down')}
+                            disabled={index === displayHoldings.length - 1}
+                            aria-label="Move holding down"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
                         </div>
-                        <div className="text-sm text-muted dark:text-gray-300">
-                          {holding.name}
+                      </td>
+                      <td className="py-3 pr-4 pl-10 text-center w-72">
+                        <div className="space-y-1">
+                          <div className="font-medium text-brand-ink dark:text-gray-100">
+                            {holding.symbol}
+                          </div>
+                          <div className="text-sm text-muted dark:text-gray-300">
+                            {holding.name}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                      {holding.quantity.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                      {formatCurrency(holding.avg_price)}
-                    </td>
-                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                      <div className="space-y-1 text-center">
-                        <div>{formatCurrency(holding.current_price)}</div>
-                        <div className={`text-xs ${holding.current_price - holding.avg_price >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
-                          {formatCurrencyDelta(holding.current_price - holding.avg_price)} vs avg
+                      </td>
+                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                        {holding.quantity.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                        {formatCurrency(holding.avg_price)}
+                      </td>
+                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                        <div className="space-y-1 text-center">
+                          <div>{formatCurrency(holding.current_price)}</div>
+                          <div className={`text-xs ${holding.current_price - holding.avg_price >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
+                            {formatCurrencyDelta(holding.current_price - holding.avg_price)} vs avg
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                      {formatCurrency(holding.current_value)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className={`${holding.pnl >= 0 ? 'text-success-600' : 'text-danger-600'} space-y-0.5`}>
-                        <div className="font-medium">
-                          {formatCurrency(holding.pnl)}
+                      </td>
+                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                        {formatCurrency(holding.current_value)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className={`${holding.pnl >= 0 ? 'text-success-600' : 'text-danger-600'} space-y-0.5`}>
+                          <div className="font-medium">
+                            {formatCurrency(holding.pnl)}
+                          </div>
+                          <div className="text-sm">
+                            {formatPercentage(holding.pnl_pct)}
+                          </div>
                         </div>
-                        <div className="text-sm">
-                          {formatPercentage(holding.pnl_pct)}
+                      </td>
+                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => adjustHoldingWeight(index, -1)}
+                            disabled={disableHoldingMinus}
+                            aria-label="Decrease weight"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <div className="relative w-24">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={3}
+                              value={String(holdingWeight)}
+                              onChange={(e) => handleWeightChange(index, e.target.value)}
+                              aria-label="Holding weight percentage"
+                              className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
+                              %
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => adjustHoldingWeight(index, 1)}
+                            disabled={disableHoldingPlus}
+                            aria-label="Increase weight"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => adjustHoldingWeight(index, -1)}
-                          disabled={disableHoldingMinus}
-                          aria-label="Decrease weight"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <div className="relative w-24">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={3}
-                            value={String(holdingWeight)}
-                            onChange={(e) => handleWeightChange(index, e.target.value)}
-                            aria-label="Holding weight percentage"
-                            className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
-                            %
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => adjustHoldingWeight(index, 1)}
-                          disabled={disableHoldingPlus}
-                          aria-label="Increase weight"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                      </td>
                     </tr>
                   )
                 })}
@@ -3017,136 +3017,136 @@ const handleResetScenario = async () => {
                       const disableRowMinus = rowWeight <= 0
                       const disableRowPlus = rowWeight >= 100
                       return (
-                      <tr key={row.id} id={`custom-row-${row.id}`} className="border-t border-gray-100 dark:border-gray-800">
-                        <td className="py-2 pl-4 pr-10 align-top text-center">
-                          <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
-                            <button
-                              type="button"
-                              onClick={() => handleMoveCustomRow(row.id, 'up')}
-                              disabled={rowIndex === 0}
-                              aria-label="Move instrument up"
-                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMoveCustomRow(row.id, 'down')}
-                              disabled={rowIndex === customRows.length - 1}
-                              aria-label="Move instrument down"
-                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-2 pr-4 pl-10 text-center w-80">
-                          <div className="relative mx-auto w-full max-w-md text-left">
-                            <button
-                              id={`instrument-trigger-${row.id}`}
-                              type="button"
-                              onClick={() => toggleInstrumentDropdown(row.id)}
-                              className="input-field flex w-full items-center justify-between gap-2 text-left"
-                            >
-                              <span className={`truncate ${row.symbol ? 'text-brand-ink dark:text-gray-100' : 'text-gray-400 dark:text-subtle dark:text-gray-400'}`}>
-                                {row.symbol || 'Search instrument…'}
-                              </span>
-                              <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
-                              </svg>
-                            </button>
-                            {activeInstrumentRow === row.id && (
-                              <div
-                                id={`instrument-popover-${row.id}`}
-                                className="absolute left-0 top-full z-20 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                        <tr key={row.id} id={`custom-row-${row.id}`} className="border-t border-gray-100 dark:border-gray-800">
+                          <td className="py-2 pl-4 pr-10 align-top text-center">
+                            <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveCustomRow(row.id, 'up')}
+                                disabled={rowIndex === 0}
+                                aria-label="Move instrument up"
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
                               >
-                                <div className="px-3 pt-3">
-                                  <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
-                                    <input
-                                      ref={activeInstrumentRow === row.id ? instrumentSearchInputRef : undefined}
-                                      type="text"
-                                      placeholder="Search instruments"
-                                      value={instrumentSearchTerm}
-                                      onChange={(e) => setInstrumentSearchTerm(e.target.value)}
-                                      className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
-                                    />
+                                <ChevronUp className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveCustomRow(row.id, 'down')}
+                                disabled={rowIndex === customRows.length - 1}
+                                aria-label="Move instrument down"
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-4 pl-10 text-center w-80">
+                            <div className="relative mx-auto w-full max-w-md text-left">
+                              <button
+                                id={`instrument-trigger-${row.id}`}
+                                type="button"
+                                onClick={() => toggleInstrumentDropdown(row.id)}
+                                className="input-field flex w-full items-center justify-between gap-2 text-left"
+                              >
+                                <span className={`truncate ${row.symbol ? 'text-brand-ink dark:text-gray-100' : 'text-gray-400 dark:text-subtle dark:text-gray-400'}`}>
+                                  {row.symbol || 'Search instrument…'}
+                                </span>
+                                <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                              {activeInstrumentRow === row.id && (
+                                <div
+                                  id={`instrument-popover-${row.id}`}
+                                  className="absolute left-0 top-full z-20 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                >
+                                  <div className="px-3 pt-3">
+                                    <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
+                                      <input
+                                        ref={activeInstrumentRow === row.id ? instrumentSearchInputRef : undefined}
+                                        type="text"
+                                        placeholder="Search instruments"
+                                        value={instrumentSearchTerm}
+                                        onChange={(e) => setInstrumentSearchTerm(e.target.value)}
+                                        className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div
+                                    ref={activeInstrumentRow === row.id ? instrumentListRef : undefined}
+                                    className="mt-2 max-h-60 overflow-y-auto border-t border-gray-200 dark:border-gray-700"
+                                  >
+                                    {filteredInstrumentOptions.map(option => (
+                                      <button
+                                        key={`${row.id}-${option.symbol}`}
+                                        type="button"
+                                        onClick={() => {
+                                          handleCustomRowSymbolChange(row.id, option.symbol)
+                                          setActiveInstrumentRow(null)
+                                          setInstrumentSearchTerm('')
+                                        }}
+                                        className="flex w-full items-center gap-3 px-3 py-2 text-sm text-left hover:bg-primary-50 dark:hover:bg-gray-700"
+                                      >
+                                        <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
+                                        <span className="text-xs text-subtle dark:text-gray-400 dark:text-gray-300">{option.label}</span>
+                                      </button>
+                                    ))}
+                                    {!filteredInstrumentOptions.length && (
+                                      <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No instruments match your search.</div>
+                                    )}
                                   </div>
                                 </div>
-                                <div
-                                  ref={activeInstrumentRow === row.id ? instrumentListRef : undefined}
-                                  className="mt-2 max-h-60 overflow-y-auto border-t border-gray-200 dark:border-gray-700"
-                                >
-                                  {filteredInstrumentOptions.map(option => (
-                                    <button
-                                      key={`${row.id}-${option.symbol}`}
-                                      type="button"
-                                      onClick={() => {
-                                        handleCustomRowSymbolChange(row.id, option.symbol)
-                                        setActiveInstrumentRow(null)
-                                        setInstrumentSearchTerm('')
-                                      }}
-                                      className="flex w-full items-center gap-3 px-3 py-2 text-sm text-left hover:bg-primary-50 dark:hover:bg-gray-700"
-                                    >
-                                      <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
-                                      <span className="text-xs text-subtle dark:text-gray-400 dark:text-gray-300">{option.label}</span>
-                                    </button>
-                                  ))}
-                                  {!filteredInstrumentOptions.length && (
-                                    <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No instruments match your search.</div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2 pr-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => adjustCustomRowWeight(row.id, -1)}
-                              disabled={disableRowMinus}
-                              aria-label="Decrease custom weight"
-                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <div className="relative w-24">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={3}
-                                value={String(rowWeight)}
-                                onChange={(e) => handleCustomRowWeightChange(row.id, e.target.value)}
-                                aria-label="Custom weight percentage"
-                                className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
-                              />
-                              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
-                                %
-                              </span>
+                              )}
                             </div>
+                          </td>
+                          <td className="py-2 pr-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => adjustCustomRowWeight(row.id, -1)}
+                                disabled={disableRowMinus}
+                                aria-label="Decrease custom weight"
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <div className="relative w-24">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  maxLength={3}
+                                  value={String(rowWeight)}
+                                  onChange={(e) => handleCustomRowWeightChange(row.id, e.target.value)}
+                                  aria-label="Custom weight percentage"
+                                  className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
+                                />
+                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
+                                  %
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => adjustCustomRowWeight(row.id, 1)}
+                                disabled={disableRowPlus}
+                                aria-label="Increase custom weight"
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-3 text-center">
                             <button
                               type="button"
-                              onClick={() => adjustCustomRowWeight(row.id, 1)}
-                              disabled={disableRowPlus}
-                              aria-label="Increase custom weight"
-                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                              onClick={() => handleRemoveCustomRow(row.id)}
+                              className="text-xs text-danger-600 hover:underline"
                             >
-                              <Plus className="h-4 w-4" />
+                              Remove
                             </button>
-                          </div>
-                        </td>
-                        <td className="py-2 pr-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCustomRow(row.id)}
-                            className="text-xs text-danger-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    )
+                          </td>
+                        </tr>
+                      )
                     })}
                   </tbody>
                 </table>
@@ -3325,7 +3325,7 @@ const handleResetScenario = async () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="card border-l-4 border-yellow-500">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
