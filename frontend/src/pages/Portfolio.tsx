@@ -612,7 +612,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
   const useCachedPerformance = React.useCallback(() => {
     if (typeof window === 'undefined') return null
-    const key = inflationAdjust ? 'stockbuddy_performance_payload_real' : 'stockbuddy_performance_payload_nominal'
+    const key = inflationAdjust ? 'stockbuddy_performance_payload_real_v2' : 'stockbuddy_performance_payload_nominal_v2'
     const raw = localStorage.getItem(key)
     if (!raw) return null
     try {
@@ -718,7 +718,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         setPerformanceData(baselinePayload)
         if (typeof window !== 'undefined') {
           try {
-            const payloadKey = inflationAdjust ? 'stockbuddy_performance_payload_real' : 'stockbuddy_performance_payload_nominal'
+            const payloadKey = inflationAdjust ? 'stockbuddy_performance_payload_real_v2' : 'stockbuddy_performance_payload_nominal_v2'
             localStorage.setItem(payloadKey, JSON.stringify(baselinePayload))
           } catch {
             // ignore storage errors
@@ -1708,6 +1708,15 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const chartLabels = chartSeries.map((point: any) =>
     new Date(point.date).toLocaleDateString()
   )
+
+  // DEBUG DEBUG DEBUG
+  console.log('DEBUG: Chart Series Length:', chartSeries.length)
+  if (chartSeries.length > 0) {
+    console.log('DEBUG: First Point:', chartSeries[0])
+    console.log('DEBUG: Last Point:', chartSeries[chartSeries.length - 1])
+    console.log('DEBUG: Last 5 Points:', chartSeries.slice(-5))
+  }
+  // DEBUG DEBUG DEBUG
 
   const performanceDatasets: any[] = [
     {
