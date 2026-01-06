@@ -1847,6 +1847,7 @@ def get_portfolio(user_id):
 
         alerts = []
         try:
+        try:
             alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value) if portfolio else []
         except Exception as e:
             print(f"Error generating goal alerts: {e}")
@@ -2988,11 +2989,9 @@ def create_initial_positions(user_id, allocations, starting_value=100000):
             except Exception as e:
                 print(f"Failed to fetch live price for {symbol}: {e}")
         
-        # Fallback 2: Use a default placeholder if everything else failed
-        # This is critical to ensure the position is created and weights match the plan
         if closing_price <= 0:
-            print(f"Warning: Using fallback price (100.0) for {symbol}")
-            closing_price = 100.0
+            print(f"Warning: No valid price for {symbol}, fetching failed. Skipping position.")
+            continue
 
         allocation_value = starting_value * (weight / 100)
         if allocation_value <= 0:
@@ -3452,7 +3451,7 @@ def generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetyp
         return alerts
 
     # Base tolerances
-    drift_tolerance = 5.0  # percent points from target weight
+    drift_tolerance = 7.0  # percent points from target weight (increased from 5.0)
     anchor_symbol = (user.anchor_stock or "").upper()
     anchor_cap = None
     if archetype_meta:
