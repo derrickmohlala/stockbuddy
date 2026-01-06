@@ -1158,14 +1158,70 @@ def onboarding():
         )
         db.session.add(user)
 
-    # Commit profile changes safely
+    # Commit profile changes first
     try:
         db.session.commit()
-        return jsonify(user.to_dict()), 200
     except Exception as e:
         db.session.rollback()
         print(f"Error updating profile: {e}")
         return jsonify({"error": str(e)}), 500
+
+    # Generate archetype and starter basket
+    archetype = generate_archetype(user)
+    allocations = generate_starter_allocations(user, archetype)
+
+    # Create or update user portfolio
+    portfolio = UserPortfolio.query.filter_by(user_id=user.id).first()
+    if portfolio:
+        portfolio.archetype = archetype
+        portfolio.allocations = json.dumps(allocations)
+    else:
+        portfolio = UserPortfolio(
+            user_id=user.id,
+            archetype=archetype,
+            allocations=json.dumps(allocations)
+        )
+        db.session.add(portfolio)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Unable to create portfolio", "detail": str(e)}), 400
+
+    # Seed starter positions so portfolio view has holdings immediately
+    # Only create positions if this is a new portfolio or user explicitly wants to reset
+    if not UserPosition.query.filter_by(user_id=user.id).first():
+        try:
+            create_initial_positions(user.id, allocations)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Warning: Unable to create positions: {e}")
+            # Continue - positions can be added later
+
+    # Create or update baseline
+    baseline = PortfolioBaseline.query.filter_by(user_id=user.id).first()
+    baseline_payload = json.dumps(allocations)
+    if baseline:
+        baseline.allocations = baseline_payload
+    else:
+        baseline = PortfolioBaseline(user_id=user.id, allocations=baseline_payload)
+        db.session.add(baseline)
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Warning: Unable to create baseline: {e}")
+        # Continue - baseline is not critical
+
+    return jsonify({
+        "user_id": user.id,
+        "archetype": archetype,
+        "allocations": allocations,
+        "profile_copy": f"Welcome {user.first_name}! You're a {archetype} investor focused on {user.goal}."
+    })
 
 @app.route("/api/profile", methods=["DELETE"])
 @jwt_required()
@@ -1206,53 +1262,6 @@ def delete_profile():
         print(f"Error deleting profile: {e}")
         traceback.print_exc()
         return jsonify({"error": "Failed to delete account. Please contact support."}), 500
-
-    # Generate archetype and starter basket
-    archetype = generate_archetype(user)
-    allocations = generate_starter_allocations(user, archetype)
-
-    # Create or update user portfolio
-    portfolio = UserPortfolio.query.filter_by(user_id=user.id).first()
-    if portfolio:
-        portfolio.archetype = archetype
-        portfolio.allocations = json.dumps(allocations)
-    else:
-        portfolio = UserPortfolio(
-            user_id=user.id,
-            archetype=archetype,
-            allocations=json.dumps(allocations)
-        )
-        db.session.add(portfolio)
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": "Unable to create portfolio", "detail": str(e)}), 400
-
-    # Seed starter positions so portfolio view has holdings immediately
-    create_initial_positions(user.id, allocations)
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": "Unable to create baseline", "detail": str(e)}), 400
-
-    baseline = PortfolioBaseline.query.filter_by(user_id=user.id).first()
-    baseline_payload = json.dumps(allocations)
-    if baseline:
-        baseline.allocations = baseline_payload
-    else:
-        baseline = PortfolioBaseline(user_id=user.id, allocations=baseline_payload)
-        db.session.add(baseline)
-    db.session.commit()
-
-    return jsonify({
-        "user_id": user.id,
-        "archetype": archetype,
-        "allocations": allocations,
-        "profile_copy": f"Welcome {user.first_name}! You're a {archetype} investor focused on {user.goal}."
-    })
 
 # Instruments endpoint
 @app.route("/api/instruments")
