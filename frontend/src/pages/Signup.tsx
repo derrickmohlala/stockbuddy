@@ -204,7 +204,8 @@ const Signup: React.FC = () => {
           email: data.email,
           first_name: data.first_name,
           is_admin: data.is_admin || false,
-          is_onboarded: data.is_onboarded || false
+          is_onboarded: data.is_onboarded || false,
+          is_profile_complete: data.is_profile_complete || false
         })
 
         // Use replace to prevent back navigation to signup
