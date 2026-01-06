@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, stream_with_context
 import sys
 import csv
 import io
@@ -521,6 +521,91 @@ def refresh_prices():
         print(f"Error refreshing prices: {e}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/refresh-prices-stream", methods=["GET", "OPTIONS"])
+@jwt_required()
+def refresh_prices_stream():
+    # Handle CORS preflight explicitly if needed for EventSource
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if not user or not user.is_admin:
+        return jsonify({"error": "Admin access required"}), 403
+
+    def generate():
+        instruments = Instrument.query.filter_by(is_active=True).all()
+        total = len(instruments)
+        
+        # Initial Message
+        yield f"data: {json.dumps({'type': 'start', 'total': total})}\n\n"
+        
+        count = 0
+        updated_count = 0
+        
+        for instr in instruments:
+            count += 1
+            status = "skipped"
+            detail = ""
+            
+            try:
+                # Sequential Fetch Logic
+                ticker = yf.Ticker(instr.symbol)
+                hist = ticker.history(period="5d")
+                
+                price = 0.0
+                if not hist.empty:
+                    latest_close = float(hist['Close'].iloc[-1])
+                    latest_date = hist.index[-1].date()
+                    
+                    if latest_close > 0:
+                        existing = Price.query.filter_by(
+                            instrument_id=instr.id, 
+                            date=latest_date
+                        ).first()
+                        
+                        if not existing:
+                            new_price = Price(
+                                instrument_id=instr.id,
+                                date=latest_date,
+                                close=latest_close
+                            )
+                            db.session.add(new_price)
+                            db.session.commit()
+                            updated_count += 1
+                            status = "updated"
+                            price = latest_close
+                        else:
+                            status = "current"
+                            price = existing.close
+                    else:
+                        status = "error"
+                        detail = "Invalid Price"
+                else:
+                    status = "error"
+                    detail = "No Data"
+
+            except Exception as e:
+                status = "error"
+                detail = str(e)
+            
+            # Yield Progress
+            payload = {
+                'type': 'progress',
+                'symbol': instr.symbol,
+                'current': count,
+                'total': total,
+                'status': status,
+                'price': price,
+                'detail': detail
+            }
+            yield f"data: {json.dumps(payload)}\n\n"
+        
+        # Final Message
+        yield f"data: {json.dumps({'type': 'done', 'updated': updated_count})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @app.route("/api/admin/reseed", methods=["POST"])
 @jwt_required()

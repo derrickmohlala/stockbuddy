@@ -29,6 +29,7 @@ const Admin: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [progress, setProgress] = useState<{ current: number; total: number; symbol: string; status: string; detail?: string } | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -132,18 +133,48 @@ const Admin: React.FC = () => {
                 setRefreshingPrices(true)
                 setError(null)
                 setSuccessMessage(null)
-                const response = await apiFetch('/api/admin/refresh-prices', {
-                  method: 'POST'
-                })
-                if (!response.ok) {
-                  const data = await response.json()
-                  throw new Error(data.error || 'Failed to refresh prices')
+                setProgress({ current: 0, total: 1, symbol: 'Initializing...', status: 'pending' })
+
+                const response = await apiFetch('/api/admin/refresh-prices-stream')
+                if (!response.ok) throw new Error('Stream connection failed')
+                if (!response.body) throw new Error('No readable stream')
+
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
+                let buffer = ''
+
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  buffer += decoder.decode(value, { stream: true })
+                  const lines = buffer.split('\n\n')
+                  buffer = lines.pop() || ''
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const jsonStr = line.substring(6)
+                      try {
+                        const data = JSON.parse(jsonStr)
+                        if (data.type === 'start') {
+                          setProgress((prev: any) => ({ ...prev, total: data.total }))
+                        } else if (data.type === 'progress') {
+                          setProgress(data)
+                        } else if (data.type === 'done') {
+                          setSuccessMessage(`Prices updated: ${data.updated} new records.`)
+                          setProgress(null)
+                        }
+                      } catch (e) {
+                        console.error('JSON Error:', e)
+                      }
+                    }
+                  }
                 }
-                const data = await response.json()
-                setSuccessMessage(data.message || 'Prices refreshed successfully')
+
                 setTimeout(() => setSuccessMessage(null), 5000)
               } catch (err: any) {
                 setError(err.message)
+                setProgress(null)
               } finally {
                 setRefreshingPrices(false)
               }
@@ -182,6 +213,33 @@ const Admin: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {progress && (
+        <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <div className="flex justify-between font-medium">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>Updating Prices...</span>
+            </div>
+            <span>{progress.current} / {progress.total}</span>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-blue-200/50">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${Math.min((progress.current / progress.total) * 100, 100)}%` }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-xs opacity-80">
+            <span className="font-mono font-semibold">{progress.symbol}</span>
+            <span>•</span>
+            <span className={progress.status === 'error' ? 'text-red-500' : 'text-blue-700'}>
+              {progress.status === 'updated' ? 'Updated' : progress.status === 'current' ? 'Already Current' : progress.detail || progress.status}
+            </span>
+          </div>
+        </div>
+      )}
 
       {successMessage && (
         <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
