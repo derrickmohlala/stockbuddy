@@ -17,6 +17,10 @@ import hashlib
 import pandas as pd
 import statistics
 from urllib.parse import quote_plus
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+except ImportError:
+    BackgroundScheduler = None
 
 print("DEBUG: Backend module loading - Debug logs enabled", file=sys.stderr)
 
@@ -504,80 +508,13 @@ def refresh_prices():
         if not user or not user.is_admin:
             return jsonify({"error": "Admin access required"}), 403
 
-        if not yf:
-            return jsonify({"error": "yfinance library not installed on server"}), 500
-
-        print("Forcing price refresh for all active instruments (Batch Mode)...")
-        instruments = Instrument.query.filter_by(is_active=True).all()
-        
-        # 1. Prepare symbols for batch download
-        # yfinance expects space-separated string or list
-        symbols = [i.symbol for i in instruments]
-        if not symbols:
-             return jsonify({"message": "No active instruments to refresh"}), 200
-
-        updated_count = 0
-        errors = []
-
-        try:
-            # 2. Batch download (much faster)
-            # period="5d" ensures we catch the last close even after a long weekend
-            print(f"Downloading batch data for {len(symbols)} instruments...")
-            data = yf.download(symbols, period="5d", group_by='ticker', threads=True, progress=False)
-
-            # 3. Process results
-            for instr in instruments:
-                try:
-                    sym = instr.symbol
-                    
-                    # Handle different dataframe structures returned by yfinance depending on single/multi ticker
-                    if len(symbols) == 1:
-                        # If only one symbol, data is flat
-                        hist = data
-                    else:
-                        # If multiple, data is hierarchical: data[Symbol][Open, Close...]
-                        if sym not in data.columns.levels[0]:
-                            errors.append(f"{sym}: No data found in batch")
-                            continue
-                        hist = data[sym]
-
-                    # Drop NaNs
-                    hist = hist.dropna(subset=['Close'])
-
-                    if not hist.empty:
-                        # Get last available close
-                        latest_close = float(hist['Close'].iloc[-1])
-                        latest_date = hist.index[-1].date()
-
-                        # Check if we already have this price
-                        existing = Price.query.filter_by(
-                            instrument_id=instr.id, 
-                            date=latest_date
-                        ).first()
-                        
-                        if not existing:
-                            new_price = Price(
-                                instrument_id=instr.id,
-                                date=latest_date,
-                                close=latest_close
-                            )
-                            db.session.add(new_price)
-                            updated_count += 1
-                except Exception as inner_e:
-                    # Don't fail the whole batch for one bad ticker
-                    print(f"Error processing {instr.symbol}: {inner_e}")
-                    errors.append(f"{instr.symbol}: {str(inner_e)}")
-            
-            db.session.commit()
-
-        except Exception as e:
-            print(f"Batch download failed: {e}")
-            return jsonify({"error": f"Batch download failed: {str(e)}"}), 500
+        # Use helper function
+        result = update_prices_batch()
         
         return jsonify({
-            "message": f"Successfully refreshed prices for {updated_count} instruments",
-            "total_checked": len(instruments),
-            "errors": errors[:5]
+            "message": f"Refreshed prices for {result['updated']} instruments",
+            "total_checked": result['total'],
+            "errors": result['errors'][:5] # Limit error details
         }), 200
 
     except Exception as e:
@@ -4461,6 +4398,76 @@ def generate_mock_inflation_series(start_date, end_date):
             current_date = current_date.replace(month=current_date.month + 1)
 
     return series
+
+
+# ==========================================
+# AUTOMATED PRICE UPDATES
+# ==========================================
+
+def scheduled_price_update():
+    """Wrapper for scheduled job to ensure app context"""
+    # Simply calling the batch helper - it handles its own context check
+    print("⏰ JOB: Running scheduled price update...")
+    try:
+        result = update_prices_batch()
+        print(f"⏰ JOB: Update complete. {result['updated']} updated, {len(result['errors'])} errors.")
+    except Exception as e:
+        print(f"⏰ JOB: Failed: {e}")
+
+# Initialize Scheduler
+# Run at 18:00 SAST (UTC+2) implies 16:00 UTC
+if BackgroundScheduler:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=scheduled_price_update, trigger="cron", hour=16)
+    scheduler.start()
+    print("✓ Scheduled daily price updates for 16:00 UTC (18:00 SAST)")
+else:
+    print("⚠ APScheduler not installed - automated daily updates disabled")
+
+def check_price_freshness():
+    """Check if prices are stale on startup and auto-update if needed"""
+    # Wait a moment for DB to be ready
+    import time
+    import threading
+    
+    def _do_check():
+        time.sleep(5) # Give app time to fully init
+        with app.app_context():
+            try:
+                # Check when we last got prices
+                # We look at the most recent price entry
+                latest = Price.query.order_by(Price.date.desc()).first()
+                
+                trigger_update = False
+                if not latest:
+                    print("ℹ️ Database check: No prices found. Triggering initial fetch...")
+                    trigger_update = True
+                else:
+                    last_date = latest.date
+                    today = datetime.now().date()
+                    delta = (today - last_date).days
+                    
+                    # If data is > 1 day old (allow for weekends, but check anyway)
+                    # Actually, if it's > 2 days old we definitely want to check
+                    if delta > 1:
+                        print(f"ℹ️ Database check: Prices are stale ({delta} days old). Triggering update...")
+                        trigger_update = True
+                    else:
+                        print(f"✓ Database check: Prices are fresh (Last: {last_date})")
+                
+                if trigger_update:
+                    update_prices_batch()
+                    
+            except Exception as e:
+                # Table might not exist yet if this is first run
+                print(f"ℹ️ Startup check skipped: {e}")
+
+    # Run in background thread to avoid blocking startup
+    threading.Thread(target=_do_check, daemon=True).start()
+
+# Execute freshness check on module load
+check_price_freshness()
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
