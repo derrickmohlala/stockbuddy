@@ -2207,6 +2207,18 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Portfolio performance</h3>
                 <p className="text-xs text-muted dark:text-gray-300">
+                  <span className="font-medium text-brand-ink dark:text-gray-100">
+                    {timeframe === 'custom'
+                      ? (customStart ? `From ${new Date(customStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Custom period')
+                      : (() => {
+                        const d = new Date();
+                        const years = parseInt(timeframe);
+                        d.setFullYear(d.getFullYear() - (isNaN(years) ? 5 : years));
+                        return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                      })()
+                    }
+                  </span>
+                  <span className="mx-1.5 opacity-40">|</span>
                   Track how your allocation evolves over time and compare against a benchmark or inflation adjusted rand returns.
                 </p>
               </div>

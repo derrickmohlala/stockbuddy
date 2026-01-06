@@ -4088,7 +4088,7 @@ def calculate_historical_performance(
     benchmark_dividends_total = 0.0
     bench_dividends_total_sim = None
     benchmark_average_dividend_yield = None
-    downside_ratios = []
+    downside_capture_pct = None
     if benchmark_symbol:
         benchmark_instrument = Instrument.query.filter_by(symbol=benchmark_symbol).first()
         if benchmark_instrument:
@@ -4138,9 +4138,19 @@ def calculate_historical_performance(
                         negative_mask = bench_returns < 0
                         if negative_mask.any():
                             portfolio_returns = portfolio_series.pct_change().reindex(bench_returns.index)
-                            ratios = portfolio_returns[negative_mask] / bench_returns[negative_mask]
-                            ratios = ratios.replace([float('inf'), float('-inf')], float('nan')).dropna()
-                            downside_ratios.extend(ratios.tolist())
+                            # Aggregate Downside Capture Calculation (Compound Method)
+                            # (Return of Port in Down Days) / (Return of Bench in Down Days)
+                            
+                            bench_down = bench_returns[negative_mask]
+                            port_down = portfolio_returns[negative_mask]
+                            
+                            if not bench_down.empty:
+                                # Compound returns for the down periods
+                                cum_bench_down = (1 + bench_down).prod() - 1
+                                cum_port_down = (1 + port_down).prod() - 1
+                                
+                                if abs(cum_bench_down) > 0.0001:
+                                    downside_capture_pct = (cum_port_down / cum_bench_down) * 100
                     cum_max = bench_series.cummax()
                     drawdowns = ((bench_series / cum_max) - 1) * 100
                     benchmark_max_drawdown = drawdowns.min() if not drawdowns.empty else None
@@ -4166,10 +4176,8 @@ def calculate_historical_performance(
     months = max(1, int(round(days / 30.0)))
 
     average_dividend_yield = (dividends_total / total_invested_sim / years * 100) if total_invested_sim > 0 and years > 0 and dividends_total > 0 else None
-    downside_capture_pct = None
-    if downside_ratios:
-        downside_capture_pct = sum(downside_ratios) / len(downside_ratios) * 100
-    elif benchmark_total_return_pct is not None and benchmark_total_return_pct < 0 and total_return_pct is not None:
+    # downside_capture_pct is already calculated above if benchmark exists
+    if downside_capture_pct is None and benchmark_total_return_pct is not None and benchmark_total_return_pct < 0 and total_return_pct is not None:
         downside_capture_pct = (total_return_pct / benchmark_total_return_pct) * 100
 
     inflation_series = []
