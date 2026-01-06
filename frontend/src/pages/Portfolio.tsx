@@ -360,7 +360,11 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, benchmarkResolved])
 
-  // Removed automatic refetch; fetch happens only when inputs change via explicit actions.
+  useEffect(() => {
+    if (!userId || !benchmarkResolved) return
+    fetchPerformanceData(false, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeframe, customMonths, customStart, customEnd])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
