@@ -4752,6 +4752,35 @@ def check_price_freshness():
 check_price_freshness()
 
 
+@app.route("/api/portfolio/debug-allocations", methods=["POST"])
+def debug_allocations():
+    """Diagnostic endpoint to see what's saved vs what should be there"""
+    data = request.json or {}
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found"}), 404
+
+    # Get saved allocations
+    saved_allocs = {}
+    if portfolio.allocations:
+        try:
+            saved_allocs = json.loads(portfolio.allocations)
+        except:
+            saved_allocs = {"error": "corrupted"}
+
+    return jsonify({
+        "user_id": user_id,
+        "anchor_stock_field": portfolio.anchor_stock,
+        "saved_allocations_json": saved_allocs,
+        "saved_allocations_type": str(type(saved_allocs)),
+        "archetype": portfolio.archetype
+    })
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(debug=True, host="0.0.0.0", port=port)
