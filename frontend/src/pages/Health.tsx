@@ -107,5 +107,33 @@ const Health: React.FC<HealthProps> = () => {
 /* --- Components --- */
 
 const HealthScoreGauge: React.FC<{ value: number; accent: AccentKey; label: string }> = ({ value, accent, label }) => {
+  const rotation = -90 + (value * 1.8) // 180 degree semi-circle
+  const colors: Record<AccentKey, string> = {
+    cyan: 'border-t-brand-mint',
+    violet: 'border-t-brand-coral',
+    emerald: 'border-t-brand-mint',
+    amber: 'border-t-brand-gold',
+    fuchsia: 'border-t-brand-coral'
+  }
+  return (
+    <div className="relative h-48 w-48 overflow-hidden flex items-center justify-center">
+      {/* Gauge background */}
+      <div className="absolute inset-0 rounded-full border-[16px] border-slate-100"></div>
+      {/* Gauge fill */}
+      <div className="group relative flex h-40 w-40 items-center justify-center rounded-full bg-white shadow-xl shadow-brand-coral/5">
+        <div className="absolute inset-0 rounded-full border-2 border-brand-coral/5 opacity-20"></div>
+        <div className="flex flex-col items-center">
+          <span className="text-4xl font-black text-slate-900 leading-none">{Math.round(value)}%</span>
+          <span className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+        </div>
+        {/* Animated border/ring effect */}
+        <div
+          className={`absolute inset-x-0 bottom-0 top-0 rounded-full border-[6px] border-transparent ${colors[accent]} transition-all duration-1000 ease-out`}
+          style={{ transform: `rotate(${rotation}deg)` }}
+        ></div>
+      </div>
+    </div>
+  )
+}
 
-  export default Health
+export default Health
