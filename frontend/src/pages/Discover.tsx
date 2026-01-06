@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Star, Info } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { Search, Filter, Star, Info, X } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
 import { apiFetch } from '../lib/api'
 import {
@@ -41,6 +42,7 @@ interface Instrument {
 }
 
 const Discover: React.FC = () => {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [filteredInstruments, setFilteredInstruments] = useState<Instrument[]>([])
@@ -55,6 +57,14 @@ const Discover: React.FC = () => {
   const [refreshingPrices, setRefreshingPrices] = useState(false)
 
   const [hasAutoRefreshed, setHasAutoRefreshed] = useState(false)
+
+  // Modal States
+  const [selectedForAdd, setSelectedForAdd] = useState<Instrument | null>(null)
+  const [addQuantity, setAddQuantity] = useState('')
+  const [addPrice, setAddPrice] = useState('')
+  const [addingPosition, setAddingPosition] = useState(false)
+
+  const [selectedForChart, setSelectedForChart] = useState<Instrument | null>(null)
 
   useEffect(() => {
     fetchInstruments()
@@ -88,6 +98,35 @@ const Discover: React.FC = () => {
       console.error('Error refreshing prices:', err)
     } finally {
       setRefreshingPrices(false)
+    }
+  }
+
+  const handleAddPosition = async () => {
+    if (!selectedForAdd || !user || !addQuantity || !addPrice) return
+    setAddingPosition(true)
+    try {
+      const response = await apiFetch('/api/trade/sim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.user_id,
+          symbol: selectedForAdd.symbol,
+          side: 'buy',
+          quantity: parseFloat(addQuantity),
+          price: parseFloat(addPrice)
+        })
+      })
+      if (response.ok) {
+        alert("Position added to portfolio!")
+        setSelectedForAdd(null)
+      } else {
+        const err = await response.json()
+        alert(err.error || "Failed to add position")
+      }
+    } catch (e: any) {
+      alert(e.message)
+    } finally {
+      setAddingPosition(false)
     }
   }
 
@@ -271,12 +310,16 @@ const Discover: React.FC = () => {
       )
     }
 
-    // Filter out invalid data points
+    // Filter out invalid data points & limit to last 1 year
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+
     const validSeries = instrument.mini_series.filter(point =>
       point &&
       point.date &&
       typeof point.close === 'number' &&
-      !isNaN(point.close)
+      !isNaN(point.close) &&
+      new Date(point.date) >= oneYearAgo
     )
 
     if (validSeries.length === 0) {
@@ -420,13 +463,13 @@ const Discover: React.FC = () => {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div className="space-y-5">
             <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
-              Paper trading studio
+              Instrument Explorer
             </span>
             <h1 className="text-4xl font-semibold text-primary-ink">
-              Explore JSE instruments and practice paper trading.
+              Explore JSE instruments for your portfolio.
             </h1>
             <p className="text-lg text-subtle">
-              Browse ETFs, shares, and REITs with live prices. Execute simulated trades to build your virtual portfolio — no real money involved.
+              Browse ETFs, shares, and REITs with live prices. Add instruments to your portfolio to track performance and allocation.
             </p>
             <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-muted">
               <span>Filters stay in sync across tabs</span>
@@ -599,12 +642,19 @@ const Discover: React.FC = () => {
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => navigate(`/trade/${instrument.symbol}`)}
+                  onClick={() => {
+                    setSelectedForAdd(instrument)
+                    setAddPrice(instrument.latest_price?.toString() || '')
+                    setAddQuantity('')
+                  }}
                   className="btn-cta flex-1 px-4 py-2 text-sm"
                 >
-                  Trade
+                  Add to Portfolio
                 </button>
-                <button className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-3 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral">
+                <button
+                  onClick={() => setSelectedForChart(instrument)}
+                  className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-3 py-2 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+                >
                   <Info className="h-4 w-4" />
                 </button>
               </div>
@@ -618,7 +668,109 @@ const Discover: React.FC = () => {
           </div>
         )}
       </section>
-    </div>
+
+      {/* Add Position Modal */}
+      {selectedForAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-primary-ink">Add to Portfolio</h3>
+              <button onClick={() => setSelectedForAdd(null)} className="rounded-full p-2 hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-subtle">Instrument</label>
+                <div className="font-semibold text-primary-ink">{selectedForAdd.symbol} - {selectedForAdd.name}</div>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-subtle">Price per share (R)</label>
+                <input
+                  type="number"
+                  value={addPrice}
+                  onChange={e => setAddPrice(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-[#e7e9f3] px-4"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-subtle">Quantity</label>
+                <input
+                  type="number"
+                  value={addQuantity}
+                  onChange={e => setAddQuantity(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-[#e7e9f3] px-4"
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+              <div className="pt-2">
+                <button
+                  onClick={handleAddPosition}
+                  disabled={addingPosition || !addQuantity || !addPrice}
+                  className="btn-cta w-full py-3 disabled:opacity-50"
+                >
+                  {addingPosition ? 'Adding...' : 'Add Position'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chart Modal */}
+      {selectedForChart && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl rounded-[32px] bg-white p-6 shadow-2xl">
+            <button
+              onClick={() => setSelectedForChart(null)}
+              className="absolute right-6 top-6 z-10 rounded-full border border-gray-200 bg-white p-2 hover:bg-gray-100"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className="mb-6">
+              <h3 className="mb-2 text-2xl font-bold text-primary-ink">{selectedForChart.symbol} - Price History</h3>
+              <p className="text-sm text-subtle">Past 12 Months Performance</p>
+            </div>
+            <div className="h-[400px] w-full">
+              {(() => {
+                const oneYearAgo = new Date();
+                oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+                const validSeries = (selectedForChart.mini_series || []).filter(point =>
+                  point && point.date && typeof point.close === 'number' && !isNaN(point.close) && new Date(point.date) >= oneYearAgo
+                );
+
+                if (!validSeries.length) return <div className="flex h-full items-center justify-center text-muted">No Data Available</div>;
+
+                return <Line
+                  data={{
+                    labels: validSeries.map(p => new Date(p.date).toLocaleDateString()),
+                    datasets: [{
+                      label: 'Close Price',
+                      data: validSeries.map(p => p.close),
+                      borderColor: '#0ea5e9',
+                      backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                      fill: true,
+                      tension: 0.2,
+                      pointRadius: 0,
+                      pointHitRadius: 10
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                    scales: { x: { display: true, grid: { display: false } }, y: { display: true } }
+                  }}
+                />;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+    </div >
   )
 }
 
