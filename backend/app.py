@@ -3031,8 +3031,8 @@ def create_initial_positions(user_id, allocations, starting_value=10000):
                 print(f"Failed to fetch live price for {symbol}: {e}")
         
         if closing_price <= 0:
-            print(f"Warning: No valid price for {symbol}, fetching failed. Skipping position.")
-            continue
+            print(f"Warning: No valid price for {symbol}, fetching failed. Using fallback price to ensure position creation.")
+            closing_price = 100.0 # Force creation so it doesn't disappear from portfolio
 
         allocation_value = starting_value * (weight / 100)
         if allocation_value <= 0:
