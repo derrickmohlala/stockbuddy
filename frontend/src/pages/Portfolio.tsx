@@ -1706,7 +1706,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   const investorName = portfolio.first_name ?? 'Investor'
 
   const chartLabels = chartSeries.map((point: any) =>
-    new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
+    new Date(point.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
   )
 
   const performanceDatasets: any[] = [
