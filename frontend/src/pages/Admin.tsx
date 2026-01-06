@@ -38,6 +38,7 @@ const Admin: React.FC = () => {
   const [editData, setEditData] = useState<Partial<UserData>>({})
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [refreshingPrices, setRefreshingPrices] = useState(false)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -123,6 +124,31 @@ const Admin: React.FC = () => {
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                setRefreshingPrices(true)
+                const response = await apiFetch('/api/admin/refresh-prices', {
+                  method: 'POST'
+                })
+                if (!response.ok) {
+                  const data = await response.json()
+                  throw new Error(data.error || 'Failed to refresh prices')
+                }
+                const data = await response.json()
+                alert(data.message || 'Prices refreshed successfully')
+              } catch (err: any) {
+                setError(err.message)
+              } finally {
+                setRefreshingPrices(false)
+              }
+            }}
+            disabled={refreshingPrices}
+            className="inline-flex items-center gap-2 rounded-full border border-[#e7e9f3] bg-white px-4 py-2 text-sm font-semibold text-primary-ink transition hover:bg-[#f7f8fb] disabled:opacity-50"
+          >
+            <Activity className={`h-4 w-4 ${refreshingPrices ? 'animate-spin' : ''}`} />
+            Update Prices
           </button>
           <button
             onClick={async () => {

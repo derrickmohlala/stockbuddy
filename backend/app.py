@@ -492,11 +492,99 @@ def health():
         return jsonify({
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "instruments": None,
-            "note": "Database connection may be slow"
         })
 
 # Manual re-seed endpoint (for testing/debugging)
+@app.route("/api/admin/refresh-prices", methods=["POST"])
+@jwt_required()
+def refresh_prices():
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user or not user.is_admin:
+            return jsonify({"error": "Admin access required"}), 403
+
+        if not yf:
+            return jsonify({"error": "yfinance library not installed on server"}), 500
+
+        print("Forcing price refresh for all active instruments (Batch Mode)...")
+        instruments = Instrument.query.filter_by(is_active=True).all()
+        
+        # 1. Prepare symbols for batch download
+        # yfinance expects space-separated string or list
+        symbols = [i.symbol for i in instruments]
+        if not symbols:
+             return jsonify({"message": "No active instruments to refresh"}), 200
+
+        updated_count = 0
+        errors = []
+
+        try:
+            # 2. Batch download (much faster)
+            # period="5d" ensures we catch the last close even after a long weekend
+            print(f"Downloading batch data for {len(symbols)} instruments...")
+            data = yf.download(symbols, period="5d", group_by='ticker', threads=True, progress=False)
+
+            # 3. Process results
+            for instr in instruments:
+                try:
+                    sym = instr.symbol
+                    
+                    # Handle different dataframe structures returned by yfinance depending on single/multi ticker
+                    if len(symbols) == 1:
+                        # If only one symbol, data is flat
+                        hist = data
+                    else:
+                        # If multiple, data is hierarchical: data[Symbol][Open, Close...]
+                        if sym not in data.columns.levels[0]:
+                            errors.append(f"{sym}: No data found in batch")
+                            continue
+                        hist = data[sym]
+
+                    # Drop NaNs
+                    hist = hist.dropna(subset=['Close'])
+
+                    if not hist.empty:
+                        # Get last available close
+                        latest_close = float(hist['Close'].iloc[-1])
+                        latest_date = hist.index[-1].date()
+
+                        # Check if we already have this price
+                        existing = Price.query.filter_by(
+                            instrument_id=instr.id, 
+                            date=latest_date
+                        ).first()
+                        
+                        if not existing:
+                            new_price = Price(
+                                instrument_id=instr.id,
+                                date=latest_date,
+                                close=latest_close
+                            )
+                            db.session.add(new_price)
+                            updated_count += 1
+                except Exception as inner_e:
+                    # Don't fail the whole batch for one bad ticker
+                    print(f"Error processing {instr.symbol}: {inner_e}")
+                    errors.append(f"{instr.symbol}: {str(inner_e)}")
+            
+            db.session.commit()
+
+        except Exception as e:
+            print(f"Batch download failed: {e}")
+            return jsonify({"error": f"Batch download failed: {str(e)}"}), 500
+        
+        return jsonify({
+            "message": f"Successfully refreshed prices for {updated_count} instruments",
+            "total_checked": len(instruments),
+            "errors": errors[:5]
+        }), 200
+
+    except Exception as e:
+        print(f"Error refreshing prices: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/admin/reseed", methods=["POST"])
 @jwt_required()
 def manual_reseed():
@@ -2728,8 +2816,9 @@ def create_initial_positions(user_id, allocations, starting_value=100000):
     UserPosition.query.filter_by(user_id=user_id).delete()
 
     for symbol, weight in allocations.items():
-        instrument = Instrument.query.filter_by(symbol=symbol, is_active=True).first()
+        instrument = Instrument.query.filter_by(symbol=symbol).first()
         if not instrument:
+            # Create inactive instrument if missing (will be filled later)
             instrument = Instrument(
                 symbol=symbol,
                 name=symbol,
@@ -2740,45 +2829,72 @@ def create_initial_positions(user_id, allocations, starting_value=100000):
             db.session.add(instrument)
             db.session.flush()
 
-        latest_price = Price.query.filter_by(instrument_id=instrument.id).order_by(Price.date.desc()).first()
+        # Try to get price from DB
+        latest_price_obj = Price.query.filter_by(instrument_id=instrument.id).order_by(Price.date.desc()).first()
         
-        # Skip if no real price data exists - don't create fake prices
-        if not latest_price or not latest_price.close or latest_price.close <= 0:
-            print(f"Warning: Skipping {symbol} - no real price data available")
-            continue
+        closing_price = 0.0
+        
+        if latest_price_obj and latest_price_obj.close > 0:
+            closing_price = latest_price_obj.close
+        else:
+            # Fallback 1: Try fetching live from yfinance
+            try:
+                if yf:
+                    print(f"Fetching live price for {symbol}...")
+                    ticker = yf.Ticker(symbol)
+                    hist = ticker.history(period="5d")
+                    if not hist.empty:
+                        closing_price = float(hist['Close'].iloc[-1])
+                        # Optional: Save this price to DB so next time it exists
+                        new_price = Price(
+                            instrument_id=instrument.id,
+                            date=datetime.now().date(),
+                            close=closing_price
+                        )
+                        db.session.add(new_price)
+            except Exception as e:
+                print(f"Failed to fetch live price for {symbol}: {e}")
+        
+        # Fallback 2: Use a default placeholder if everything else failed
+        # This is critical to ensure the position is created and weights match the plan
+        if closing_price <= 0:
+            print(f"Warning: Using fallback price (100.0) for {symbol}")
+            closing_price = 100.0
 
         allocation_value = starting_value * (weight / 100)
         if allocation_value <= 0:
             continue
 
         # Derive a deterministic historical cost basis ~5-10% off current price
+        # If we have real history, use it. If not, simulate it.
+        baseline_price = closing_price * 0.94 # Default 6% gain
+        
         try:
-            past_price = Price.query.filter(Price.instrument_id == instrument.id, Price.date <= latest_price.date - relativedelta(days=180)) \
-                .order_by(Price.date.desc()).first()
+            # Try to find a real price ~6 months ago
+            if latest_price_obj:
+               past_price_obj = Price.query.filter(
+                   Price.instrument_id == instrument.id, 
+                   Price.date <= latest_price_obj.date - relativedelta(days=180)
+               ).order_by(Price.date.desc()).first()
+               
+               if past_price_obj and past_price_obj.close > 0:
+                   baseline_price = past_price_obj.close
         except Exception:
-            past_price = None
+            pass # Keep simulated baseline
         
-        # Use real price data only
-        if past_price and past_price.close and past_price.close > 0:
-            baseline_price = past_price.close
-        else:
-            # Use current price with a small discount to simulate historical purchase
-            baseline_price = latest_price.close * 0.94
-        
-        if baseline_price <= 0:
-            print(f"Warning: Invalid baseline price for {symbol}, skipping")
-            continue
         quantity = round(allocation_value / baseline_price, 4)
         if quantity <= 0:
-            continue
+            quantity = 1 # Ensure at least 1 unit if allocated
 
         position = UserPosition(
             user_id=user_id,
             symbol=symbol,
             quantity=quantity,
+            # avg_price is the cost basis (what we "bought" it for originally)
             avg_price=round(baseline_price, 2)
         )
         db.session.add(position)
+        
 
 
 def get_archetype_copy(archetype, allocations):
