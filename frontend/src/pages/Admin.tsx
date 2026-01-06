@@ -129,54 +129,87 @@ const Admin: React.FC = () => {
           </button>
           <button
             onClick={async () => {
+              setRefreshingPrices(true)
+              setError(null)
+              setSuccessMessage(null)
+
+              let processed = 0
+              let totalItems = 0
+              let isDone = false
+              let retryCount = 0
+
               try {
-                setRefreshingPrices(true)
-                setError(null)
-                setSuccessMessage(null)
-                setProgress({ current: 0, total: 1, symbol: 'Initializing...', status: 'pending' })
+                while (!isDone && retryCount < 10) {
+                  try {
+                    const response = await apiFetch(`/api/admin/refresh-prices-stream?skip=${processed}`)
+                    if (!response.ok) throw new Error("Stream Failed")
+                    if (!response.body) throw new Error("No Readable Stream")
 
-                const response = await apiFetch('/api/admin/refresh-prices-stream')
-                if (!response.ok) throw new Error('Stream connection failed')
-                if (!response.body) throw new Error('No readable stream')
+                    const reader = response.body.getReader()
+                    const decoder = new TextDecoder()
+                    let buffer = ''
 
-                const reader = response.body.getReader()
-                const decoder = new TextDecoder()
-                let buffer = ''
+                    // Successful connection
+                    retryCount = 0
 
-                while (true) {
-                  const { done, value } = await reader.read()
-                  if (done) break
+                    while (true) {
+                      const { done, value } = await reader.read()
+                      if (done) break
 
-                  buffer += decoder.decode(value, { stream: true })
-                  const lines = buffer.split('\n\n')
-                  buffer = lines.pop() || ''
+                      buffer += decoder.decode(value, { stream: true })
+                      const lines = buffer.split('\n\n')
+                      buffer = lines.pop() || ''
 
-                  for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                      const jsonStr = line.substring(6)
-                      try {
-                        const data = JSON.parse(jsonStr)
-                        if (data.type === 'start') {
-                          setProgress((prev: any) => ({ ...prev, total: data.total }))
-                        } else if (data.type === 'progress') {
-                          setProgress(data)
-                        } else if (data.type === 'done') {
-                          setSuccessMessage(`Prices updated: ${data.updated} new records.`)
-                          setProgress(null)
+                      for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                          try {
+                            const data = JSON.parse(line.substring(6))
+
+                            if (data.type === 'start') {
+                              if (totalItems === 0) totalItems = data.total
+                              setProgress({ current: processed, total: totalItems, symbol: 'Connecting...', status: 'connected' })
+                            } else if (data.type === 'progress') {
+                              processed = data.current
+                              setProgress(data)
+                            } else if (data.type === 'done') {
+                              isDone = true
+                              setSuccessMessage(`Update Complete: ${data.updated} records updated/verified.`)
+                              // Break inner loop
+                              reader.cancel()
+                              break
+                            }
+                          } catch (e) {
+                            console.warn("JSON Parse error", e)
+                          }
                         }
-                      } catch (e) {
-                        console.error('JSON Error:', e)
                       }
+                      if (isDone) break
+                    }
+                  } catch (readErr) {
+                    console.warn("Stream interrupted, resuming...", readErr)
+                    retryCount++
+                  }
+
+                  if (!isDone) {
+                    // Check if clearly finished or just started
+                    if (processed >= totalItems && totalItems > 0) {
+                      isDone = true
+                    } else {
+                      // Wait before resume
+                      setProgress(prev => prev ? ({ ...prev, status: `Reconnecting (Attempt ${retryCount})...` }) : null)
+                      await new Promise(r => setTimeout(r, 2000))
                     }
                   }
                 }
 
-                setTimeout(() => setSuccessMessage(null), 5000)
+                if (!isDone) throw new Error("Update timed out after multiple retries")
+
               } catch (err: any) {
                 setError(err.message)
-                setProgress(null)
               } finally {
                 setRefreshingPrices(false)
+                setTimeout(() => setProgress(null), 2000)
+                setTimeout(() => setSuccessMessage(null), 8000)
               }
             }}
             disabled={refreshingPrices}

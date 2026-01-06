@@ -531,9 +531,16 @@ def refresh_prices_stream():
         return jsonify({"error": "Admin access required"}), 403
 
     def generate():
-        instruments = Instrument.query.filter_by(is_active=True).all()
+        # Order by symbol for consistent resumption
+        instruments = Instrument.query.filter_by(is_active=True).order_by(Instrument.symbol).all()
         total = len(instruments)
         
+        # Get resume index
+        try:
+            skip_count = int(request.args.get('skip', 0))
+        except:
+            skip_count = 0
+            
         # Initial Message
         yield f"data: {json.dumps({'type': 'start', 'total': total})}\n\n"
         
@@ -544,6 +551,12 @@ def refresh_prices_stream():
             count += 1
             status = "skipped"
             detail = ""
+            
+            # Skip logic for Resume
+            if count <= skip_count:
+                # OPTIONAL: yield a fast "skipped" status to update UI counter quickly
+                # yield f"data: {json.dumps({'type': 'progress', 'current': count, 'total': total, 'symbol': instr.symbol, 'status': 'skipped'})}\n\n"
+                continue
             
             try:
                 # Sequential Fetch Logic
