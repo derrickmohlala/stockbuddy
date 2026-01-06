@@ -2671,7 +2671,13 @@ def generate_starter_allocations(user, archetype):
     anchor_symbol = user.anchor_stock or "SBK.JO"
 
     if anchor_symbol:
-        base_allocations[anchor_symbol] = base_allocations.get(anchor_symbol, 0) + anchor_cap
+        # Ensure anchor stock is present and capped at the specified percentage
+        # If it's already in the base allocations, cap it; if not, add it
+        current_weight = base_allocations.get(anchor_symbol, 0)
+        # Cap the anchor stock at the specified percentage (don't add to existing weight)
+        if current_weight < anchor_cap:
+            base_allocations[anchor_symbol] = anchor_cap
+        # If it already exceeds the cap, leave it as is (archetype design takes precedence)
 
     # Remove any empty tickers (defensive) and normalise to 100%
     allocations = {symbol: weight for symbol, weight in base_allocations.items() if symbol and weight > 0}
