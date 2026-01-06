@@ -4030,6 +4030,40 @@ def calculate_historical_performance(
     dividend_pivot = df.pivot(index='date', columns='symbol', values='dividend').sort_index().fillna(0.0)
     dividend_pivot.index = pd.to_datetime(dividend_pivot.index)
 
+    # Backfill missing dividends using static yield if history is sparse
+    # MODELED RETURN: Addressing missing Yahoo data for JSE instruments
+    for symbol in weight_map.keys():
+        if symbol not in dividend_pivot.columns:
+            continue
+            
+        instr_obj = Instrument.query.filter_by(symbol=symbol).first()
+        if not instr_obj or not instr_obj.dividend_yield or instr_obj.dividend_yield <= 0:
+            continue
+            
+        # Heuristic: Backfill if existing history implies < 10% of expected yield
+        hist_divs = dividend_pivot[symbol].sum()
+        
+        if symbol in price_pivot.columns:
+            avg_price = price_pivot[symbol].mean()
+            # Approx expected dividends over this period
+            expected_total_approx = avg_price * (instr_obj.dividend_yield / 100.0) * (len(price_pivot) / 252.0)
+            
+            if expected_total_approx > 0 and hist_divs < (expected_total_approx * 0.1):
+                # Distribute synthetic dividends Monthly for smoother curve
+                target_yield_decimal = instr_obj.dividend_yield / 100.0
+                months_processed = set()
+                dividend_pivot[symbol] = dividend_pivot[symbol].astype(float)
+                
+                for idx, date_val in enumerate(dividend_pivot.index):
+                    m_y = (date_val.year, date_val.month)
+                    if m_y not in months_processed:
+                        # Monthly payment = Current Price * (Yield / 12)
+                        current_p = price_pivot[symbol].iloc[idx] if symbol in price_pivot.columns else avg_price
+                        if current_p and not pd.isna(current_p):
+                            div_amt = current_p * (target_yield_decimal / 12.0)
+                            dividend_pivot.at[date_val, symbol] = div_amt
+                        months_processed.add(m_y)
+
     freq = (contribution_frequency or 'monthly').lower()
     if freq not in {'monthly', 'quarterly', 'annual'}:
         freq = 'monthly'

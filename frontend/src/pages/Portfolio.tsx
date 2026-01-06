@@ -2219,7 +2219,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
                     }
                   </span>
                   <span className="mx-1.5 opacity-40">|</span>
-                  Track how your allocation evolves over time and compare against a benchmark or inflation adjusted rand returns.
+                  Track how your allocation evolves over time.
+                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-brand-coral bg-brand-coral/10 px-2 py-0.5 rounded-full font-medium" title="Historic dividends for JSE instruments are modeled based on current yield due to data provider limitations.">
+                    Models JSE Dividends
+                  </span>
                 </p>
               </div>
               <div className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
