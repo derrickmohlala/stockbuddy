@@ -887,7 +887,8 @@ def update_profile():
         # Update email if provided
         if 'email' in data:
             new_email = data.get('email', '').strip().lower()
-            if new_email:
+            # Only update if email has changed
+            if new_email and new_email != user.email:
                 # Validate email format
                 email_pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
                 if not re.match(email_pattern, new_email):
@@ -895,7 +896,7 @@ def update_profile():
                 
                 # Check if email is already taken by another user
                 existing = User.query.filter_by(email=new_email).first()
-                if existing and existing.id != user_id:
+                if existing:
                     return jsonify({"error": "A user with this email already exists"}), 400
                 
                 user.email = new_email
