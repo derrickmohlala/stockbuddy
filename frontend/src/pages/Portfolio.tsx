@@ -1705,33 +1705,14 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
   const investorName = portfolio.first_name ?? 'Investor'
 
-  const chartLabels = chartSeries.map((point: any, index: number) => {
-    // Always show first and last
-    if (index === 0 || index === chartSeries.length - 1) {
-      return new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
-    }
-    // For others, show quarterly (approx every 3 months) to avoid simple overcrowding
-    const spacing = chartSeries.length > 50 ? 3 : (chartSeries.length > 20 ? 2 : 1)
-
-    if (index % spacing === 0) {
-      return new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
-    }
-    return '' // Hidden label
-  })
-
-  // Helper to ensure 'x' is passed for tooltip
-  const mapToPoint = (series: any[], storeMap?: Map<string, number>) => {
-    return series.map((point: any) => {
-      const val = storeMap ? storeMap.get(point.date) : point.value
-      // Pass x as full date string for tooltip, y as value
-      return { x: point.date, y: val !== undefined ? val : null }
-    })
-  }
+  const chartLabels = chartSeries.map((point: any) =>
+    new Date(point.date).toLocaleDateString()
+  )
 
   const performanceDatasets: any[] = [
     {
       label: inflationAdjust ? 'Portfolio (real rand)' : 'Portfolio value',
-      data: mapToPoint(chartSeries),
+      data: chartSeries.map((point: any) => point.value),
       borderColor: '#0ea5e9',
       backgroundColor: 'rgba(14, 165, 233, 0.15)',
       tension: 0.18,
@@ -1750,7 +1731,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       : `Scenario (${formatCurrency(scenarioParsedInitialValue)} lump sum)`
     performanceDatasets.push({
       label: scenarioLegend,
-      data: mapToPoint(chartSeries, scenarioMap),
+      data: chartSeries.map((point: any) => {
+        const value = scenarioMap.get(point.date)
+        return value !== undefined ? value : null
+      }),
       borderColor: '#22c55e',
       backgroundColor: 'rgba(34, 197, 94, 0.08)',
       borderDash: [4, 3],
@@ -1765,7 +1749,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   if (benchmarkSeries.length) {
     performanceDatasets.push({
       label: `${benchmarkLabel} (benchmark)`,
-      data: mapToPoint(chartSeries, benchmarkMap),
+      data: chartSeries.map((point: any) => {
+        const value = benchmarkMap.get(point.date)
+        return value !== undefined ? value : null
+      }),
       borderColor: '#f97316',
       backgroundColor: 'rgba(249, 115, 22, 0.1)',
       borderDash: [6, 4],
@@ -1900,15 +1887,11 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         callbacks: {
           title(context: any) {
             if (!context?.length) return ''
-            // Access raw x date from object
-            const raw = context[0].raw
-            // raw.x might be undefined if internal Chart.js model differs, but typically mapped data works
-            const d = new Date(raw.x || context[0].label)
-            return `Date: ${d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            return `Date: ${context[0].label}`
           },
           label(context: any) {
             const label = context.dataset.label || 'Value'
-            const parsed = typeof context.parsed === 'object' ? context.parsed?.y : context.parsed
+            const parsed = context.parsed.y
             if (parsed === null || parsed === undefined) {
               return `${label}: —`
             }
@@ -1949,1444 +1932,1444 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       x: {
         ticks: {
           color: axisColor,
-          autoSkip: false,
-          maxRotation: 0
+          autoSkip: true
         },
         grid: {
-          color: gridColor
+          display: false
         }
       }
     }
   }
+}
 
-  const displayedTotalValue = metrics ? metrics.totalValue : portfolio.total_value
-  const displayedTotalReturn = metrics ? metrics.totalReturn : portfolio.total_pnl
-  const displayedTotalReturnPct = metrics ? metrics.totalReturnPct : portfolio.total_pnl_pct
+const displayedTotalValue = metrics ? metrics.totalValue : portfolio.total_value
+const displayedTotalReturn = metrics ? metrics.totalReturn : portfolio.total_pnl
+const displayedTotalReturnPct = metrics ? metrics.totalReturnPct : portfolio.total_pnl_pct
 
-  return (
-    <div className="space-y-16">
-      <section className="mx-auto max-w-6xl rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
-          <div className="space-y-6">
-            <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
-              Portfolio control room
-            </span>
-            <h1 className="text-4xl font-semibold text-primary-ink">
-              {investorName}, here is your {portfolio.archetype} strategy at a glance.
-            </h1>
-            <p className="text-lg text-subtle">
-              {portfolio.plan_summary || 'Track progress, contributions, and inflation headroom without wrestling spreadsheets.'}
-            </p>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Total value</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalValue)}</p>
-              </div>
-              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Total return</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalReturn)}</p>
-                <p className="text-sm text-brand-mint">{formatPercentage(displayedTotalReturnPct)}</p>
-              </div>
-              <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
-                <p className="text-xs font-semibold text-muted">Weighted yield</p>
-                <p className="mt-2 text-2xl font-semibold text-primary-ink">{portfolioWeightedYield !== null ? `${portfolioWeightedYield.toFixed(2)}%` : '--'}</p>
-              </div>
+return (
+  <div className="space-y-16">
+    <section className="mx-auto max-w-6xl rounded-2xl border border-[#e7e9f3] bg-white px-6 py-12">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+        <div className="space-y-6">
+          <span className="inline-flex items-center rounded-full border border-[#e7e9f3] px-4 py-1 text-xs font-semibold text-muted">
+            Portfolio control room
+          </span>
+          <h1 className="text-4xl font-semibold text-primary-ink">
+            {investorName}, here is your {portfolio.archetype} strategy at a glance.
+          </h1>
+          <p className="text-lg text-subtle">
+            {portfolio.plan_summary || 'Track progress, contributions, and inflation headroom without wrestling spreadsheets.'}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
+              <p className="text-xs font-semibold text-muted">Total value</p>
+              <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalValue)}</p>
             </div>
-          </div>
-          <div className="space-y-5 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-primary-ink">Plan quick actions</p>
-              <PiggyBank className="h-5 w-5 text-brand-coral" />
+            <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
+              <p className="text-xs font-semibold text-muted">Total return</p>
+              <p className="mt-2 text-2xl font-semibold text-primary-ink">{formatCurrency(displayedTotalReturn)}</p>
+              <p className="text-sm text-brand-mint">{formatPercentage(displayedTotalReturnPct)}</p>
             </div>
-            <p className="text-sm text-subtle">Adjust your archetype inputs, rebuild sleeves, or revisit onboarding if your goals have shifted.</p>
-            <div className="flex flex-col gap-3">
-              <button onClick={handleAdjustPreferences} className="btn-cta inline-flex items-center justify-center gap-2">
-                Adjust preferences
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/news')}
-                className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-4 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
-              >
-                View daily briefing
-              </button>
+            <div className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4">
+              <p className="text-xs font-semibold text-muted">Weighted yield</p>
+              <p className="mt-2 text-2xl font-semibold text-primary-ink">{portfolioWeightedYield !== null ? `${portfolioWeightedYield.toFixed(2)}%` : '--'}</p>
             </div>
           </div>
         </div>
-      </section>
+        <div className="space-y-5 rounded-2xl border border-[#e7e9f3] bg-white px-5 py-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-primary-ink">Plan quick actions</p>
+            <PiggyBank className="h-5 w-5 text-brand-coral" />
+          </div>
+          <p className="text-sm text-subtle">Adjust your archetype inputs, rebuild sleeves, or revisit onboarding if your goals have shifted.</p>
+          <div className="flex flex-col gap-3">
+            <button onClick={handleAdjustPreferences} className="btn-cta inline-flex items-center justify-center gap-2">
+              Adjust preferences
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/news')}
+              className="inline-flex items-center justify-center rounded-full border border-[#e7e9f3] px-4 py-3 text-sm font-semibold text-primary-ink transition hover:border-brand-coral/40 hover:text-brand-coral"
+            >
+              View daily briefing
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <div className="max-w-7xl mx-auto px-4 space-y-12">
-        {sortedAlerts.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <h2 className="text-lg font-semibold text-brand-ink">Goal tracking alerts</h2>
-              <div className="flex flex-wrap items-center gap-3 text-brand-ink/70">
-                {criticalCount > 0 && <span className="text-brand-coral">Critical: {criticalCount}</span>}
-                {warningCount > 0 && <span className="text-amber-600">Warnings: {warningCount}</span>}
-                <span className="text-brand-coral">{sortedAlerts.length} total</span>
-              </div>
+    <div className="max-w-7xl mx-auto px-4 space-y-12">
+      {sortedAlerts.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <h2 className="text-lg font-semibold text-brand-ink">Goal tracking alerts</h2>
+            <div className="flex flex-wrap items-center gap-3 text-brand-ink/70">
+              {criticalCount > 0 && <span className="text-brand-coral">Critical: {criticalCount}</span>}
+              {warningCount > 0 && <span className="text-amber-600">Warnings: {warningCount}</span>}
+              <span className="text-brand-coral">{sortedAlerts.length} total</span>
             </div>
-            <div className="space-y-3">
-              {sortedAlerts.map((alert) => {
-                const severityBadge =
-                  alert.severity === 'critical'
-                    ? 'bg-brand-coral text-white'
-                    : alert.severity === 'warning'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-brand-mint text-white'
+          </div>
+          <div className="space-y-3">
+            {sortedAlerts.map((alert) => {
+              const severityBadge =
+                alert.severity === 'critical'
+                  ? 'bg-brand-coral text-white'
+                  : alert.severity === 'warning'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-brand-mint text-white'
 
-                const iconTint =
-                  alert.severity === 'critical'
-                    ? 'text-brand-coral'
-                    : alert.severity === 'warning'
-                      ? 'text-amber-600'
-                      : 'text-brand-mint'
+              const iconTint =
+                alert.severity === 'critical'
+                  ? 'text-brand-coral'
+                  : alert.severity === 'warning'
+                    ? 'text-amber-600'
+                    : 'text-brand-mint'
 
-                const metaBadge = 'rounded-full border border-[#e7e9f3] bg-white px-2 py-1 text-[11px] font-semibold text-primary-ink'
+              const metaBadge = 'rounded-full border border-[#e7e9f3] bg-white px-2 py-1 text-[11px] font-semibold text-primary-ink'
 
-                return (
-                  <div
-                    key={alert.id}
-                    className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full border border-[#e7e9f3] bg-white ${iconTint}`}>
-                        {renderAlertIcon(alert.severity)}
+              return (
+                <div
+                  key={alert.id}
+                  className="rounded-2xl border border-[#e7e9f3] bg-white px-4 py-4"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full border border-[#e7e9f3] bg-white ${iconTint}`}>
+                      {renderAlertIcon(alert.severity)}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                        <span className={`rounded-full px-2 py-1 ${severityBadge}`}>{alert.severity}</span>
+                        {alert.symbol && (
+                          <span className={metaBadge}>{alert.symbol}</span>
+                        )}
+                        {alert.metric && (
+                          <span className={metaBadge}>{alert.metric.replace(/_/g, ' ')}</span>
+                        )}
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                          <span className={`rounded-full px-2 py-1 ${severityBadge}`}>{alert.severity}</span>
-                          {alert.symbol && (
-                            <span className={metaBadge}>{alert.symbol}</span>
-                          )}
-                          {alert.metric && (
-                            <span className={metaBadge}>{alert.metric.replace(/_/g, ' ')}</span>
-                          )}
+                      <p className="text-sm leading-relaxed text-primary-ink">{alert.message}</p>
+                      {alert.trigger && (
+                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          {Object.entries(alert.trigger).map(([key, value]) => (
+                            <span key={key} className={metaBadge}>
+                              <span className="text-muted">{key.replace(/_/g, ' ')}:</span>{' '}
+                              {formatTriggerValue(key, value)}
+                            </span>
+                          ))}
                         </div>
-                        <p className="text-sm leading-relaxed text-primary-ink">{alert.message}</p>
-                        {alert.trigger && (
-                          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                            {Object.entries(alert.trigger).map(([key, value]) => (
-                              <span key={key} className={metaBadge}>
-                                <span className="text-muted">{key.replace(/_/g, ' ')}:</span>{' '}
-                                {formatTriggerValue(key, value)}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {alert.suggested_action && (
-                          <p className="text-xs text-subtle">
-                            Suggested action: {alert.suggested_action}
-                          </p>
-                        )}
-                        {alert.created_at && (
-                          <p className="text-[11px] text-muted">
-                            Flagged {new Date(alert.created_at).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        )}
-                      </div>
+                      )}
+                      {alert.suggested_action && (
+                        <p className="text-xs text-subtle">
+                          Suggested action: {alert.suggested_action}
+                        </p>
+                      )}
+                      {alert.created_at && (
+                        <p className="text-[11px] text-muted">
+                          Flagged {new Date(alert.created_at).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Plan overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="card">
-            <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100 mb-3">
-              About your {portfolio.archetype} plan
-            </h2>
-            <div className="space-y-4 text-muted dark:text-gray-300">
-              <div className="flex flex-wrap gap-2">
-                {portfolio.plan_goal && (
-                  <span className="badge bg-white/90 text-brand-coral text-[11px] font-semibold">
-                    Goal: {formatLabel(portfolio.plan_goal)}
-                  </span>
-                )}
-                {portfolio.plan_risk_band && (
-                  <span className="badge bg-brand-mint/20 text-brand-mint text-[11px] font-semibold">
-                    Risk: {formatLabel(portfolio.plan_risk_band)}
-                  </span>
-                )}
-                {portfolio.plan_anchor_cap_pct && (
-                  <span className="badge bg-brand-gold/20 text-brand-gold text-[11px] font-semibold">
-                    Anchor cap {portfolio.plan_anchor_cap_pct}%
-                  </span>
-                )}
-              </div>
-              <p>{planSummary || 'Your allocation is designed to balance growth and resilience for South African investors.'}</p>
-              {planPersona && (
-                <p className="text-sm"><span className="font-medium text-brand-ink dark:text-gray-100">Who it suits:</span> {planPersona}</p>
+      {/* Plan overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="card">
+          <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100 mb-3">
+            About your {portfolio.archetype} plan
+          </h2>
+          <div className="space-y-4 text-muted dark:text-gray-300">
+            <div className="flex flex-wrap gap-2">
+              {portfolio.plan_goal && (
+                <span className="badge bg-white/90 text-brand-coral text-[11px] font-semibold">
+                  Goal: {formatLabel(portfolio.plan_goal)}
+                </span>
               )}
-              {planGuidance && (
-                <p className="text-sm"><span className="font-medium text-brand-ink dark:text-gray-100">How to put it to work:</span> {planGuidance}</p>
+              {portfolio.plan_risk_band && (
+                <span className="badge bg-brand-mint/20 text-brand-mint text-[11px] font-semibold">
+                  Risk: {formatLabel(portfolio.plan_risk_band)}
+                </span>
+              )}
+              {portfolio.plan_anchor_cap_pct && (
+                <span className="badge bg-brand-gold/20 text-brand-gold text-[11px] font-semibold">
+                  Anchor cap {portfolio.plan_anchor_cap_pct}%
+                </span>
               )}
             </div>
+            <p>{planSummary || 'Your allocation is designed to balance growth and resilience for South African investors.'}</p>
+            {planPersona && (
+              <p className="text-sm"><span className="font-medium text-brand-ink dark:text-gray-100">Who it suits:</span> {planPersona}</p>
+            )}
+            {planGuidance && (
+              <p className="text-sm"><span className="font-medium text-brand-ink dark:text-gray-100">How to put it to work:</span> {planGuidance}</p>
+            )}
           </div>
-          <div className="card">
-            <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100 mb-3">
-              Target allocation
-            </h2>
-            {Object.keys(allocationTargets).length > 0 ? (
-              <ul className="space-y-2 text-sm text-muted dark:text-gray-300">
-                {Object.entries(allocationTargets)
-                  .sort((a, b) => Number(b[1]) - Number(a[1]))
-                  .map(([symbol, weight]) => (
-                    <li key={symbol} className="flex items-center justify-between">
-                      <span className="font-medium text-brand-ink dark:text-gray-100">{symbol}</span>
-                      <span>{Math.round(Number(weight) || 0)}%</span>
-                    </li>
-                  ))}
-              </ul>
+        </div>
+        <div className="card">
+          <h2 className="text-xl font-semibold text-brand-ink dark:text-gray-100 mb-3">
+            Target allocation
+          </h2>
+          {Object.keys(allocationTargets).length > 0 ? (
+            <ul className="space-y-2 text-sm text-muted dark:text-gray-300">
+              {Object.entries(allocationTargets)
+                .sort((a, b) => Number(b[1]) - Number(a[1]))
+                .map(([symbol, weight]) => (
+                  <li key={symbol} className="flex items-center justify-between">
+                    <span className="font-medium text-brand-ink dark:text-gray-100">{symbol}</span>
+                    <span>{Math.round(Number(weight) || 0)}%</span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted dark:text-gray-300">Allocation targets will appear here once onboarding is complete.</p>
+          )}
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="card relative overflow-hidden">
+          <div className="pr-16">
+            <p className="text-sm font-medium text-muted dark:text-gray-300">{inflationAdjust ? 'Portfolio value (real rands)' : 'Portfolio value'}</p>
+            <p className="text-2xl font-bold text-brand-ink dark:text-slate-50">
+              {formatCurrency(totalValue)}
+            </p>
+            {effectiveDistributionPolicy === 'cash_out' && (
+              <p className="text-xs text-muted dark:text-gray-300">
+                Holdings on chart: {formatCurrency(holdingsValue)}
+              </p>
+            )}
+          </div>
+          <div className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500/15 text-primary-300">
+            <Coins className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="card relative overflow-hidden">
+          <div className="pr-16">
+            <p className="text-sm font-medium text-muted dark:text-gray-300">Annualised return</p>
+            <p className={`text-2xl font-bold ${(annualisedReturn ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {annualisedReturn !== null ? formatPercentage(annualisedReturn) : '+0.00%'}
+            </p>
+            <p className="text-xs text-muted dark:text-gray-300 min-h-[32px] flex items-center">
+              {(inflationAdjust ? 'Real' : 'Nominal') + ' CAGR · ' + timeframeLabel.toLowerCase()}
+            </p>
+          </div>
+          <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${(annualisedReturn ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
+            {(annualisedReturn ?? 0) >= 0 ? (
+              <TrendingUp className="w-6 h-6" />
             ) : (
-              <p className="text-sm text-muted dark:text-gray-300">Allocation targets will appear here once onboarding is complete.</p>
+              <TrendingDown className="w-6 h-6" />
             )}
           </div>
         </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card relative overflow-hidden">
-            <div className="pr-16">
-              <p className="text-sm font-medium text-muted dark:text-gray-300">{inflationAdjust ? 'Portfolio value (real rands)' : 'Portfolio value'}</p>
-              <p className="text-2xl font-bold text-brand-ink dark:text-slate-50">
-                {formatCurrency(totalValue)}
-              </p>
-              {effectiveDistributionPolicy === 'cash_out' && (
-                <p className="text-xs text-muted dark:text-gray-300">
-                  Holdings on chart: {formatCurrency(holdingsValue)}
-                </p>
-              )}
-            </div>
-            <div className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-500/15 text-primary-300">
-              <Coins className="w-6 h-6" />
-            </div>
+        <div className="card relative overflow-hidden">
+          <div className="pr-16">
+            <p className="text-sm font-medium text-muted dark:text-gray-300">Total P&L</p>
+            <p className={`text-2xl font-bold ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {formatCurrency(totalReturn)}
+            </p>
+            <p className={`text-sm ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {formatPercentage(totalReturnPct)}
+            </p>
           </div>
-
-          <div className="card relative overflow-hidden">
-            <div className="pr-16">
-              <p className="text-sm font-medium text-muted dark:text-gray-300">Annualised return</p>
-              <p className={`text-2xl font-bold ${(annualisedReturn ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {annualisedReturn !== null ? formatPercentage(annualisedReturn) : '+0.00%'}
-              </p>
-              <p className="text-xs text-muted dark:text-gray-300 min-h-[32px] flex items-center">
-                {(inflationAdjust ? 'Real' : 'Nominal') + ' CAGR · ' + timeframeLabel.toLowerCase()}
-              </p>
-            </div>
-            <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${(annualisedReturn ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
-              {(annualisedReturn ?? 0) >= 0 ? (
-                <TrendingUp className="w-6 h-6" />
-              ) : (
-                <TrendingDown className="w-6 h-6" />
-              )}
-            </div>
-          </div>
-
-          <div className="card relative overflow-hidden">
-            <div className="pr-16">
-              <p className="text-sm font-medium text-muted dark:text-gray-300">Total P&L</p>
-              <p className={`text-2xl font-bold ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatCurrency(totalReturn)}
-              </p>
-              <p className={`text-sm ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatPercentage(totalReturnPct)}
-              </p>
-            </div>
-            <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${totalReturn >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
-              <BarChart3 className="w-6 h-6" />
-            </div>
-          </div>
-
-          <div className="card relative overflow-hidden">
-            <div className="pr-16">
-              <p className="text-sm font-medium text-muted dark:text-gray-300">{costBasisLabel}</p>
-              <p className="text-2xl font-bold text-brand-ink dark:text-slate-50">
-                {formatCurrency(totalInvested)}
-              </p>
-              {investmentMode === 'monthly' && (
-                <p className="text-xs text-muted dark:text-gray-300">
-                  {formatCurrency(lastMonthlyContributionRef.current)} debit order every month
-                </p>
-              )}
-            </div>
-            <div className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
-              <PiggyBank className="w-6 h-6" />
-            </div>
+          <div className={`absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full ${totalReturn >= 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>
+            <BarChart3 className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Performance */}
-        <div className="mb-8">
-          <div ref={containerRef} className="card space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Portfolio performance</h3>
-                <p className="text-xs text-muted dark:text-gray-300">
-                  <span className="font-medium text-brand-ink dark:text-gray-100">
-                    {timeframe === 'custom'
-                      ? (customStart ? `From ${new Date(customStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Custom period')
-                      : (() => {
-                        const d = new Date();
-                        const years = parseInt(timeframe);
-                        d.setFullYear(d.getFullYear() - (isNaN(years) ? 5 : years));
-                        return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                      })()
-                    }
-                  </span>
-                  <span className="mx-1.5 opacity-40">|</span>
-                  Track how your allocation evolves over time.
-                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-brand-coral bg-brand-coral/10 px-2 py-0.5 rounded-full font-medium" title="Historic dividends for JSE instruments are modeled based on current yield due to data provider limitations.">
-                    Models JSE Dividends
-                  </span>
-                </p>
+        <div className="card relative overflow-hidden">
+          <div className="pr-16">
+            <p className="text-sm font-medium text-muted dark:text-gray-300">{costBasisLabel}</p>
+            <p className="text-2xl font-bold text-brand-ink dark:text-slate-50">
+              {formatCurrency(totalInvested)}
+            </p>
+            {investmentMode === 'monthly' && (
+              <p className="text-xs text-muted dark:text-gray-300">
+                {formatCurrency(lastMonthlyContributionRef.current)} debit order every month
+              </p>
+            )}
+          </div>
+          <div className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
+            <PiggyBank className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Performance */}
+      <div className="mb-8">
+        <div ref={containerRef} className="card space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-xl font-semibold text-brand-ink dark:text-gray-100">Portfolio performance</h3>
+              <p className="text-xs text-muted dark:text-gray-300">
+                <span className="font-medium text-brand-ink dark:text-gray-100">
+                  {timeframe === 'custom'
+                    ? (customStart ? `From ${new Date(customStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Custom period')
+                    : (() => {
+                      const d = new Date();
+                      const years = parseInt(timeframe);
+                      d.setFullYear(d.getFullYear() - (isNaN(years) ? 5 : years));
+                      return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    })()
+                  }
+                </span>
+                <span className="mx-1.5 opacity-40">|</span>
+                Track how your allocation evolves over time.
+                <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-brand-coral bg-brand-coral/10 px-2 py-0.5 rounded-full font-medium" title="Historic dividends for JSE instruments are modeled based on current yield due to data provider limitations.">
+                  Models JSE Dividends
+                </span>
+              </p>
+            </div>
+            <div className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Timeframe</p>
+                <select
+                  value={timeframe}
+                  onChange={(e) => setTimeframe(e.target.value)}
+                  className="input-field w-full"
+                >
+                  <option value="1y">1 year</option>
+                  <option value="3y">3 years</option>
+                  <option value="5y">5 years</option>
+                  <option value="custom">Custom</option>
+                </select>
               </div>
-              <div className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
-                <div className="flex flex-col gap-1">
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Timeframe</p>
-                  <select
-                    value={timeframe}
-                    onChange={(e) => setTimeframe(e.target.value)}
-                    className="input-field w-full"
-                  >
-                    <option value="1y">1 year</option>
-                    <option value="3y">3 years</option>
-                    <option value="5y">5 years</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Contribution style</p>
-                  <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setInvestmentMode('lump_sum')}
-                      className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${investmentMode === 'lump_sum' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                    >
-                      Lump sum
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInvestmentMode('monthly')}
-                      className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${investmentMode === 'monthly' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                    >
-                      Monthly
-                    </button>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1 xl:col-span-2">
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Distribution policy</p>
-                  <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setDistributionPolicy('reinvest')}
-                      className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${distributionPolicy === 'reinvest' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                    >
-                      Reinvest
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDistributionPolicy('cash_out')}
-                      className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${distributionPolicy === 'cash_out' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                    >
-                      Cash out
-                    </button>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1 relative xl:col-span-2" ref={benchmarkRef}>
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Benchmark</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Contribution style</p>
+                <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowBenchmarkDropdown(prev => !prev)
-                      setBenchmarkSearchTerm('')
-                    }}
-                    className="input-field flex w-full items-center justify-between gap-2 text-left"
+                    onClick={() => setInvestmentMode('lump_sum')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${investmentMode === 'lump_sum' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                   >
-                    <span className="truncate text-sm font-medium text-brand-ink dark:text-gray-100">
-                      {benchmark
-                        ? (benchmarkOptions.find(option => option.symbol === benchmark)?.label || benchmark)
-                        : 'None'}
-                    </span>
-                    <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
-                    </svg>
+                    Lump sum
                   </button>
-                  {showBenchmarkDropdown && (
-                    <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                      <div className="px-3 pt-3">
-                        <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
-                          <input
-                            type="text"
-                            placeholder="Search benchmarks"
-                            value={benchmarkSearchTerm}
-                            onChange={(e) => setBenchmarkSearchTerm(e.target.value)}
-                            className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
-                          />
-                        </div>
+                  <button
+                    type="button"
+                    onClick={() => setInvestmentMode('monthly')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${investmentMode === 'monthly' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  >
+                    Monthly
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 xl:col-span-2">
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Distribution policy</p>
+                <div className="flex h-11 items-center rounded-full bg-gray-100 dark:bg-gray-800 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setDistributionPolicy('reinvest')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${distributionPolicy === 'reinvest' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  >
+                    Reinvest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDistributionPolicy('cash_out')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-full transition-colors ${distributionPolicy === 'cash_out' ? 'bg-primary-600 text-white shadow-sm' : 'bg-transparent text-muted dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  >
+                    Cash out
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 relative xl:col-span-2" ref={benchmarkRef}>
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Benchmark</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBenchmarkDropdown(prev => !prev)
+                    setBenchmarkSearchTerm('')
+                  }}
+                  className="input-field flex w-full items-center justify-between gap-2 text-left"
+                >
+                  <span className="truncate text-sm font-medium text-brand-ink dark:text-gray-100">
+                    {benchmark
+                      ? (benchmarkOptions.find(option => option.symbol === benchmark)?.label || benchmark)
+                      : 'None'}
+                  </span>
+                  <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {showBenchmarkDropdown && (
+                  <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                    <div className="px-3 pt-3">
+                      <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
+                        <input
+                          type="text"
+                          placeholder="Search benchmarks"
+                          value={benchmarkSearchTerm}
+                          onChange={(e) => setBenchmarkSearchTerm(e.target.value)}
+                          className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
+                        />
                       </div>
-                      <div className="mt-2 max-h-48 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
+                    </div>
+                    <div className="mt-2 max-h-48 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBenchmark('')
+                          setShowBenchmarkDropdown(false)
+                          setBenchmarkSearchTerm('')
+                        }}
+                        className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${benchmark === '' ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-200' : 'hover:bg-primary-50 dark:hover:bg-gray-700'}`}
+                      >
+                        <span className="font-semibold text-brand-ink dark:text-gray-100">None</span>
+                        <span className="text-xs text-muted dark:text-gray-300">No comparison</span>
+                      </button>
+                      {filteredBenchmarkOptions.map(option => (
                         <button
+                          key={option.symbol}
                           type="button"
                           onClick={() => {
-                            setBenchmark('')
+                            setBenchmark(option.symbol)
                             setShowBenchmarkDropdown(false)
                             setBenchmarkSearchTerm('')
                           }}
-                          className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${benchmark === '' ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-200' : 'hover:bg-primary-50 dark:hover:bg-gray-700'}`}
+                          className={`flex w-full items-center gap-3 px-3 py-2 text-sm ${benchmark === option.symbol ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-200' : 'hover:bg-primary-50 dark:hover:bg-gray-700'}`}
                         >
-                          <span className="font-semibold text-brand-ink dark:text-gray-100">None</span>
-                          <span className="text-xs text-muted dark:text-gray-300">No comparison</span>
+                          <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
+                          <span className="text-xs text-muted dark:text-gray-300">{option.label}</span>
                         </button>
-                        {filteredBenchmarkOptions.map(option => (
-                          <button
-                            key={option.symbol}
-                            type="button"
-                            onClick={() => {
-                              setBenchmark(option.symbol)
-                              setShowBenchmarkDropdown(false)
-                              setBenchmarkSearchTerm('')
-                            }}
-                            className={`flex w-full items-center gap-3 px-3 py-2 text-sm ${benchmark === option.symbol ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-200' : 'hover:bg-primary-50 dark:hover:bg-gray-700'}`}
-                          >
-                            <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
-                            <span className="text-xs text-muted dark:text-gray-300">{option.label}</span>
-                          </button>
-                        ))}
-                        {!filteredBenchmarkOptions.length && (
-                          <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No benchmarks match your search.</div>
-                        )}
-                      </div>
+                      ))}
+                      {!filteredBenchmarkOptions.length && (
+                        <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No benchmarks match your search.</div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1 xl:col-span-1">
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Inflation lens</p>
-                  <button
-                    type="button"
-                    onClick={() => setInflationAdjust(!inflationAdjust)}
-                    className={`flex h-10 items-center justify-between gap-3 rounded-full border px-3 text-xs font-medium shadow-sm transition-colors ${inflationAdjust
-                      ? 'border-primary-500 bg-primary-500 text-white'
-                      : 'border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-800/70 text-muted dark:text-gray-300 hover:border-primary-400'
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-1 xl:col-span-1">
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Inflation lens</p>
+                <button
+                  type="button"
+                  onClick={() => setInflationAdjust(!inflationAdjust)}
+                  className={`flex h-10 items-center justify-between gap-3 rounded-full border px-3 text-xs font-medium shadow-sm transition-colors ${inflationAdjust
+                    ? 'border-primary-500 bg-primary-500 text-white'
+                    : 'border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-800/70 text-muted dark:text-gray-300 hover:border-primary-400'
+                    }`}
+                >
+                  <span>View real returns</span>
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${inflationAdjust ? 'border-white bg-white text-primary-600' : 'border-gray-300 bg-white text-transparent'
                       }`}
                   >
-                    <span>View real returns</span>
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${inflationAdjust ? 'border-white bg-white text-primary-600' : 'border-gray-300 bg-white text-transparent'
-                        }`}
-                    >
-                      ✓
-                    </span>
-                  </button>
-                </div>
+                    ✓
+                  </span>
+                </button>
               </div>
             </div>
-            <p className="text-xs text-slate-400">
-              Real returns apply South African CPI to show your performance in today&apos;s rand terms.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted dark:text-gray-300">
-              <span className="font-semibold text-muted dark:text-gray-200 dark:text-gray-100">{distributionLabel}</span>
-              <span>{formatCurrency(dividendDisplayValue)} generated over the selected period.</span>
-              {effectiveDistributionPolicy === 'cash_out' ? (
-                <>
-                  <span>Dividends are shown outside the chart to reflect cash payouts.</span>
-                  <span>Line chart tracks invested holdings only ({formatCurrency(holdingsValue)}).</span>
-                </>
-              ) : (
-                <span>Reinvesting keeps distributions compounding inside portfolio value.</span>
-              )}
-              {typeof averageDividendYield === 'number' && (
-                <span>Average sleeve yield ≈ {averageDividendYield.toFixed(1)}% p.a.</span>
-              )}
+          </div>
+          <p className="text-xs text-slate-400">
+            Real returns apply South African CPI to show your performance in today&apos;s rand terms.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted dark:text-gray-300">
+            <span className="font-semibold text-muted dark:text-gray-200 dark:text-gray-100">{distributionLabel}</span>
+            <span>{formatCurrency(dividendDisplayValue)} generated over the selected period.</span>
+            {effectiveDistributionPolicy === 'cash_out' ? (
+              <>
+                <span>Dividends are shown outside the chart to reflect cash payouts.</span>
+                <span>Line chart tracks invested holdings only ({formatCurrency(holdingsValue)}).</span>
+              </>
+            ) : (
+              <span>Reinvesting keeps distributions compounding inside portfolio value.</span>
+            )}
+            {typeof averageDividendYield === 'number' && (
+              <span>Average sleeve yield ≈ {averageDividendYield.toFixed(1)}% p.a.</span>
+            )}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Initial investment (rand)</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={draftInitialInvestment}
+                onChange={(e) => setDraftInitialInvestment(e.target.value)}
+                className="input-field"
+                placeholder="e.g. 100000"
+              />
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {investmentMode === 'monthly' && (
               <div>
-                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Initial investment (rand)</p>
+                <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Monthly contribution</p>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  value={draftInitialInvestment}
-                  onChange={(e) => setDraftInitialInvestment(e.target.value)}
+                  value={draftMonthlyContribution}
+                  onChange={(e) => setDraftMonthlyContribution(e.target.value)}
                   className="input-field"
-                  placeholder="e.g. 100000"
+                  placeholder="e.g. 2000"
                 />
               </div>
-              {investmentMode === 'monthly' && (
+            )}
+            {timeframe === 'custom' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Monthly contribution</p>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Start date</p>
                   <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={draftMonthlyContribution}
-                    onChange={(e) => setDraftMonthlyContribution(e.target.value)}
+                    type="date"
+                    value={customStart}
+                    max={customEnd || undefined}
+                    onChange={(e) => setCustomStart(e.target.value)}
                     className="input-field"
-                    placeholder="e.g. 2000"
                   />
                 </div>
-              )}
-              {timeframe === 'custom' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">Start date</p>
-                    <input
-                      type="date"
-                      value={customStart}
-                      max={customEnd || undefined}
-                      onChange={(e) => setCustomStart(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">End date</p>
-                    <input
-                      type="date"
-                      value={customEnd}
-                      min={customStart || undefined}
-                      onChange={(e) => setCustomEnd(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300 mb-1">End date</p>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    min={customStart || undefined}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="input-field"
+                  />
                 </div>
-              )}
-            </div>
-            {projectionError && (
-              <p className="text-sm text-danger-600 dark:text-danger-500">{projectionError}</p>
+              </div>
             )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-muted dark:text-gray-300">Adjust your assumptions then refresh the simulation.</p>
+          </div>
+          {projectionError && (
+            <p className="text-sm text-danger-600 dark:text-danger-500">{projectionError}</p>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted dark:text-gray-300">Adjust your assumptions then refresh the simulation.</p>
+            <button
+              type="button"
+              onClick={() => applyProjectionChanges()}
+              className="btn-cta"
+            >
+              Update projection
+            </button>
+          </div>
+          <div className="rounded-2xl border border-dashed border-primary-500/40 bg-slate-900/50 p-4 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-primary-200">Contribution lab</p>
+                <p className="text-xs text-slate-300">
+                  Model a different contribution plan and compare the outcome alongside your current strategy.
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => applyProjectionChanges()}
-                className="btn-cta"
+                onClick={() => setScenarioExpanded(prev => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-primary-500/60 bg-primary-500/20 px-3 py-1 text-[11px] font-semibold text-primary-100 shadow-sm transition hover:bg-primary-500/30"
               >
-                Update projection
+                {scenarioExpanded ? 'Hide lab' : 'Open lab'}
               </button>
             </div>
-            <div className="rounded-2xl border border-dashed border-primary-500/40 bg-slate-900/50 p-4 space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-primary-200">Contribution lab</p>
-                  <p className="text-xs text-slate-300">
-                    Model a different contribution plan and compare the outcome alongside your current strategy.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setScenarioExpanded(prev => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary-500/60 bg-primary-500/20 px-3 py-1 text-[11px] font-semibold text-primary-100 shadow-sm transition hover:bg-primary-500/30"
-                >
-                  {scenarioExpanded ? 'Hide lab' : 'Open lab'}
-                </button>
-              </div>
-              {scenarioExpanded && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${scenarioData ? 'bg-emerald-500/20 text-emerald-300' : 'bg-primary-500/20 text-primary-200'}`}>
-                        {scenarioData ? `Overlay: ${scenarioFrequencyDisplay}` : 'No scenario loaded'}
-                      </span>
-                      {scenarioMessage && (
-                        <span className="text-xs text-primary-200">{scenarioMessage}</span>
-                      )}
-                    </div>
-                    {scenarioData && (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full border border-emerald-300 bg-emerald-300" />
-                        <span className="text-emerald-200">Scenario path</span>
-                      </div>
+            {scenarioExpanded && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${scenarioData ? 'bg-emerald-500/20 text-emerald-300' : 'bg-primary-500/20 text-primary-200'}`}>
+                      {scenarioData ? `Overlay: ${scenarioFrequencyDisplay}` : 'No scenario loaded'}
+                    </span>
+                    {scenarioMessage && (
+                      <span className="text-xs text-primary-200">{scenarioMessage}</span>
                     )}
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div>
-                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Scenario type</p>
-                      <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
-                        <button
-                          type="button"
-                          onClick={() => setScenarioMode('lump_sum')}
-                          className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioMode === 'lump_sum' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
-                        >
-                          Lump sum
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setScenarioMode('monthly')}
-                          className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioMode === 'monthly' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
-                        >
-                          Recurring plan
-                        </button>
+                  {scenarioData && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full border border-emerald-300 bg-emerald-300" />
+                      <span className="text-emerald-200">Scenario path</span>
+                    </div>
+                  )}
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <p className="text-[11px] font-semibold text-primary-200 mb-1">Scenario type</p>
+                    <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setScenarioMode('lump_sum')}
+                        className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioMode === 'lump_sum' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
+                      >
+                        Lump sum
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScenarioMode('monthly')}
+                        className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioMode === 'monthly' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
+                      >
+                        Recurring plan
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-primary-200 mb-1">Distribution policy</p>
+                    <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setScenarioPolicy('reinvest')}
+                        className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioPolicy === 'reinvest' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
+                      >
+                        Reinvest
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScenarioPolicy('cash_out')}
+                        className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioPolicy === 'cash_out' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
+                      >
+                        Cash out
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-primary-200 mb-1">Initial contribution</p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={scenarioInitialDraft}
+                      onChange={(e) => setScenarioInitialDraft(e.target.value)}
+                      className="input-field bg-slate-800/70 text-primary-100 placeholder:text-slate-500"
+                    />
+                  </div>
+                  {scenarioMode === 'monthly' && (
+                    <>
+                      <div>
+                        <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution cadence</p>
+                        <div className="relative">
+                          <select
+                            value={scenarioFrequency}
+                            onChange={(e) => setScenarioFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                            className="input-field w-full appearance-none bg-slate-800/70 text-primary-100 pr-10"
+                          >
+                            <option value="monthly">Monthly debit order</option>
+                            <option value="quarterly">Quarterly (every 3 months)</option>
+                            <option value="annual">Annual (once a year)</option>
+                          </select>
+                          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Distribution policy</p>
-                      <div className="flex h-10 items-center rounded-full bg-slate-800/70 p-1 shadow-sm">
-                        <button
-                          type="button"
-                          onClick={() => setScenarioPolicy('reinvest')}
-                          className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioPolicy === 'reinvest' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
-                        >
-                          Reinvest
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setScenarioPolicy('cash_out')}
-                          className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition ${scenarioPolicy === 'cash_out' ? 'bg-primary-500 text-white shadow-sm' : 'text-primary-200'}`}
-                        >
-                          Cash out
-                        </button>
+                      <div>
+                        <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution amount</p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={scenarioMonthlyDraft}
+                          onChange={(e) => setScenarioMonthlyDraft(e.target.value)}
+                          className="input-field bg-slate-800/70 text-primary-100 placeholder:text-slate-500"
+                        />
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold text-primary-200 mb-1">Initial contribution</p>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={scenarioInitialDraft}
-                        onChange={(e) => setScenarioInitialDraft(e.target.value)}
-                        className="input-field bg-slate-800/70 text-primary-100 placeholder:text-slate-500"
-                      />
-                    </div>
-                    {scenarioMode === 'monthly' && (
-                      <>
+                      {scenarioFrequency === 'annual' && (
                         <div>
-                          <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution cadence</p>
+                          <p className="text-[11px] font-semibold text-primary-200 mb-1">Annual contribution month</p>
                           <div className="relative">
                             <select
-                              value={scenarioFrequency}
-                              onChange={(e) => setScenarioFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                              value={scenarioAnnualMonth}
+                              onChange={(e) => setScenarioAnnualMonth(e.target.value)}
                               className="input-field w-full appearance-none bg-slate-800/70 text-primary-100 pr-10"
                             >
-                              <option value="monthly">Monthly debit order</option>
-                              <option value="quarterly">Quarterly (every 3 months)</option>
-                              <option value="annual">Annual (once a year)</option>
+                              {MONTH_NAMES.map((label, idx) => (
+                                <option key={label} value={idx + 1}>{label}</option>
+                              ))}
                             </select>
                             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-300">
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                             </div>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-[11px] font-semibold text-primary-200 mb-1">Contribution amount</p>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button type="button" onClick={handleRunScenario} className="btn-secondary">
+                    Run comparison
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetScenario}
+                    className="btn-ghost text-xs text-primary-200 hover:text-white"
+                  >
+                    Reset lab
+                  </button>
+                  {scenarioData && (
+                    <button
+                      type="button"
+                      onClick={handleApplyScenarioToPlan}
+                      className="btn-cta"
+                    >
+                      Apply to plan
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  Scenario results draw over the chart in green. Apply to replace your baseline, or reset to remove the comparison.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="relative w-full h-[420px]">
+            {isFetching && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+                <div className="flex items-center gap-3 rounded-full bg-slate-800/80 px-4 py-2 text-sm text-slate-200">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-200 border-t-transparent" />
+                  Updating…
+                </div>
+              </div>
+            )}
+            <Line data={performanceChartData} options={chartOptions} />
+          </div>
+          {performanceData && (
+            <div className="grid gap-4 text-left sm:grid-cols-3">
+              <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
+                <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">{inflationAdjust ? 'Real total return' : 'Nominal total return'}</p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                    <p className={`text-lg font-semibold ${totalReturnPercent >= 0 ? 'text-success-600' : 'text-danger-600'}`}>{formatPercentage(totalReturnPercent)}</p>
+                  </div>
+                  {showBenchmarkStats && (
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                      <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatOptionalPercentage(benchmarkReturnPct)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
+                <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Volatility (annualised)</p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                    <p className="text-lg font-semibold text-brand-ink dark:text-gray-100">{formatPercentNoSign(portfolioVolatility)}</p>
+                  </div>
+                  {showBenchmarkStats && (
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                      <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkVolatility)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
+                <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Worst drawdown</p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                    <p className={`text-lg font-semibold ${typeof portfolioDrawdown === 'number' ? 'text-danger-600' : 'text-gray-400'}`}>{formatPercentNoSign(portfolioDrawdown)}</p>
+                  </div>
+                  {showBenchmarkStats && (
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                      <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkDrawdown)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
+                <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Dividends generated</p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                    <p className="text-lg font-semibold text-success-600">{formatCurrency(totalDividends)}</p>
+                    {typeof averageDividendYield === 'number' && (
+                      <p className="text-xs text-muted dark:text-gray-300">Simulated yield {averageDividendYield.toFixed(2)}% p.a.</p>
+                    )}
+                    {typeof portfolioWeightedYield === 'number' && (
+                      <p className="text-xs text-muted dark:text-gray-300">Current weighted yield {portfolioWeightedYield.toFixed(2)}% p.a.</p>
+                    )}
+                    {typeof portfolioAnnualDividends === 'number' && portfolioAnnualDividends > 0 && (
+                      <p className="text-xs text-muted dark:text-gray-300">Current annual dividends ≈ {formatCurrency(Math.round(portfolioAnnualDividends))}</p>
+                    )}
+                  </div>
+                  {showBenchmarkStats && (
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                      <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">
+                        {typeof benchmarkDividends === 'number' ? formatCurrency(benchmarkDividends) : '—'}
+                      </p>
+                      {typeof benchmarkYield === 'number' && (
+                        <p className="text-xs text-muted dark:text-gray-300">Yield {benchmarkYield.toFixed(2)}% p.a.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
+                <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Downside capture</p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
+                    <p className={`text-lg font-semibold ${typeof downsideCapture === 'number' ? (downsideCapture <= 100 ? 'text-success-600' : 'text-danger-600') : 'text-gray-400'}`}>{formatPercentNoSign(downsideCapture)}</p>
+                    <p className="text-xs text-muted dark:text-gray-300">Lower than 100% indicates better downside protection vs benchmark.</p>
+                  </div>
+                  {showBenchmarkStats && (
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
+                      <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">100%</p>
+                      <p className="text-xs text-muted dark:text-gray-300">Benchmark baseline</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          {scenarioData && scenarioResolved && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
+                <p className="text-xs font-semibold text-slate-300">Scenario vs baseline</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Baseline ending value</span>
+                    <span className="font-semibold">{formatCurrency(totalValue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Scenario ending value</span>
+                    <span className="font-semibold text-emerald-300">{scenarioTotalValue !== null ? formatCurrency(scenarioTotalValue) : '—'}</span>
+                  </div>
+                  {valueDelta !== null && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Difference</span>
+                      <span className={`font-semibold ${valueDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                        {valueDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(valueDelta))}
+                      </span>
+                    </div>
+                  )}
+                  <hr className="border-slate-700/80" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Scenario total return</span>
+                    <span className="font-semibold text-emerald-300">{scenarioTotalReturn !== null ? formatCurrency(scenarioTotalReturn) : '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Baseline total return</span>
+                    <span className="font-semibold text-slate-100">{formatCurrency(totalReturn)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
+                <p className="text-xs font-semibold text-slate-300">Contribution & income</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Baseline capital invested</span>
+                    <span className="font-semibold">{formatCurrency(totalInvested)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Scenario capital invested</span>
+                    <span className="font-semibold text-emerald-300">{scenarioTotalInvested !== null ? formatCurrency(scenarioTotalInvested) : '—'}</span>
+                  </div>
+                  {investedDelta !== null && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Difference</span>
+                      <span className={`${investedDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                        {investedDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(investedDelta))}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Contribution cadence</span>
+                    <span className="font-semibold text-slate-100 text-right">{scenarioFrequencyDisplay}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Initial contribution</span>
+                    <span className="font-semibold text-emerald-300">{formatCurrency(scenarioParsedInitialValue)}</span>
+                  </div>
+                  {scenarioMode === 'monthly' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Recurring amount</span>
+                      <span className="font-semibold text-emerald-300">{scenarioRecurringLabel}</span>
+                    </div>
+                  )}
+                  <hr className="border-slate-700/80" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Scenario dividend total</span>
+                    <span className="font-semibold text-emerald-300">{scenarioDividends !== null ? formatCurrency(scenarioDividends) : '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Dividend policy</span>
+                    <span className="font-semibold">{scenarioPolicyLabel === 'cash_out' ? 'Paid out as cash' : 'Reinvested into units'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Holdings Table */}
+      <div className="card">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">
+            Holdings
+          </h3>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPortfolio}
+              className="btn-secondary text-xs whitespace-nowrap"
+            >
+              Download CSV
+            </button>
+            <button
+              type="button"
+              onClick={handleResetPortfolio}
+              disabled={resettingPortfolio}
+              className={`btn-secondary text-xs whitespace-nowrap ${resettingPortfolio ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {resettingPortfolio ? 'Resetting…' : 'Reset to plan'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomError(null)
+                setShowCustomBuilder(prev => {
+                  const next = !prev
+                  if (!next) {
+                    setActiveInstrumentRow(null)
+                    setInstrumentSearchTerm('')
+                  }
+                  return next
+                })
+                if (!showCustomBuilder) {
+                  let baseRows: Array<{ id: string; symbol: string; weight: number }> = editableHoldings.map((holding, idx) => ({
+                    id: `${holding.symbol}-${idx}`,
+                    symbol: holding.symbol,
+                    weight: clampPercent(holding.weight ?? 0)
+                  }))
+                  if (!baseRows.length) {
+                    baseRows.push({ id: `custom-${Date.now()}`, symbol: '', weight: 0 })
+                  } else if (baseRows.length) {
+                    const adjusted = normalisePercentages(baseRows.map(row => row.weight))
+                    baseRows = baseRows.map((row, idx) => ({
+                      ...row,
+                      weight: adjusted[idx] ?? 0
+                    }))
+                  }
+                  setCustomRows(baseRows)
+                  setInstrumentSearchTerm('')
+                  const pendingRow = baseRows.find(row => !row.symbol)
+                  setActiveInstrumentRow(pendingRow ? pendingRow.id : null)
+                }
+              }}
+              className="btn-secondary text-xs whitespace-nowrap"
+            >
+              {showCustomBuilder ? 'Close builder' : 'Customise mix'}
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="w-10 py-3 pl-4 pr-10 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Order
+                </th>
+                <th className="py-3 pr-4 pl-10 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300 w-72">
+                  Instrument
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Quantity
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Avg Price
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Current Price
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Value
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  P&L
+                </th>
+                <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
+                  Weight
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayHoldings.map((holding, index) => {
+                const holdingWeight = clampPercent(holding.weight ?? 0)
+                const disableHoldingMinus = holdingWeight <= 0
+                const disableHoldingPlus = holdingWeight >= 100
+                return (
+                  <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
+                    <td className="py-3 pl-4 pr-10 align-top text-center">
+                      <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveHoldingRow(index, 'up')}
+                          disabled={index === 0}
+                          aria-label="Move holding up"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveHoldingRow(index, 'down')}
+                          disabled={index === displayHoldings.length - 1}
+                          aria-label="Move holding down"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 pl-10 text-center w-72">
+                      <div className="space-y-1">
+                        <div className="font-medium text-brand-ink dark:text-gray-100">
+                          {holding.symbol}
+                        </div>
+                        <div className="text-sm text-muted dark:text-gray-300">
+                          {holding.name}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                      {holding.quantity.toFixed(2)}
+                    </td>
+                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                      {formatCurrency(holding.avg_price)}
+                    </td>
+                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                      <div className="space-y-1 text-center">
+                        <div>{formatCurrency(holding.current_price)}</div>
+                        <div className={`text-xs ${holding.current_price - holding.avg_price >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
+                          {formatCurrencyDelta(holding.current_price - holding.avg_price)} vs avg
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                      {formatCurrency(holding.current_value)}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className={`${holding.pnl >= 0 ? 'text-success-600' : 'text-danger-600'} space-y-0.5`}>
+                        <div className="font-medium">
+                          {formatCurrency(holding.pnl)}
+                        </div>
+                        <div className="text-sm">
+                          {formatPercentage(holding.pnl_pct)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => adjustHoldingWeight(index, -1)}
+                          disabled={disableHoldingMinus}
+                          aria-label="Decrease weight"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <div className="relative w-24">
                           <input
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            value={scenarioMonthlyDraft}
-                            onChange={(e) => setScenarioMonthlyDraft(e.target.value)}
-                            className="input-field bg-slate-800/70 text-primary-100 placeholder:text-slate-500"
+                            maxLength={3}
+                            value={String(holdingWeight)}
+                            onChange={(e) => handleWeightChange(index, e.target.value)}
+                            aria-label="Holding weight percentage"
+                            className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
                           />
-                        </div>
-                        {scenarioFrequency === 'annual' && (
-                          <div>
-                            <p className="text-[11px] font-semibold text-primary-200 mb-1">Annual contribution month</p>
-                            <div className="relative">
-                              <select
-                                value={scenarioAnnualMonth}
-                                onChange={(e) => setScenarioAnnualMonth(e.target.value)}
-                                className="input-field w-full appearance-none bg-slate-800/70 text-primary-100 pr-10"
-                              >
-                                {MONTH_NAMES.map((label, idx) => (
-                                  <option key={label} value={idx + 1}>{label}</option>
-                                ))}
-                              </select>
-                              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button type="button" onClick={handleRunScenario} className="btn-secondary">
-                      Run comparison
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleResetScenario}
-                      className="btn-ghost text-xs text-primary-200 hover:text-white"
-                    >
-                      Reset lab
-                    </button>
-                    {scenarioData && (
-                      <button
-                        type="button"
-                        onClick={handleApplyScenarioToPlan}
-                        className="btn-cta"
-                      >
-                        Apply to plan
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    Scenario results draw over the chart in green. Apply to replace your baseline, or reset to remove the comparison.
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="relative w-full h-[420px]">
-              {isFetching && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-                  <div className="flex items-center gap-3 rounded-full bg-slate-800/80 px-4 py-2 text-sm text-slate-200">
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-200 border-t-transparent" />
-                    Updating…
-                  </div>
-                </div>
-              )}
-              <Line data={performanceChartData} options={chartOptions} />
-            </div>
-            {performanceData && (
-              <div className="grid gap-4 text-left sm:grid-cols-3">
-                <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
-                  <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">{inflationAdjust ? 'Real total return' : 'Nominal total return'}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
-                      <p className={`text-lg font-semibold ${totalReturnPercent >= 0 ? 'text-success-600' : 'text-danger-600'}`}>{formatPercentage(totalReturnPercent)}</p>
-                    </div>
-                    {showBenchmarkStats && (
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
-                        <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatOptionalPercentage(benchmarkReturnPct)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
-                  <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Volatility (annualised)</p>
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
-                      <p className="text-lg font-semibold text-brand-ink dark:text-gray-100">{formatPercentNoSign(portfolioVolatility)}</p>
-                    </div>
-                    {showBenchmarkStats && (
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
-                        <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkVolatility)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
-                  <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Worst drawdown</p>
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
-                      <p className={`text-lg font-semibold ${typeof portfolioDrawdown === 'number' ? 'text-danger-600' : 'text-gray-400'}`}>{formatPercentNoSign(portfolioDrawdown)}</p>
-                    </div>
-                    {showBenchmarkStats && (
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
-                        <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">{formatPercentNoSign(benchmarkDrawdown)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
-                  <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Dividends generated</p>
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
-                      <p className="text-lg font-semibold text-success-600">{formatCurrency(totalDividends)}</p>
-                      {typeof averageDividendYield === 'number' && (
-                        <p className="text-xs text-muted dark:text-gray-300">Simulated yield {averageDividendYield.toFixed(2)}% p.a.</p>
-                      )}
-                      {typeof portfolioWeightedYield === 'number' && (
-                        <p className="text-xs text-muted dark:text-gray-300">Current weighted yield {portfolioWeightedYield.toFixed(2)}% p.a.</p>
-                      )}
-                      {typeof portfolioAnnualDividends === 'number' && portfolioAnnualDividends > 0 && (
-                        <p className="text-xs text-muted dark:text-gray-300">Current annual dividends ≈ {formatCurrency(Math.round(portfolioAnnualDividends))}</p>
-                      )}
-                    </div>
-                    {showBenchmarkStats && (
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
-                        <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">
-                          {typeof benchmarkDividends === 'number' ? formatCurrency(benchmarkDividends) : '—'}
-                        </p>
-                        {typeof benchmarkYield === 'number' && (
-                          <p className="text-xs text-muted dark:text-gray-300">Yield {benchmarkYield.toFixed(2)}% p.a.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-gray-200 bg-white/70 p-4 dark:border-gray-700/70 dark:bg-gray-900/40">
-                  <p className="text-xs font-medium text-subtle dark:text-muted dark:text-gray-300">Downside capture</p>
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Portfolio</p>
-                      <p className={`text-lg font-semibold ${typeof downsideCapture === 'number' ? (downsideCapture <= 100 ? 'text-success-600' : 'text-danger-600') : 'text-gray-400'}`}>{formatPercentNoSign(downsideCapture)}</p>
-                      <p className="text-xs text-muted dark:text-gray-300">Lower than 100% indicates better downside protection vs benchmark.</p>
-                    </div>
-                    {showBenchmarkStats && (
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">{benchmarkName}</p>
-                        <p className="text-lg font-semibold text-subtle dark:text-gray-400 dark:text-gray-200">100%</p>
-                        <p className="text-xs text-muted dark:text-gray-300">Benchmark baseline</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            {scenarioData && scenarioResolved && (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
-                  <p className="text-xs font-semibold text-slate-300">Scenario vs baseline</p>
-                  <div className="mt-4 space-y-3 text-sm text-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Baseline ending value</span>
-                      <span className="font-semibold">{formatCurrency(totalValue)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Scenario ending value</span>
-                      <span className="font-semibold text-emerald-300">{scenarioTotalValue !== null ? formatCurrency(scenarioTotalValue) : '—'}</span>
-                    </div>
-                    {valueDelta !== null && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-400">Difference</span>
-                        <span className={`font-semibold ${valueDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                          {valueDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(valueDelta))}
-                        </span>
-                      </div>
-                    )}
-                    <hr className="border-slate-700/80" />
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Scenario total return</span>
-                      <span className="font-semibold text-emerald-300">{scenarioTotalReturn !== null ? formatCurrency(scenarioTotalReturn) : '—'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Baseline total return</span>
-                      <span className="font-semibold text-slate-100">{formatCurrency(totalReturn)}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5">
-                  <p className="text-xs font-semibold text-slate-300">Contribution & income</p>
-                  <div className="mt-4 space-y-3 text-sm text-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Baseline capital invested</span>
-                      <span className="font-semibold">{formatCurrency(totalInvested)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Scenario capital invested</span>
-                      <span className="font-semibold text-emerald-300">{scenarioTotalInvested !== null ? formatCurrency(scenarioTotalInvested) : '—'}</span>
-                    </div>
-                    {investedDelta !== null && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-400">Difference</span>
-                        <span className={`${investedDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                          {investedDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(investedDelta))}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Contribution cadence</span>
-                      <span className="font-semibold text-slate-100 text-right">{scenarioFrequencyDisplay}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Initial contribution</span>
-                      <span className="font-semibold text-emerald-300">{formatCurrency(scenarioParsedInitialValue)}</span>
-                    </div>
-                    {scenarioMode === 'monthly' && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400">Recurring amount</span>
-                        <span className="font-semibold text-emerald-300">{scenarioRecurringLabel}</span>
-                      </div>
-                    )}
-                    <hr className="border-slate-700/80" />
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Scenario dividend total</span>
-                      <span className="font-semibold text-emerald-300">{scenarioDividends !== null ? formatCurrency(scenarioDividends) : '—'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Dividend policy</span>
-                      <span className="font-semibold">{scenarioPolicyLabel === 'cash_out' ? 'Paid out as cash' : 'Reinvested into units'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Holdings Table */}
-        <div className="card">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100">
-              Holdings
-            </h3>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleDownloadPortfolio}
-                className="btn-secondary text-xs whitespace-nowrap"
-              >
-                Download CSV
-              </button>
-              <button
-                type="button"
-                onClick={handleResetPortfolio}
-                disabled={resettingPortfolio}
-                className={`btn-secondary text-xs whitespace-nowrap ${resettingPortfolio ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {resettingPortfolio ? 'Resetting…' : 'Reset to plan'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomError(null)
-                  setShowCustomBuilder(prev => {
-                    const next = !prev
-                    if (!next) {
-                      setActiveInstrumentRow(null)
-                      setInstrumentSearchTerm('')
-                    }
-                    return next
-                  })
-                  if (!showCustomBuilder) {
-                    let baseRows: Array<{ id: string; symbol: string; weight: number }> = editableHoldings.map((holding, idx) => ({
-                      id: `${holding.symbol}-${idx}`,
-                      symbol: holding.symbol,
-                      weight: clampPercent(holding.weight ?? 0)
-                    }))
-                    if (!baseRows.length) {
-                      baseRows.push({ id: `custom-${Date.now()}`, symbol: '', weight: 0 })
-                    } else if (baseRows.length) {
-                      const adjusted = normalisePercentages(baseRows.map(row => row.weight))
-                      baseRows = baseRows.map((row, idx) => ({
-                        ...row,
-                        weight: adjusted[idx] ?? 0
-                      }))
-                    }
-                    setCustomRows(baseRows)
-                    setInstrumentSearchTerm('')
-                    const pendingRow = baseRows.find(row => !row.symbol)
-                    setActiveInstrumentRow(pendingRow ? pendingRow.id : null)
-                  }
-                }}
-                className="btn-secondary text-xs whitespace-nowrap"
-              >
-                {showCustomBuilder ? 'Close builder' : 'Customise mix'}
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="w-10 py-3 pl-4 pr-10 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Order
-                  </th>
-                  <th className="py-3 pr-4 pl-10 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300 w-72">
-                    Instrument
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Quantity
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Avg Price
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Current Price
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Value
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    P&L
-                  </th>
-                  <th className="py-3 px-4 text-center font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-                    Weight
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayHoldings.map((holding, index) => {
-                  const holdingWeight = clampPercent(holding.weight ?? 0)
-                  const disableHoldingMinus = holdingWeight <= 0
-                  const disableHoldingPlus = holdingWeight >= 100
-                  return (
-                    <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                      <td className="py-3 pl-4 pr-10 align-top text-center">
-                        <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveHoldingRow(index, 'up')}
-                            disabled={index === 0}
-                            aria-label="Move holding up"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveHoldingRow(index, 'down')}
-                            disabled={index === displayHoldings.length - 1}
-                            aria-label="Move holding down"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="py-3 pr-4 pl-10 text-center w-72">
-                        <div className="space-y-1">
-                          <div className="font-medium text-brand-ink dark:text-gray-100">
-                            {holding.symbol}
-                          </div>
-                          <div className="text-sm text-muted dark:text-gray-300">
-                            {holding.name}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                        {holding.quantity.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                        {formatCurrency(holding.avg_price)}
-                      </td>
-                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                        <div className="space-y-1 text-center">
-                          <div>{formatCurrency(holding.current_price)}</div>
-                          <div className={`text-xs ${holding.current_price - holding.avg_price >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
-                            {formatCurrencyDelta(holding.current_price - holding.avg_price)} vs avg
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                        {formatCurrency(holding.current_value)}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className={`${holding.pnl >= 0 ? 'text-success-600' : 'text-danger-600'} space-y-0.5`}>
-                          <div className="font-medium">
-                            {formatCurrency(holding.pnl)}
-                          </div>
-                          <div className="text-sm">
-                            {formatPercentage(holding.pnl_pct)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-brand-ink dark:text-gray-100">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => adjustHoldingWeight(index, -1)}
-                            disabled={disableHoldingMinus}
-                            aria-label="Decrease weight"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <div className="relative w-24">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              maxLength={3}
-                              value={String(holdingWeight)}
-                              onChange={(e) => handleWeightChange(index, e.target.value)}
-                              aria-label="Holding weight percentage"
-                              className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-center text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
-                            />
-                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
-                              %
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => adjustHoldingWeight(index, 1)}
-                            disabled={disableHoldingPlus}
-                            aria-label="Increase weight"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted dark:text-gray-300">
-            <div className="flex items-center gap-2">
-              <span>Total allocation</span>
-              <span className="font-semibold text-brand-ink dark:text-gray-100">{totalEditedWeight}%</span>
-            </div>
-            {weightDelta !== 0 && (
-              <button
-                type="button"
-                onClick={handleNormalizeWeights}
-                className="btn-secondary text-xs whitespace-nowrap"
-              >
-                Normalise to 100%
-              </button>
-            )}
-          </div>
-          {weightDelta !== 0 && (
-            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-              Tip: Adjust weights until they sum to 100% for a balanced allocation. Currently off by {weightDelta > 0 ? '+' : ''}{weightDelta}%.
-            </p>
-          )}
-
-          {showCustomBuilder && (
-            <div ref={customBuilderRef} className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-              <div className="mb-4 flex flex-col gap-2">
-                <h4 className="text-sm font-semibold text-brand-ink dark:text-gray-100">Custom portfolio builder</h4>
-                <p className="text-xs text-muted dark:text-gray-300">
-                  Choose instruments and assign whole number weights totalling 100%. We&apos;ll rebalance your holdings immediately.
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-subtle dark:text-muted dark:text-gray-300 text-center">
-                      <th className="w-12 py-2 pl-4 pr-10 text-center">Order</th>
-                      <th className="py-2 pr-4 pl-10 text-center w-80">Instrument</th>
-                      <th className="py-2 pr-3 text-center">Weight %</th>
-                      <th className="py-2 pr-3 text-center">Remove</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customRows.map((row, rowIndex) => {
-                      const rowWeight = clampPercent(row.weight ?? 0)
-                      const disableRowMinus = rowWeight <= 0
-                      const disableRowPlus = rowWeight >= 100
-                      return (
-                        <tr key={row.id} id={`custom-row-${row.id}`} className="border-t border-gray-100 dark:border-gray-800">
-                          <td className="py-2 pl-4 pr-10 align-top text-center">
-                            <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
-                              <button
-                                type="button"
-                                onClick={() => handleMoveCustomRow(row.id, 'up')}
-                                disabled={rowIndex === 0}
-                                aria-label="Move instrument up"
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                              >
-                                <ChevronUp className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleMoveCustomRow(row.id, 'down')}
-                                disabled={rowIndex === customRows.length - 1}
-                                aria-label="Move instrument down"
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                              >
-                                <ChevronDown className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 pr-4 pl-10 text-center w-80">
-                            <div className="relative mx-auto w-full max-w-md text-left">
-                              <button
-                                id={`instrument-trigger-${row.id}`}
-                                type="button"
-                                onClick={() => toggleInstrumentDropdown(row.id)}
-                                className="input-field flex w-full items-center justify-between gap-2 text-left"
-                              >
-                                <span className={`truncate ${row.symbol ? 'text-brand-ink dark:text-gray-100' : 'text-gray-400 dark:text-subtle dark:text-gray-400'}`}>
-                                  {row.symbol || 'Search instrument…'}
-                                </span>
-                                <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
-                                </svg>
-                              </button>
-                              {activeInstrumentRow === row.id && (
-                                <div
-                                  id={`instrument-popover-${row.id}`}
-                                  className="absolute left-0 top-full z-20 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
-                                >
-                                  <div className="px-3 pt-3">
-                                    <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
-                                      <input
-                                        ref={activeInstrumentRow === row.id ? instrumentSearchInputRef : undefined}
-                                        type="text"
-                                        placeholder="Search instruments"
-                                        value={instrumentSearchTerm}
-                                        onChange={(e) => setInstrumentSearchTerm(e.target.value)}
-                                        className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div
-                                    ref={activeInstrumentRow === row.id ? instrumentListRef : undefined}
-                                    className="mt-2 max-h-60 overflow-y-auto border-t border-gray-200 dark:border-gray-700"
-                                  >
-                                    {filteredInstrumentOptions.map(option => (
-                                      <button
-                                        key={`${row.id}-${option.symbol}`}
-                                        type="button"
-                                        onClick={() => {
-                                          handleCustomRowSymbolChange(row.id, option.symbol)
-                                          setActiveInstrumentRow(null)
-                                          setInstrumentSearchTerm('')
-                                        }}
-                                        className="flex w-full items-center gap-3 px-3 py-2 text-sm text-left hover:bg-primary-50 dark:hover:bg-gray-700"
-                                      >
-                                        <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
-                                        <span className="text-xs text-subtle dark:text-gray-400 dark:text-gray-300">{option.label}</span>
-                                      </button>
-                                    ))}
-                                    {!filteredInstrumentOptions.length && (
-                                      <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No instruments match your search.</div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-2 pr-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => adjustCustomRowWeight(row.id, -1)}
-                                disabled={disableRowMinus}
-                                aria-label="Decrease custom weight"
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-                              <div className="relative w-24">
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  maxLength={3}
-                                  value={String(rowWeight)}
-                                  onChange={(e) => handleCustomRowWeightChange(row.id, e.target.value)}
-                                  aria-label="Custom weight percentage"
-                                  className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
-                                />
-                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
-                                  %
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => adjustCustomRowWeight(row.id, 1)}
-                                disabled={disableRowPlus}
-                                aria-label="Increase custom weight"
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 pr-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCustomRow(row.id)}
-                              className="text-xs text-danger-600 hover:underline"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted dark:text-gray-300">
-                <span>Total custom weight: {customWeightSum}%</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleLoadBaselineRows}
-                    className="btn-secondary text-xs"
-                  >
-                    Load plan weights
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAddCustomRow}
-                    className="btn-secondary text-xs"
-                  >
-                    Add instrument
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApplyCustomPortfolio}
-                    disabled={savingCustom}
-                    className={`btn-cta text-xs ${savingCustom ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  >
-                    {savingCustom ? 'Applying…' : 'Apply custom mix'}
-                  </button>
-                </div>
-              </div>
-              {customError && (
-                <p className="mt-2 text-sm text-danger-600 dark:text-danger-500">{customError}</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {portfolio.suggestions && portfolio.suggestions.length > 0 && (
-          <div className="card mt-8">
-            <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-2">Suggested tweaks</h3>
-            <p className="text-sm text-muted dark:text-gray-300 mb-5">
-              We flag context aware swaps for your {portfolio.archetype} mix—sometimes chasing stronger returns, other times prioritising yield or stability in line with your mandate.
-            </p>
-            <div className="space-y-4">
-              {portfolio.suggestions.map((suggestion, index) => {
-                const suggestionId = `${suggestion.replace_symbol}->${suggestion.suggest_symbol}`
-                const decision = suggestionDecisions[suggestionId]
-                const decisionCopy = decision === 'accepted'
-                  ? 'Marked as accepted'
-                  : decision === 'rejected'
-                    ? 'Suggestion dismissed'
-                    : null
-                return (
-                  <div
-                    key={index}
-                    className="rounded-2xl border border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-900/70 px-5 py-5 shadow-sm transition hover:border-primary-200/80 hover:shadow-md"
-                  >
-                    <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1fr)] md:items-center md:gap-6">
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Current holding</p>
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
-                            {suggestion.replace_symbol} · {suggestion.replace_name}
-                          </p>
-                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${suggestion.trailing_return >= 0 ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'}`}>
-                            6m return {formatPercentage(suggestion.trailing_return)}
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
+                            %
                           </span>
                         </div>
-                      </div>
-                      <div className="hidden md:flex justify-center">
-                        <ArrowRightLeft className="h-5 w-5 text-primary-500" />
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Suggested replacement</p>
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
-                            {suggestion.suggest_symbol} · {suggestion.suggest_name}
-                          </p>
-                          <span className="rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200 px-2 py-1 text-[11px] font-semibold">
-                            Target weight {Math.round(Number(suggestion.target_weight) || 0)}%
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted dark:text-gray-300">
-                          {typeof suggestion.suggest_trailing_return === 'number' && (
-                            <span className={suggestion.suggest_trailing_return >= 0 ? 'text-success-600' : 'text-danger-600'}>
-                              6m return {formatPercentage(suggestion.suggest_trailing_return)}
-                            </span>
-                          )}
-                          {typeof suggestion.suggest_dividend_yield === 'number' && suggestion.suggest_dividend_yield > 0 && (
-                            <span>Indicative yield {suggestion.suggest_dividend_yield.toFixed(1)}%</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <p className="text-xs leading-relaxed text-subtle dark:text-gray-400 dark:text-gray-300 md:max-w-2xl">
-                        {suggestion.reason}
-                      </p>
-                      <div className="flex items-center gap-2 md:justify-end">
                         <button
                           type="button"
-                          onClick={() => handleSuggestionDecision(suggestion, 'accepted')}
-                          disabled={processingSuggestion === suggestionId}
-                          className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${decision === 'accepted' ? 'bg-success-600 text-white shadow-sm' : 'bg-success-100 text-success-700 hover:bg-success-200'} ${processingSuggestion === suggestionId ? 'opacity-70 cursor-not-allowed' : ''}`}
+                          onClick={() => adjustHoldingWeight(index, 1)}
+                          disabled={disableHoldingPlus}
+                          aria-label="Increase weight"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
                         >
-                          {decision === 'accepted' ? 'Accepted' : 'Accept swap'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSuggestionDecision(suggestion, 'rejected')}
-                          disabled={processingSuggestion === suggestionId}
-                          className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${decision === 'rejected' ? 'bg-danger-600 text-white shadow-sm' : 'bg-danger-100 text-danger-700 hover:bg-danger-200'} ${processingSuggestion === suggestionId ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                          {decision === 'rejected' ? 'Rejected' : 'Dismiss'}
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
-                    </div>
-                    {decisionCopy && (
-                      <p className={`mt-3 text-[11px] font-semibold ${decision === 'accepted' ? 'text-success-600' : 'text-danger-600'}`}>
-                        {decisionCopy}
-                      </p>
-                    )}
-                  </div>
+                    </td>
+                  </tr>
                 )
               })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <span>Total allocation</span>
+            <span className="font-semibold text-brand-ink dark:text-gray-100">{totalEditedWeight}%</span>
+          </div>
+          {weightDelta !== 0 && (
+            <button
+              type="button"
+              onClick={handleNormalizeWeights}
+              className="btn-secondary text-xs whitespace-nowrap"
+            >
+              Normalise to 100%
+            </button>
+          )}
+        </div>
+        {weightDelta !== 0 && (
+          <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+            Tip: Adjust weights until they sum to 100% for a balanced allocation. Currently off by {weightDelta > 0 ? '+' : ''}{weightDelta}%.
+          </p>
+        )}
+
+        {showCustomBuilder && (
+          <div ref={customBuilderRef} className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="mb-4 flex flex-col gap-2">
+              <h4 className="text-sm font-semibold text-brand-ink dark:text-gray-100">Custom portfolio builder</h4>
+              <p className="text-xs text-muted dark:text-gray-300">
+                Choose instruments and assign whole number weights totalling 100%. We&apos;ll rebalance your holdings immediately.
+              </p>
             </div>
-          </div>
-        )}
-
-        {appliedSuggestions && appliedSuggestions.length > 0 && (
-          <div className="card mt-6">
-            <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-3">Recent swaps</h3>
-            <ul className="space-y-2 text-sm text-muted dark:text-gray-300">
-              {appliedSuggestions.map((item) => (
-                <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="space-x-1">
-                    <span>Replaced</span>
-                    <span className="font-semibold text-brand-ink dark:text-gray-100">{item.replace_symbol}</span>
-                    <span>with</span>
-                    <span className="font-semibold text-brand-ink dark:text-gray-100">{item.suggest_symbol}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted dark:text-gray-300">{formatTimestamp(item.created_at)}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleReverseSuggestion(item.id)}
-                      disabled={processingReverse === item.id}
-                      className={`text-xs font-semibold ${processingReverse === item.id ? 'text-gray-400 cursor-not-allowed' : 'text-primary-600 hover:underline dark:text-primary-300'}`}
-                    >
-                      {processingReverse === item.id ? 'Reversing…' : 'Reverse swap'}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Guardrails */}
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-4">
-            Portfolio Guardrails
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="card border-l-4 border-success-500">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-success-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium text-brand-ink dark:text-gray-100">
-                    Diversification Check
-                  </p>
-                  <p className="text-sm text-muted dark:text-gray-300">
-                    Portfolio is well diversified across sectors
-                  </p>
-                </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-subtle dark:text-muted dark:text-gray-300 text-center">
+                    <th className="w-12 py-2 pl-4 pr-10 text-center">Order</th>
+                    <th className="py-2 pr-4 pl-10 text-center w-80">Instrument</th>
+                    <th className="py-2 pr-3 text-center">Weight %</th>
+                    <th className="py-2 pr-3 text-center">Remove</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customRows.map((row, rowIndex) => {
+                    const rowWeight = clampPercent(row.weight ?? 0)
+                    const disableRowMinus = rowWeight <= 0
+                    const disableRowPlus = rowWeight >= 100
+                    return (
+                      <tr key={row.id} id={`custom-row-${row.id}`} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className="py-2 pl-4 pr-10 align-top text-center">
+                          <div className="mx-auto flex w-fit flex-col items-center gap-1.5 text-subtle dark:text-gray-400 dark:text-gray-300">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveCustomRow(row.id, 'up')}
+                              disabled={rowIndex === 0}
+                              aria-label="Move instrument up"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveCustomRow(row.id, 'down')}
+                              disabled={rowIndex === customRows.length - 1}
+                              aria-label="Move instrument down"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:translate-y-0.5 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-2 pr-4 pl-10 text-center w-80">
+                          <div className="relative mx-auto w-full max-w-md text-left">
+                            <button
+                              id={`instrument-trigger-${row.id}`}
+                              type="button"
+                              onClick={() => toggleInstrumentDropdown(row.id)}
+                              className="input-field flex w-full items-center justify-between gap-2 text-left"
+                            >
+                              <span className={`truncate ${row.symbol ? 'text-brand-ink dark:text-gray-100' : 'text-gray-400 dark:text-subtle dark:text-gray-400'}`}>
+                                {row.symbol || 'Search instrument…'}
+                              </span>
+                              <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                            {activeInstrumentRow === row.id && (
+                              <div
+                                id={`instrument-popover-${row.id}`}
+                                className="absolute left-0 top-full z-20 mt-2 w-full min-w-[240px] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                              >
+                                <div className="px-3 pt-3">
+                                  <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/60">
+                                    <input
+                                      ref={activeInstrumentRow === row.id ? instrumentSearchInputRef : undefined}
+                                      type="text"
+                                      placeholder="Search instruments"
+                                      value={instrumentSearchTerm}
+                                      onChange={(e) => setInstrumentSearchTerm(e.target.value)}
+                                      className="w-full border-none bg-transparent text-sm text-brand-ink dark:text-gray-100 placeholder:text-subtle dark:text-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder:text-gray-400"
+                                    />
+                                  </div>
+                                </div>
+                                <div
+                                  ref={activeInstrumentRow === row.id ? instrumentListRef : undefined}
+                                  className="mt-2 max-h-60 overflow-y-auto border-t border-gray-200 dark:border-gray-700"
+                                >
+                                  {filteredInstrumentOptions.map(option => (
+                                    <button
+                                      key={`${row.id}-${option.symbol}`}
+                                      type="button"
+                                      onClick={() => {
+                                        handleCustomRowSymbolChange(row.id, option.symbol)
+                                        setActiveInstrumentRow(null)
+                                        setInstrumentSearchTerm('')
+                                      }}
+                                      className="flex w-full items-center gap-3 px-3 py-2 text-sm text-left hover:bg-primary-50 dark:hover:bg-gray-700"
+                                    >
+                                      <span className="font-semibold text-brand-ink dark:text-gray-100">{option.symbol}</span>
+                                      <span className="text-xs text-subtle dark:text-gray-400 dark:text-gray-300">{option.label}</span>
+                                    </button>
+                                  ))}
+                                  {!filteredInstrumentOptions.length && (
+                                    <div className="px-3 py-4 text-xs text-muted dark:text-gray-300">No instruments match your search.</div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2 pr-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => adjustCustomRowWeight(row.id, -1)}
+                              disabled={disableRowMinus}
+                              aria-label="Decrease custom weight"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <div className="relative w-24">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={3}
+                                value={String(rowWeight)}
+                                onChange={(e) => handleCustomRowWeightChange(row.id, e.target.value)}
+                                aria-label="Custom weight percentage"
+                                className="w-full rounded-full border border-gray-200 bg-white/80 pr-8 pl-3 py-1.5 text-right text-sm font-semibold text-brand-ink dark:text-gray-100 shadow-inner focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-100"
+                              />
+                              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-subtle dark:text-muted dark:text-gray-300">
+                                %
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => adjustCustomRowWeight(row.id, 1)}
+                              disabled={disableRowPlus}
+                              aria-label="Increase custom weight"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200/70 bg-white text-subtle dark:text-gray-400 shadow-sm transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 dark:border-gray-700/70 dark:bg-gray-900/70 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-300"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-2 pr-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomRow(row.id)}
+                            className="text-xs text-danger-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted dark:text-gray-300">
+              <span>Total custom weight: {customWeightSum}%</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleLoadBaselineRows}
+                  className="btn-secondary text-xs"
+                >
+                  Load plan weights
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddCustomRow}
+                  className="btn-secondary text-xs"
+                >
+                  Add instrument
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyCustomPortfolio}
+                  disabled={savingCustom}
+                  className={`btn-cta text-xs ${savingCustom ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {savingCustom ? 'Applying…' : 'Apply custom mix'}
+                </button>
               </div>
             </div>
+            {customError && (
+              <p className="mt-2 text-sm text-danger-600 dark:text-danger-500">{customError}</p>
+            )}
+          </div>
+        )}
+      </div>
 
-            <div className="card border-l-4 border-yellow-500">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium text-brand-ink dark:text-gray-100">
-                    Anchor Stock Limit
-                  </p>
-                  <p className="text-sm text-muted dark:text-gray-300">
-                    Anchor stock capped at 5% as designed
-                  </p>
+      {portfolio.suggestions && portfolio.suggestions.length > 0 && (
+        <div className="card mt-8">
+          <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-2">Suggested tweaks</h3>
+          <p className="text-sm text-muted dark:text-gray-300 mb-5">
+            We flag context aware swaps for your {portfolio.archetype} mix—sometimes chasing stronger returns, other times prioritising yield or stability in line with your mandate.
+          </p>
+          <div className="space-y-4">
+            {portfolio.suggestions.map((suggestion, index) => {
+              const suggestionId = `${suggestion.replace_symbol}->${suggestion.suggest_symbol}`
+              const decision = suggestionDecisions[suggestionId]
+              const decisionCopy = decision === 'accepted'
+                ? 'Marked as accepted'
+                : decision === 'rejected'
+                  ? 'Suggestion dismissed'
+                  : null
+              return (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-gray-200/70 dark:border-gray-700/70 bg-white/80 dark:bg-gray-900/70 px-5 py-5 shadow-sm transition hover:border-primary-200/80 hover:shadow-md"
+                >
+                  <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1fr)] md:items-center md:gap-6">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Current holding</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
+                          {suggestion.replace_symbol} · {suggestion.replace_name}
+                        </p>
+                        <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${suggestion.trailing_return >= 0 ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'}`}>
+                          6m return {formatPercentage(suggestion.trailing_return)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="hidden md:flex justify-center">
+                      <ArrowRightLeft className="h-5 w-5 text-primary-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-subtle dark:text-muted dark:text-gray-300">Suggested replacement</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-base font-semibold text-brand-ink dark:text-gray-100">
+                          {suggestion.suggest_symbol} · {suggestion.suggest_name}
+                        </p>
+                        <span className="rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200 px-2 py-1 text-[11px] font-semibold">
+                          Target weight {Math.round(Number(suggestion.target_weight) || 0)}%
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted dark:text-gray-300">
+                        {typeof suggestion.suggest_trailing_return === 'number' && (
+                          <span className={suggestion.suggest_trailing_return >= 0 ? 'text-success-600' : 'text-danger-600'}>
+                            6m return {formatPercentage(suggestion.suggest_trailing_return)}
+                          </span>
+                        )}
+                        {typeof suggestion.suggest_dividend_yield === 'number' && suggestion.suggest_dividend_yield > 0 && (
+                          <span>Indicative yield {suggestion.suggest_dividend_yield.toFixed(1)}%</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <p className="text-xs leading-relaxed text-subtle dark:text-gray-400 dark:text-gray-300 md:max-w-2xl">
+                      {suggestion.reason}
+                    </p>
+                    <div className="flex items-center gap-2 md:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleSuggestionDecision(suggestion, 'accepted')}
+                        disabled={processingSuggestion === suggestionId}
+                        className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${decision === 'accepted' ? 'bg-success-600 text-white shadow-sm' : 'bg-success-100 text-success-700 hover:bg-success-200'} ${processingSuggestion === suggestionId ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        {decision === 'accepted' ? 'Accepted' : 'Accept swap'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSuggestionDecision(suggestion, 'rejected')}
+                        disabled={processingSuggestion === suggestionId}
+                        className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${decision === 'rejected' ? 'bg-danger-600 text-white shadow-sm' : 'bg-danger-100 text-danger-700 hover:bg-danger-200'} ${processingSuggestion === suggestionId ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        {decision === 'rejected' ? 'Rejected' : 'Dismiss'}
+                      </button>
+                    </div>
+                  </div>
+                  {decisionCopy && (
+                    <p className={`mt-3 text-[11px] font-semibold ${decision === 'accepted' ? 'text-success-600' : 'text-danger-600'}`}>
+                      {decisionCopy}
+                    </p>
+                  )}
                 </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {appliedSuggestions && appliedSuggestions.length > 0 && (
+        <div className="card mt-6">
+          <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-3">Recent swaps</h3>
+          <ul className="space-y-2 text-sm text-muted dark:text-gray-300">
+            {appliedSuggestions.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-x-1">
+                  <span>Replaced</span>
+                  <span className="font-semibold text-brand-ink dark:text-gray-100">{item.replace_symbol}</span>
+                  <span>with</span>
+                  <span className="font-semibold text-brand-ink dark:text-gray-100">{item.suggest_symbol}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted dark:text-gray-300">{formatTimestamp(item.created_at)}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleReverseSuggestion(item.id)}
+                    disabled={processingReverse === item.id}
+                    className={`text-xs font-semibold ${processingReverse === item.id ? 'text-gray-400 cursor-not-allowed' : 'text-primary-600 hover:underline dark:text-primary-300'}`}
+                  >
+                    {processingReverse === item.id ? 'Reversing…' : 'Reverse swap'}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Guardrails */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold text-brand-ink dark:text-gray-100 mb-4">
+          Portfolio Guardrails
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="card border-l-4 border-success-500">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-success-500 rounded-full"></div>
+              <div>
+                <p className="font-medium text-brand-ink dark:text-gray-100">
+                  Diversification Check
+                </p>
+                <p className="text-sm text-muted dark:text-gray-300">
+                  Portfolio is well diversified across sectors
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card border-l-4 border-yellow-500">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <div>
+                <p className="font-medium text-brand-ink dark:text-gray-100">
+                  Anchor Stock Limit
+                </p>
+                <p className="text-sm text-muted dark:text-gray-300">
+                  Anchor stock capped at 5% as designed
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  </div>
+)
 }
 
 export default Portfolio
