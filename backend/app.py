@@ -1847,7 +1847,6 @@ def get_portfolio(user_id):
 
         alerts = []
         try:
-        try:
             alerts = generate_goal_alerts(user, portfolio, holdings, allocation_targets, archetype_copy, total_value) if portfolio else []
         except Exception as e:
             print(f"Error generating goal alerts: {e}")
