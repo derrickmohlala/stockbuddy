@@ -242,17 +242,17 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
         },
         {
           id: 'contribution',
-          label: 'Power Fuel',
+          label: 'Recommended Contribution',
           value: plan?.required_monthly_contribution ? `R${Math.round(plan.required_monthly_contribution)} / mo` : '--',
-          helper: 'Monthly energy for your plan.',
+          helper: 'Amount needed to reach your target.',
           icon: <Wallet className="h-4 w-4" />,
           tone: 'emerald'
         },
         {
           id: 'momentum',
-          label: 'Vitality Score',
+          label: 'Health Score',
           value: `${Math.round(progressPct)}%`,
-          helper: 'Live momentum tracking.',
+          helper: 'Progress toward your goal.',
           icon: <Flame className="h-4 w-4" />,
           tone: 'fuchsia'
         }
@@ -367,7 +367,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
           </div>
 
           <div className="flex flex-col items-center gap-6">
-            <VitalityGauge value={progressPct} accent={GOAL_META[goalType].accent} label={currentStatus.label} />
+            <HealthScoreGauge value={progressPct} accent={GOAL_META[goalType].accent} label={currentStatus.label} />
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Next Milestone At</span>
               <span className="text-xl font-black text-slate-900">
@@ -396,7 +396,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
               <div className="h-8 w-8 rounded-lg bg-brand-coral/10 flex items-center justify-center">
                 <Gauge className="h-4 w-4 text-brand-coral" />
               </div>
-              Vitality Engine
+              Planning Engine
             </h3>
 
             <div className="flex-1 space-y-8">
@@ -421,7 +421,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Term Runway</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Investment Horizon</p>
                   <span className="text-sm font-black text-brand-coral">{termYears} YEARS</span>
                 </div>
                 <input
@@ -433,8 +433,8 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
 
               {goalType === 'growth' && (
                 <>
-                  <InputCard label="Target Milestone" value={targetValue} unit="R" onChange={setTargetValue} min={1000} max={10000000} step={10000} />
-                  <InputCard label="Monthly Fuel" value={Number(monthlyBudget) || 0} unit="R" onChange={(v) => setMonthlyBudget(String(v))} min={0} max={100000} step={500} />
+                  <InputCard label="Target Goal" value={targetValue} unit="R" onChange={setTargetValue} min={1000} max={10000000} step={10000} />
+                  <InputCard label="Monthly Contribution" value={Number(monthlyBudget) || 0} unit="R" onChange={(v) => setMonthlyBudget(String(v))} min={0} max={100000} step={500} />
                 </>
               )}
 
@@ -525,7 +525,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 <div className="mb-4 h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
                   <Target className="h-6 w-6 text-slate-300" />
                 </div>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Sync your vitality engine to see diagnostics</p>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Sync your plan to see diagnostics</p>
               </div>
             )}
 
@@ -534,14 +534,14 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   <StatItem label="Portfolio Now" value={currencyFormatter.format(plan.current_value || 0)} icon={<Wallet />} />
                   <StatItem label="Est. Annual Return" value={`${(plan.annual_return_pct || 0).toFixed(2)}%`} icon={<TrendingUp />} />
-                  <StatItem label="Monthly Power" value={currencyFormatter.format(plan.monthly_budget || 0)} icon={<Coins />} />
+                  <StatItem label="Monthly Contribution" value={currencyFormatter.format(plan.monthly_budget || 0)} icon={<Coins />} />
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <ResultBox
                     title="Path to Success"
                     items={[
-                      { label: 'Required Monthly Pace', value: currencyFormatter.format(plan.required_monthly_contribution || 0) },
+                      { label: 'Recommended Contribution', value: currencyFormatter.format(plan.required_monthly_contribution || 0) },
                       { label: 'Estimated Timeline', value: plan.timeline_for_budget_months ? `${(plan.timeline_for_budget_months / 12).toFixed(1)} Years` : 'TBD' }
                     ]}
                   />
@@ -573,7 +573,7 @@ const Health: React.FC<HealthProps> = ({ userId }) => {
 
 /* --- Components --- */
 
-const VitalityGauge: React.FC<{ value: number; accent: AccentKey; label: string }> = ({ value, accent, label }) => {
+const HealthScoreGauge: React.FC<{ value: number; accent: AccentKey; label: string }> = ({ value, accent, label }) => {
   const rotation = -90 + (value * 1.8) // 180 degree semi-circle
   const colors: Record<AccentKey, string> = {
     cyan: 'border-t-brand-mint',
