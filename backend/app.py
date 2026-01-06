@@ -1675,12 +1675,21 @@ def get_portfolio(user_id):
             latest_price = Price.query.filter_by(instrument_id=instrument.id)\
                 .order_by(Price.date.desc()).first()
             
-            # Skip positions without real price data (no mock prices)
-            if not latest_price or not latest_price.close or latest_price.close <= 0:
-                continue
+            # Fallback if price is missing (don't hide the position!)
+            current_price = 0.0
+            price_date = None
+            
+            if latest_price and latest_price.close and latest_price.close > 0:
+                current_price = latest_price.close
+                price_date = latest_price.date
+            else:
+                # Use cost basis as proxy if no price available
+                # This ensures the user sees their asset even if data feed is down
+                current_price = position.avg_price
+                # We can't set a date, or maybe set it to 'Estimate'
             
             try:
-                current_value = position.quantity * latest_price.close
+                current_value = position.quantity * current_price
                 cost_basis = position.quantity * position.avg_price
                 pnl = current_value - cost_basis
                 pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0
@@ -1693,7 +1702,7 @@ def get_portfolio(user_id):
                     "name": instrument.name,
                     "quantity": position.quantity,
                     "avg_price": position.avg_price,
-                    "current_price": latest_price.close,
+                    "current_price": current_price,
                     "current_value": current_value,
                     "cost_basis": cost_basis,
                     "pnl": pnl,
