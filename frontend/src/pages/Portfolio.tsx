@@ -1932,7 +1932,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       },
       x: {
         ticks: {
-          color: axisColor
+          color: axisColor,
+          autoSkip: false,
+          maxRotation: 0
         },
         grid: {
           color: gridColor
