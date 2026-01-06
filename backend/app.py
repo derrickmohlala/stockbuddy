@@ -2781,48 +2781,23 @@ def update_prices_batch():
         total_checked = len(instruments)
         
         symbols = [i.symbol for i in instruments]
-        if not symbols:
-             if ctx: ctx.pop()
-             return {"updated": 0, "total": 0, "errors": ["No active instruments"]}
-
-        print(f"Downloading batch data for {len(symbols)} instruments...")
+        print(f"Starting sequential update for {len(symbols)} instruments...")
         
-        # ATTEMPT 1: Try real data
-        try:
-             # Disable threading to avoid OpenSSL/LibreSSL segfaults
-            data = yf.download(symbols, period="5d", group_by='ticker', threads=False, progress=False)
-        except Exception as batch_e:
-            print(f"yfinance batch failed completely: {batch_e}")
-            data = pd.DataFrame() # Treat as empty
-
         for instr in instruments:
             try:
-                sym = instr.symbol
-                latest_close = None
-                latest_date = datetime.now().date() # Default to today
+                # Use Ticker directly - more stable than batch download in some envs
+                ticker = yf.Ticker(instr.symbol)
+                hist = ticker.history(period="5d")
                 
-                # Check real data first
-                if not data.empty:
-                    if len(symbols) == 1:
-                        hist = data
-                    else:
-                        if sym in data.columns.levels[0]:
-                            hist = data[sym]
-                        else:
-                            hist = pd.DataFrame()
+                if not hist.empty:
+                    latest_close = float(hist['Close'].iloc[-1])
+                    latest_date = hist.index[-1].date()
+                    
+                    # Verify validity
+                    if latest_close <= 0:
+                         errors.append(f"{instr.symbol}: Invalid price {latest_close}")
+                         continue
 
-                    hist = hist.dropna(subset=['Close'])
-                    if not hist.empty:
-                        latest_close = float(hist['Close'].iloc[-1])
-                        latest_date = hist.index[-1].date()
-
-                # No fallback - Real data only
-                if latest_close is None or latest_close <= 0:
-                    errors.append(f"{sym}: No real data available")
-                    continue
-                
-                # Verify we have a price now
-                if latest_close and latest_close > 0:
                     existing = Price.query.filter_by(
                         instrument_id=instr.id, 
                         date=latest_date
@@ -2837,7 +2812,7 @@ def update_prices_batch():
                         db.session.add(new_price)
                         updated_count += 1
                 else:
-                    errors.append(f"{sym}: Could not determine price")
+                     errors.append(f"{instr.symbol}: No data returned")
 
             except Exception as inner_e:
                 print(f"Error processing {instr.symbol}: {inner_e}")

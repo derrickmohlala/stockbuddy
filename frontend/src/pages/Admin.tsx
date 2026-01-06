@@ -28,6 +28,7 @@ const Admin: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -129,6 +130,8 @@ const Admin: React.FC = () => {
             onClick={async () => {
               try {
                 setRefreshingPrices(true)
+                setError(null)
+                setSuccessMessage(null)
                 const response = await apiFetch('/api/admin/refresh-prices', {
                   method: 'POST'
                 })
@@ -137,7 +140,8 @@ const Admin: React.FC = () => {
                   throw new Error(data.error || 'Failed to refresh prices')
                 }
                 const data = await response.json()
-                alert(data.message || 'Prices refreshed successfully')
+                setSuccessMessage(data.message || 'Prices refreshed successfully')
+                setTimeout(() => setSuccessMessage(null), 5000)
               } catch (err: any) {
                 setError(err.message)
               } finally {
@@ -178,6 +182,13 @@ const Admin: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {successMessage && (
+        <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <Activity className="h-5 w-5" />
+          <span>{successMessage}</span>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-3 rounded-xl border border-brand-coral/40 bg-brand-coral/10 px-4 py-3 text-sm text-brand-coral">
