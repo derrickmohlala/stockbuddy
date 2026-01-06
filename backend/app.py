@@ -2467,10 +2467,24 @@ def reset_portfolio_plan():
     if not portfolio:
         return jsonify({"error": "Portfolio not found"}), 404
 
-    archetype_name = portfolio.archetype or 'Anchor'
-    archetype_config = ARCHETYPE_CONFIG.get(archetype_name, ARCHETYPE_CONFIG['Anchor'])
-    sleeves = archetype_config.get('sleeves', {})
-    normalized_plan = normalize_allocation_map(sleeves)
+    # Use the user's saved allocation plan (which includes their chosen anchor stock)
+    # instead of the generic archetype template
+    if portfolio.allocations:
+        try:
+            normalized_plan = json.loads(portfolio.allocations)
+        except (json.JSONDecodeError, TypeError):
+            # Fallback to archetype if saved allocations are corrupted
+            archetype_name = portfolio.archetype or 'Anchor'
+            archetype_config = ARCHETYPE_CONFIG.get(archetype_name, ARCHETYPE_CONFIG['Anchor'])
+            sleeves = archetype_config.get('sleeves', {})
+            normalized_plan = normalize_allocation_map(sleeves)
+    else:
+        # No saved allocations, use archetype template
+        archetype_name = portfolio.archetype or 'Anchor'
+        archetype_config = ARCHETYPE_CONFIG.get(archetype_name, ARCHETYPE_CONFIG['Anchor'])
+        sleeves = archetype_config.get('sleeves', {})
+        normalized_plan = normalize_allocation_map(sleeves)
+    
     if not normalized_plan:
         return jsonify({"error": "Plan allocations unavailable"}), 400
 
