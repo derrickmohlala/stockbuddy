@@ -2756,6 +2756,111 @@ def generate_starter_allocations(user, archetype):
     return normalized
 
 
+def update_prices_batch():
+    """
+    Batch fetch latest prices for all active instruments.
+    Can be called by Admin API or Scheduler.
+    """
+    if not yf:
+        print("Error: yfinance not installed, skipping price update")
+        return {"updated": 0, "total": 0, "errors": ["yfinance not installed"]}
+
+    # Simple context handling: try to use current, else create new
+    ctx = None
+    if not db.session.registry.has():
+        ctx = app.app_context()
+        ctx.push()
+
+    updated_count = 0
+    errors = []
+    total_checked = 0
+
+    try:
+        print("Starting batch price update...")
+        instruments = Instrument.query.filter_by(is_active=True).all()
+        total_checked = len(instruments)
+        
+        symbols = [i.symbol for i in instruments]
+        if not symbols:
+             if ctx: ctx.pop()
+             return {"updated": 0, "total": 0, "errors": ["No active instruments"]}
+
+        print(f"Downloading batch data for {len(symbols)} instruments...")
+        
+        # ATTEMPT 1: Try real data
+        try:
+             # Disable threading to avoid OpenSSL/LibreSSL segfaults
+            data = yf.download(symbols, period="5d", group_by='ticker', threads=False, progress=False)
+        except Exception as batch_e:
+            print(f"yfinance batch failed completely: {batch_e}")
+            data = pd.DataFrame() # Treat as empty
+
+        for instr in instruments:
+            try:
+                sym = instr.symbol
+                latest_close = None
+                latest_date = datetime.now().date() # Default to today
+                
+                # Check real data first
+                if not data.empty:
+                    if len(symbols) == 1:
+                        hist = data
+                    else:
+                        if sym in data.columns.levels[0]:
+                            hist = data[sym]
+                        else:
+                            hist = pd.DataFrame()
+
+                    hist = hist.dropna(subset=['Close'])
+                    if not hist.empty:
+                        latest_close = float(hist['Close'].iloc[-1])
+                        latest_date = hist.index[-1].date()
+
+                # No fallback - Real data only
+                if latest_close is None or latest_close <= 0:
+                    errors.append(f"{sym}: No real data available")
+                    continue
+                
+                # Verify we have a price now
+                if latest_close and latest_close > 0:
+                    existing = Price.query.filter_by(
+                        instrument_id=instr.id, 
+                        date=latest_date
+                    ).first()
+                    
+                    if not existing:
+                        new_price = Price(
+                            instrument_id=instr.id,
+                            date=latest_date,
+                            close=latest_close
+                        )
+                        db.session.add(new_price)
+                        updated_count += 1
+                else:
+                    errors.append(f"{sym}: Could not determine price")
+
+            except Exception as inner_e:
+                print(f"Error processing {instr.symbol}: {inner_e}")
+                errors.append(f"{instr.symbol}: {str(inner_e)}")
+        
+        db.session.commit()
+        print(f"Batch update completed: {updated_count} new prices added.")
+        
+    except Exception as e:
+        print(f"Batch update failed: {e}")
+        errors.append(str(e))
+        db.session.rollback()
+    finally:
+        if ctx:
+            ctx.pop()
+            
+    return {
+        "updated": updated_count,
+        "total": total_checked,
+        "errors": errors
+    }
+
+
 def create_initial_positions(user_id, allocations, starting_value=100000):
     """Create starter UserPosition rows based on allocation targets."""
     # Ensure we start from a clean slate in case onboarding is retried
