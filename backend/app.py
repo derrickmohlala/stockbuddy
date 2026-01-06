@@ -1233,25 +1233,22 @@ def delete_profile():
         if not user:
             return jsonify({"error": "User not found"}), 404
             
-        # Delete related data - UserPortfolio, Positions, etc.
-        # SQLAlchemy with cascades should handle this if configured, 
-        # but let's be explicit if needed.
+        # Delete related data in the correct order to avoid foreign key constraints
         
-        # Delete portfolio related items
-        portfolio = UserPortfolio.query.filter_by(user_id=user_id).first()
-        if portfolio:
-            # Delete positions first
-            Position.query.filter_by(portfolio_id=portfolio.id).delete()
-            # Delete baseline
-            PortfolioBaseline.query.filter_by(user_id=user_id).delete()
-            # Delete portfolio
-            db.session.delete(portfolio)
-            
-        # Delete watchlists
-        Watchlist.query.filter_by(user_id=user_id).delete()
+        # Delete user positions
+        UserPosition.query.filter_by(user_id=user_id).delete()
         
-        # Delete onboarding
-        Onboarding.query.filter_by(user_id=user_id).delete()
+        # Delete user trades
+        UserTrade.query.filter_by(user_id=user_id).delete()
+        
+        # Delete suggestion actions
+        SuggestionAction.query.filter_by(user_id=user_id).delete()
+        
+        # Delete portfolio baseline
+        PortfolioBaseline.query.filter_by(user_id=user_id).delete()
+        
+        # Delete user portfolio
+        UserPortfolio.query.filter_by(user_id=user_id).delete()
         
         # Delete the user
         db.session.delete(user)
@@ -1262,7 +1259,7 @@ def delete_profile():
         db.session.rollback()
         print(f"Error deleting profile: {e}")
         traceback.print_exc()
-        return jsonify({"error": "Failed to delete account. Please contact support."}), 500
+        return jsonify({"error": "Failed to delete account. Please contact support.", "detail": str(e)}), 500
 
 # Instruments endpoint
 @app.route("/api/instruments")
