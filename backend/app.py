@@ -547,42 +547,52 @@ def refresh_prices_stream():
             
             try:
                 # Sequential Fetch Logic
+                # Fetch ALL available history (as per user request)
+                # The 'existing_dates' check prevents duplicates, so this acts as a smart sync
                 ticker = yf.Ticker(instr.symbol)
-                hist = ticker.history(period="5d")
+                hist = ticker.history(period="max")
                 
                 price = 0.0
                 if not hist.empty:
+                    # Get latest for status report
                     latest_close = float(hist['Close'].iloc[-1])
-                    latest_date = hist.index[-1].date()
                     
-                    if latest_close > 0:
-                        existing = Price.query.filter_by(
-                            instrument_id=instr.id, 
-                            date=latest_date
-                        ).first()
-                        
-                        if not existing:
-                            new_price = Price(
+                    # Optimization: Get all existing dates for this instrument first
+                    existing_records = db.session.query(Price.date).filter_by(instrument_id=instr.id).all()
+                    existing_dates = {r[0] for r in existing_records}
+                    
+                    added_for_instr = 0
+                    new_prices = []
+                    
+                    for dt, row in hist.iterrows():
+                        d = dt.date()
+                        # Only add if date is new and price is valid
+                        if d not in existing_dates and not pd.isna(row['Close']) and row['Close'] > 0:
+                            p_obj = Price(
                                 instrument_id=instr.id,
-                                date=latest_date,
-                                close=latest_close
+                                date=d,
+                                close=round(float(row['Close']), 2),
+                                dividend=round(float(row.get('Dividends', 0) or 0), 2)
                             )
-                            db.session.add(new_price)
-                            db.session.commit()
-                            updated_count += 1
-                            status = "updated"
-                            price = latest_close
-                        else:
-                            status = "current"
-                            price = existing.close
+                            new_prices.append(p_obj)
+                            added_for_instr += 1
+                    
+                    if new_prices:
+                        db.session.add_all(new_prices)
+                        db.session.commit()
+                        updated_count += 1
+                        status = "updated"
+                        price = latest_close
+                        detail = f"+{added_for_instr} days"
                     else:
-                        status = "error"
-                        detail = "Invalid Price"
+                        status = "current"
+                        price = latest_close
                 else:
                     status = "error"
                     detail = "No Data"
 
             except Exception as e:
+                db.session.rollback()
                 status = "error"
                 detail = str(e)
             
