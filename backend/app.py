@@ -2486,16 +2486,32 @@ def reset_portfolio_plan():
         normalized_plan = normalize_allocation_map(sleeves)
     
     # CRITICAL: Ensure anchor stock is included in the plan
-    # The anchor_stock field stores the user's chosen stock separately
-    if portfolio.anchor_stock and portfolio.anchor_stock not in normalized_plan:
-        # Add the anchor stock with a default allocation if it's missing
-        # This ensures the user's chosen anchor stock is always restored
-        normalized_plan[portfolio.anchor_stock] = 20.0  # Default 20% allocation
+    # The anchor_stock field might store either the symbol (VOD.JO) or name (Vodacom)
+    if portfolio.anchor_stock:
+        anchor_symbol = portfolio.anchor_stock
         
-        # Renormalize to ensure total is 100%
-        total = sum(normalized_plan.values())
-        if total > 0:
-            normalized_plan = {k: (v / total) * 100 for k, v in normalized_plan.items()}
+        # If anchor_stock contains a name instead of symbol, look up the symbol
+        if '.' not in anchor_symbol:  # Likely a name, not a symbol
+            # Try to find the instrument by name
+            instrument = Instrument.query.filter(
+                db.func.lower(Instrument.name).like(f'%{anchor_symbol.lower()}%')
+            ).first()
+            if instrument:
+                anchor_symbol = instrument.symbol
+                print(f"Converted anchor name '{portfolio.anchor_stock}' to symbol '{anchor_symbol}'")
+        
+        # Check if anchor is missing from the plan
+        if anchor_symbol not in normalized_plan:
+            print(f"Adding missing anchor stock: {anchor_symbol}")
+            # Add the anchor stock with 5% allocation (matching archetype anchor_cap)
+            normalized_plan[anchor_symbol] = 5.0
+            
+            # Renormalize to ensure total is 100%
+            total = sum(normalized_plan.values())
+            if total > 0:
+                normalized_plan = {k: (v / total) * 100 for k, v in normalized_plan.items()}
+            
+            print(f"Normalized plan after adding anchor: {normalized_plan}")
     
     if not normalized_plan:
         return jsonify({"error": "Plan allocations unavailable"}), 400
