@@ -646,7 +646,12 @@ def register():
                 "horizon": str(data.get('horizon')).strip(),
                 "anchor_stock": str(data.get('anchor_stock')).strip(),
                 "literacy_level": str(data.get('literacy_level')).strip(),
-                "interests": json.dumps(interests_value)
+                "interests": json.dumps(interests_value),
+                "income_bracket": str(data.get('income_bracket', '')).strip() or None,
+                "employment_industry": str(data.get('employment_industry', '')).strip() or None,
+                "debt_level": str(data.get('debt_level', '')).strip() or None,
+                "cellphone": str(data.get('cellphone', '')).strip() or None,
+                "province": str(data.get('province', '')).strip() or None
             })
         
         # Create user
@@ -1116,6 +1121,11 @@ def onboarding():
         user.first_name = data.get('first_name', user.first_name)
         user.age_band = data.get('age_band', user.age_band)
         user.experience = data.get('experience', user.experience)
+        user.income_bracket = data.get('income_bracket', user.income_bracket)
+        user.employment_industry = data.get('employment_industry', user.employment_industry)
+        user.debt_level = data.get('debt_level', user.debt_level)
+        user.cellphone = data.get('cellphone', user.cellphone)
+        user.province = data.get('province', user.province)
         user.goal = data.get('goal', user.goal)
         user.risk = data.get('risk', user.risk)
         user.horizon = data.get('horizon', user.horizon)
@@ -1150,6 +1160,11 @@ def onboarding():
             first_name=str(data.get('first_name')).strip(),
             age_band=str(data.get('age_band')).strip(),
             experience=str(data.get('experience')).strip(),
+            income_bracket=str(data.get('income_bracket', '')).strip() or None,
+            employment_industry=str(data.get('employment_industry', '')).strip() or None,
+            debt_level=str(data.get('debt_level', '')).strip() or None,
+            cellphone=str(data.get('cellphone', '')).strip() or None,
+            province=str(data.get('province', '')).strip() or None,
             goal=str(data.get('goal')).strip(),
             risk=risk_value,
             horizon=str(data.get('horizon')).strip(),
