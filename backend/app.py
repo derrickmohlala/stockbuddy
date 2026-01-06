@@ -2943,7 +2943,7 @@ def update_prices_batch():
     }
 
 
-def create_initial_positions(user_id, allocations, starting_value=100000):
+def create_initial_positions(user_id, allocations, starting_value=10000):
     """Create starter UserPosition rows based on allocation targets."""
     # Ensure we start from a clean slate in case onboarding is retried
     UserPosition.query.filter_by(user_id=user_id).delete()

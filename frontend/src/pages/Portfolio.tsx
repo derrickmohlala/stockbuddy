@@ -438,6 +438,10 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         setEditableHoldings(mappedHoldings)
         setAppliedSuggestions(data.applied_suggestions || [])
         setBaselineAllocations(data.baseline_allocations || {})
+        // Removed auto-sync of initialInvestment to total_value based on user feedback.
+        // Users prefer the simulation to start at a neutral R1000 default so they can input their own reality,
+        // rather than being forced into the "Demo Portfolio" scale (which might be unrealistic).
+
         setGoalAlerts(Array.isArray(data.alerts) ? data.alerts : [])
         if (!showCustomBuilder) {
           let baseRows: Array<{ id: string; symbol: string; weight: number }> = mappedHoldings.map((holding: any, idx: number) => ({
