@@ -96,7 +96,7 @@ const Health: React.FC<HealthProps> = () => {
 
         <div className="mt-8">
           <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-xs font-bold text-white uppercase tracking-wider">
-            Coming Next Week
+            Coming Soon!
           </span>
         </div>
       </div>
