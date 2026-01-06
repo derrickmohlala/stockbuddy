@@ -33,8 +33,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem('stockbuddy_token')
     if (savedToken) {
       setToken(savedToken)
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   // Fetch current user when token is available
@@ -57,8 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Add a small delay to avoid race conditions after signup/login
-    const timeoutId = setTimeout(() => {
-      fetchUser()
+    const timeoutId = setTimeout(async () => {
+      await fetchUser()
+      setLoading(false)
     }, 100)
 
     return () => clearTimeout(timeoutId)

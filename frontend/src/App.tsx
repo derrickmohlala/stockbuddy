@@ -34,7 +34,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, fullBleed = false }) 
 )
 
 function AppContent() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, loading } = useAuth()
   const [userId, setUserId] = useState<number | null>(null)
   const [isOnboarded, setIsOnboarded] = useState(false)
 
@@ -63,17 +63,25 @@ function AppContent() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-coral"></div>
+      </div>
+    )
+  }
+
   return (
     <Router>
       <div className="app-shell">
         <NavBar isOnboarded={isOnboarded} />
 
-          <main className="flex-1">
-            <Routes>
-              <Route 
-                path="/" 
-                element={
-                  <PageLayout>
+        <main className="flex-1">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <PageLayout>
                   <Home
                     onGetStarted={() => {
                       if (!isOnboarded) {
@@ -81,53 +89,53 @@ function AppContent() {
                       }
                     }}
                     ctaPath={
-                      user && isOnboarded 
-                        ? '/portfolio' 
-                        : user && !isOnboarded 
-                        ? '/onboarding' 
-                        : '/signup'
+                      user && isOnboarded
+                        ? '/portfolio'
+                        : user && !isOnboarded
+                          ? '/onboarding'
+                          : '/signup'
                     }
                     ctaLabel={
-                      user && isOnboarded 
-                        ? 'View Portfolio' 
-                        : user && !isOnboarded 
-                        ? 'Complete Setup' 
-                        : "Get Started - It's Free"
+                      user && isOnboarded
+                        ? 'View Portfolio'
+                        : user && !isOnboarded
+                          ? 'Complete Setup'
+                          : "Get Started - It's Free"
                     }
                   />
-                  </PageLayout>
-                } 
-              />
-              <Route path="/login" element={<PageLayout><Login /></PageLayout>} />
-              <Route path="/signup" element={<PageLayout><Signup /></PageLayout>} />
-              <Route path="/admin" element={<PageLayout><Admin /></PageLayout>} />
-              <Route 
-                path="/onboarding" 
-                element={
-                  <PageLayout fullBleed>
+                </PageLayout>
+              }
+            />
+            <Route path="/login" element={<PageLayout><Login /></PageLayout>} />
+            <Route path="/signup" element={<PageLayout><Signup /></PageLayout>} />
+            <Route path="/admin" element={<PageLayout><Admin /></PageLayout>} />
+            <Route
+              path="/onboarding"
+              element={
+                <PageLayout fullBleed>
                   {user && userId ? (
-                    <Onboarding 
+                    <Onboarding
                       onComplete={handleOnboardingComplete}
                       userId={userId}
                     />
                   ) : (
                     <Navigate to="/signup" replace />
                   )}
-                  </PageLayout>
-                } 
-              />
-              <Route path="/discover" element={<PageLayout><Discover /></PageLayout>} />
-              <Route path="/portfolio" element={<PageLayout><Portfolio userId={userId} /></PageLayout>} />
-              <Route path="/news" element={<PageLayout><News userId={userId} /></PageLayout>} />
-              <Route path="/baskets" element={<PageLayout><Baskets userId={userId} /></PageLayout>} />
-              <Route path="/trade/:symbol" element={<PageLayout fullBleed><Trade userId={userId} /></PageLayout>} />
-              <Route path="/learn" element={<PageLayout><Learn /></PageLayout>} />
-              <Route path="/profile" element={<PageLayout><Profile userId={userId} /></PageLayout>} />
-              <Route path="/about" element={<PageLayout><About /></PageLayout>} />
-              <Route path="/archetypes" element={<PageLayout><Archetypes /></PageLayout>} />
-              <Route path="/terminology" element={<PageLayout><Terminology /></PageLayout>} />
-              <Route path="/health" element={<PageLayout><Health userId={userId} /></PageLayout>} />
-            </Routes>
+                </PageLayout>
+              }
+            />
+            <Route path="/discover" element={<PageLayout><Discover /></PageLayout>} />
+            <Route path="/portfolio" element={<PageLayout><Portfolio userId={userId} /></PageLayout>} />
+            <Route path="/news" element={<PageLayout><News userId={userId} /></PageLayout>} />
+            <Route path="/baskets" element={<PageLayout><Baskets userId={userId} /></PageLayout>} />
+            <Route path="/trade/:symbol" element={<PageLayout fullBleed><Trade userId={userId} /></PageLayout>} />
+            <Route path="/learn" element={<PageLayout><Learn /></PageLayout>} />
+            <Route path="/profile" element={<PageLayout><Profile userId={userId} /></PageLayout>} />
+            <Route path="/about" element={<PageLayout><About /></PageLayout>} />
+            <Route path="/archetypes" element={<PageLayout><Archetypes /></PageLayout>} />
+            <Route path="/terminology" element={<PageLayout><Terminology /></PageLayout>} />
+            <Route path="/health" element={<PageLayout><Health userId={userId} /></PageLayout>} />
+          </Routes>
         </main>
         <Footer />
       </div>
