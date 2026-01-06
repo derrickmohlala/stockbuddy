@@ -4112,6 +4112,11 @@ def calculate_historical_performance(
     max_drawdown = drawdown.min() if not drawdown.empty else 0.0
 
     series = [{"date": idx.strftime('%Y-%m-%d'), "value": round(val, 2)} for idx, val in portfolio_series.items()]
+    
+    if series:
+        print(f"DEBUG SIM: Series Start: {series[0]['date']} End: {series[-1]['date']} Count: {len(series)}")
+    else:
+        print("DEBUG SIM: Series is EMPTY")
 
     benchmark_series = []
     benchmark_label = None
