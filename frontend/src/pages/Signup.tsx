@@ -8,6 +8,11 @@ interface OnboardingData {
   first_name: string
   age_band: string
   experience: string
+  income_bracket: string
+  employment_industry: string
+  debt_level: string
+  cellphone: string
+  province: string
   goal: string
   risk: number
   horizon: string
@@ -43,6 +48,11 @@ const Signup: React.FC = () => {
     first_name: '',
     age_band: '',
     experience: '',
+    income_bracket: '',
+    employment_industry: '',
+    debt_level: '',
+    cellphone: '',
+    province: '',
     goal: '',
     risk: 50,
     horizon: '',
@@ -356,6 +366,85 @@ const Signup: React.FC = () => {
             </button>
           ))}
         </div>
+
+        <div className="space-y-4 pt-4 border-t border-gray-100">
+          <div>
+            <label className="block text-sm font-semibold text-primary-ink mb-2">
+              Monthly Income Bracket
+            </label>
+            <select
+              value={onboardingData.income_bracket}
+              onChange={(e) => updateData('income_bracket', e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select income range</option>
+              <option value="R0 - R10,000">R0 - R10,000</option>
+              <option value="R10,001 - R25,000">R10,001 - R25,000</option>
+              <option value="R25,001 - R50,000">R25,001 - R50,000</option>
+              <option value="R50,001 - R100,000">R50,001 - R100,000</option>
+              <option value="R100,001+">R100,001+</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-primary-ink mb-2">
+              Employment Industry
+            </label>
+            <select
+              value={onboardingData.employment_industry}
+              onChange={(e) => updateData('employment_industry', e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select industry</option>
+              <option value="Finance">Finance</option>
+              <option value="Technology">Technology</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Education">Education</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Retail">Retail</option>
+              <option value="Public Sector">Public Sector</option>
+              <option value="Mining">Mining</option>
+              <option value="Energy">Energy</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-primary-ink mb-2">
+              Cellphone (Optional)
+            </label>
+            <input
+              type="tel"
+              value={onboardingData.cellphone}
+              onChange={(e) => updateData('cellphone', e.target.value)}
+              placeholder="e.g. 0821234567"
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink placeholder:text-subtle focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-primary-ink mb-2">
+              Province (Optional)
+            </label>
+            <select
+              value={onboardingData.province}
+              onChange={(e) => updateData('province', e.target.value)}
+              className="w-full rounded-xl border border-[#e7e9f3] bg-white px-4 py-3 text-sm text-primary-ink focus:border-brand-coral focus:outline-none focus:ring-2 focus:ring-brand-coral/20"
+            >
+              <option value="">Select province</option>
+              <option value="Gauteng">Gauteng</option>
+              <option value="Western Cape">Western Cape</option>
+              <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+              <option value="Eastern Cape">Eastern Cape</option>
+              <option value="Free State">Free State</option>
+              <option value="Limpopo">Limpopo</option>
+              <option value="Mpumalanga">Mpumalanga</option>
+              <option value="North West">North West</option>
+              <option value="Northern Cape">Northern Cape</option>
+            </select>
+          </div>
+        </div>
+
       </div>
     </div>
   )
@@ -517,7 +606,7 @@ const Signup: React.FC = () => {
       case 0:
         return email && onboardingData.first_name && password && confirmPassword && password === confirmPassword
       case 1:
-        return onboardingData.age_band && onboardingData.experience
+        return onboardingData.age_band && onboardingData.experience && onboardingData.income_bracket && onboardingData.employment_industry
       case 2:
         return onboardingData.goal && onboardingData.horizon && onboardingData.anchor_stock
       case 3:
