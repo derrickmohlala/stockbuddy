@@ -1288,19 +1288,6 @@ def onboarding():
             # Defensive: coerce scalar to list
             interests_value = [str(interests_value)]
 
-        # Convert anchor stock name to symbol if needed
-        anchor_input = str(data.get('anchor_stock')).strip()
-        anchor_symbol = anchor_input
-        
-        # If the input doesn't look like a symbol (no dot), try to find the symbol
-        if anchor_input and '.' not in anchor_input:
-            instrument = Instrument.query.filter(
-                db.func.lower(Instrument.name).like(f'%{anchor_input.lower()}%')
-            ).first()
-            if instrument:
-                anchor_symbol = instrument.symbol
-                print(f"Converted anchor '{anchor_input}' to symbol '{anchor_symbol}'")
-        
         user = User(
             first_name=str(data.get('first_name')).strip(),
             age_band=str(data.get('age_band')).strip(),
@@ -1313,7 +1300,7 @@ def onboarding():
             goal=str(data.get('goal')).strip(),
             risk=risk_value,
             horizon=str(data.get('horizon')).strip(),
-            anchor_stock=anchor_symbol,  # Save the symbol, not the name
+            anchor_stock=str(data.get('anchor_stock')).strip(),
             literacy_level=str(data.get('literacy_level')).strip(),
             interests=json.dumps(interests_value)
         )
