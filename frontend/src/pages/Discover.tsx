@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Search, Filter, Star, Info, X } from 'lucide-react'
 import { Line } from 'react-chartjs-2'
@@ -43,7 +42,6 @@ interface Instrument {
 
 const Discover: React.FC = () => {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [instruments, setInstruments] = useState<Instrument[]>([])
   const [filteredInstruments, setFilteredInstruments] = useState<Instrument[]>([])
   const [loading, setLoading] = useState(true)
