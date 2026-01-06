@@ -1705,14 +1705,33 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
 
   const investorName = portfolio.first_name ?? 'Investor'
 
-  const chartLabels = chartSeries.map((point: any) =>
-    new Date(point.date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-  )
+  const chartLabels = chartSeries.map((point: any, index: number) => {
+    // Always show first and last
+    if (index === 0 || index === chartSeries.length - 1) {
+      return new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
+    }
+    // For others, show quarterly (approx every 3 months) to avoid simple overcrowding
+    const spacing = chartSeries.length > 50 ? 3 : (chartSeries.length > 20 ? 2 : 1)
+
+    if (index % spacing === 0) {
+      return new Date(point.date).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })
+    }
+    return '' // Hidden label
+  })
+
+  // Helper to ensure 'x' is passed for tooltip
+  const mapToPoint = (series: any[], storeMap?: Map<string, number>) => {
+    return series.map((point: any) => {
+      const val = storeMap ? storeMap.get(point.date) : point.value
+      // Pass x as full date string for tooltip, y as value
+      return { x: point.date, y: val !== undefined ? val : null }
+    })
+  }
 
   const performanceDatasets: any[] = [
     {
       label: inflationAdjust ? 'Portfolio (real rand)' : 'Portfolio value',
-      data: chartSeries.map((point: any) => point.value),
+      data: mapToPoint(chartSeries),
       borderColor: '#0ea5e9',
       backgroundColor: 'rgba(14, 165, 233, 0.15)',
       tension: 0.18,
@@ -1731,10 +1750,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       : `Scenario (${formatCurrency(scenarioParsedInitialValue)} lump sum)`
     performanceDatasets.push({
       label: scenarioLegend,
-      data: chartSeries.map((point: any) => {
-        const value = scenarioMap.get(point.date)
-        return value !== undefined ? value : null
-      }),
+      data: mapToPoint(chartSeries, scenarioMap),
       borderColor: '#22c55e',
       backgroundColor: 'rgba(34, 197, 94, 0.08)',
       borderDash: [4, 3],
@@ -1749,10 +1765,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
   if (benchmarkSeries.length) {
     performanceDatasets.push({
       label: `${benchmarkLabel} (benchmark)`,
-      data: chartSeries.map((point: any) => {
-        const value = benchmarkMap.get(point.date)
-        return value !== undefined ? value : null
-      }),
+      data: mapToPoint(chartSeries, benchmarkMap),
       borderColor: '#f97316',
       backgroundColor: 'rgba(249, 115, 22, 0.1)',
       borderDash: [6, 4],
@@ -1887,8 +1900,11 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
         callbacks: {
           title(context: any) {
             if (!context?.length) return ''
-            const dateLabel = context[0].label
-            return `Date: ${dateLabel}`
+            // Access raw x date from object
+            const raw = context[0].raw
+            // raw.x might be undefined if internal Chart.js model differs, but typically mapped data works
+            const d = new Date(raw.x || context[0].label)
+            return `Date: ${d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`
           },
           label(context: any) {
             const label = context.dataset.label || 'Value'
@@ -1932,7 +1948,9 @@ const Portfolio: React.FC<PortfolioProps> = ({ userId }) => {
       },
       x: {
         ticks: {
-          color: axisColor
+          color: axisColor,
+          autoSkip: false,
+          maxRotation: 0
         },
         grid: {
           color: gridColor
