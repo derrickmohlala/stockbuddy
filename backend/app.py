@@ -2486,9 +2486,12 @@ def reset_portfolio_plan():
         normalized_plan = normalize_allocation_map(sleeves)
     
     # CRITICAL: Ensure anchor stock is included in the plan
-    # The anchor_stock field might store either the symbol (VOD.JO) or name (Vodacom)
-    if portfolio.anchor_stock:
-        anchor_symbol = portfolio.anchor_stock
+    # The anchor_stock field is on the User model
+    user = User.query.get(user_id)
+    anchor_stock = user.anchor_stock if user else None
+
+    if anchor_stock:
+        anchor_symbol = anchor_stock
         
         # If anchor_stock contains a name instead of symbol, look up the symbol
         if '.' not in anchor_symbol:  # Likely a name, not a symbol
@@ -2498,7 +2501,7 @@ def reset_portfolio_plan():
             ).first()
             if instrument:
                 anchor_symbol = instrument.symbol
-                print(f"Converted anchor name '{portfolio.anchor_stock}' to symbol '{anchor_symbol}'")
+                print(f"Converted anchor name '{anchor_stock}' to symbol '{anchor_symbol}'")
         
         # Check if anchor is missing from the plan
         if anchor_symbol not in normalized_plan:
@@ -4764,6 +4767,9 @@ def debug_allocations():
     if not portfolio:
         return jsonify({"error": "Portfolio not found"}), 404
 
+    user = User.query.get(user_id)
+    anchor_stock = user.anchor_stock if user else None
+
     # Get saved allocations
     saved_allocs = {}
     if portfolio.allocations:
@@ -4774,7 +4780,7 @@ def debug_allocations():
 
     return jsonify({
         "user_id": user_id,
-        "anchor_stock_field": portfolio.anchor_stock,
+        "anchor_stock_field": anchor_stock,
         "saved_allocations_json": saved_allocs,
         "saved_allocations_type": str(type(saved_allocs)),
         "archetype": portfolio.archetype
