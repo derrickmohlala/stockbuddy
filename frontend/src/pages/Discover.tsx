@@ -769,7 +769,7 @@ const Discover: React.FC = () => {
           </div>
         </div>
       )}
-    </section>
+
     </div >
   )
 }
