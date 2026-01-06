@@ -522,13 +522,9 @@ def refresh_prices():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/admin/refresh-prices-stream", methods=["GET", "OPTIONS"])
+@app.route("/api/admin/refresh-prices-stream", methods=["GET"])
 @jwt_required()
 def refresh_prices_stream():
-    # Handle CORS preflight explicitly if needed for EventSource
-    if request.method == "OPTIONS":
-        return jsonify({}), 200
-
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if not user or not user.is_admin:
@@ -605,7 +601,10 @@ def refresh_prices_stream():
         # Final Message
         yield f"data: {json.dumps({'type': 'done', 'updated': updated_count})}\n\n"
 
-    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+    response = Response(stream_with_context(generate()), mimetype='text/event-stream')
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return response
 
 @app.route("/api/admin/reseed", methods=["POST"])
 @jwt_required()
