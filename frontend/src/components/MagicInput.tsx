@@ -52,7 +52,7 @@ const MagicInput: React.FC<MagicInputProps> = ({ onAnalyze, isAnalyzing }) => {
     return (
         <div className="w-full max-w-2xl mx-auto space-y-6">
             <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-context/10 text-brand-context text-xs font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 text-brand-purple text-xs font-bold uppercase tracking-wider">
                     <Sparkles className="w-3 h-3" />
                     <span>AI Powered</span>
                 </div>
@@ -65,7 +65,7 @@ const MagicInput: React.FC<MagicInputProps> = ({ onAnalyze, isAnalyzing }) => {
             </div>
 
             <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-brand-context to-brand-mint rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur-lg"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-brand-purple to-brand-mint rounded-2xl opacity-20 group-hover:opacity-40 transition duration-500 blur-lg"></div>
                 <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-slate-100 dark:border-gray-700">
                     <textarea
                         value={text}
@@ -86,7 +86,7 @@ const MagicInput: React.FC<MagicInputProps> = ({ onAnalyze, isAnalyzing }) => {
                 flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-white transition-all
                 ${!text.trim()
                                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    : 'bg-brand-context hover:bg-brand-context/90 shadow-lg shadow-brand-context/20 hover:scale-105 active:scale-95'
+                                    : 'bg-brand-purple hover:bg-brand-purple/90 shadow-lg shadow-brand-purple/20 hover:scale-105 active:scale-95'
                                 }
               `}
                         >
@@ -107,7 +107,7 @@ const MagicInput: React.FC<MagicInputProps> = ({ onAnalyze, isAnalyzing }) => {
             </div>
 
             <p className="text-center text-xs text-slate-400">
-                Or <button className="underline hover:text-brand-context">skip this</button> and configure manually.
+                Or <button className="underline hover:text-brand-purple">skip this</button> and configure manually.
             </p>
         </div>
     )

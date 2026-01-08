@@ -86,7 +86,7 @@ const ChatAssistant: React.FC = () => {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-brand-context text-white rounded-full shadow-lg hover:bg-brand-context/90 hover:scale-105 transition-all duration-300"
+                className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-brand-purple text-white rounded-full shadow-lg hover:bg-brand-purple/90 hover:scale-105 transition-all duration-300"
             >
                 <MessageCircle className="w-8 h-8" />
             </button>
@@ -96,7 +96,7 @@ const ChatAssistant: React.FC = () => {
     return (
         <div className="fixed bottom-6 right-6 z-50 w-full max-w-[380px] h-[600px] max-h-[80vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-brand-context text-white">
+            <div className="flex items-center justify-between p-4 bg-brand-purple text-white">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-white/20 rounded-full">
                         <Bot className="w-5 h-5" />
@@ -129,7 +129,7 @@ const ChatAssistant: React.FC = () => {
                     >
                         <div className={`
               w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-              ${msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-800 text-slate-600' : 'bg-brand-context/10 text-brand-context'}
+              ${msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-800 text-slate-600' : 'bg-brand-purple/10 text-brand-purple'}
             `}>
                             {msg.role === 'user' ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                         </div>
@@ -137,7 +137,7 @@ const ChatAssistant: React.FC = () => {
                         <div className={`
               max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed
               ${msg.role === 'user'
-                                ? 'bg-brand-context text-white rounded-br-none'
+                                ? 'bg-brand-purple text-white rounded-br-none'
                                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-bl-none shadow-sm'
                             }
             `}>
@@ -148,7 +148,7 @@ const ChatAssistant: React.FC = () => {
 
                 {isTyping && (
                     <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-brand-context/10 text-brand-context flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-brand-purple/10 text-brand-purple flex items-center justify-center flex-shrink-0">
                             <Bot className="w-4 h-4" />
                         </div>
                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-1">
@@ -162,7 +162,7 @@ const ChatAssistant: React.FC = () => {
 
             {/* Input */}
             <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl border border-transparent focus-within:border-brand-context/50 transition-colors">
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl border border-transparent focus-within:border-brand-purple/50 transition-colors">
                     <input
                         type="text"
                         value={inputText}
@@ -175,7 +175,7 @@ const ChatAssistant: React.FC = () => {
                     <button
                         onClick={handleSend}
                         disabled={!inputText.trim() || isTyping}
-                        className="p-2 bg-brand-context text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-context/90 transition-colors"
+                        className="p-2 bg-brand-purple text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-purple/90 transition-colors"
                     >
                         {isTyping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>

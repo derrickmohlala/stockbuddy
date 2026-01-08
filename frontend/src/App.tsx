@@ -139,7 +139,7 @@ function AppContent() {
           </Routes>
         </main>
         <Footer />
-        {user && userId && <ChatAssistant />}
+        {user && userId && isOnboarded && <ChatAssistant />}
       </div>
     </Router>
   )
