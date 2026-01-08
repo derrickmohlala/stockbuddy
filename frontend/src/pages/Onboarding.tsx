@@ -86,8 +86,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             literacy_level: profile.literacy_level || '',
             interests: profile.interests || []
           })
-          // If profile exists, skip magic step
-          if (profile.goal) setCurrentStep(2)
+          // If profile exists AND has a meaningful goal, skip magic step
+          // But for a fresh user, goal should be null/empty, so we stay on Step 1
+          if (profile.goal && profile.goal.trim().length > 0) {
+            setCurrentStep(2)
+          }
         }
       } catch (error: any) {
         // Silently handle
