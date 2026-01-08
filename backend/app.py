@@ -772,13 +772,13 @@ def register():
                 interests_value = []
             
             user_data.update({
-                "age_band": str(data.get('age_band')).strip(),
-                "experience": str(data.get('experience')).strip(),
-                "goal": str(data.get('goal')).strip(),
+                "age_band": str(data.get('age_band', '')).strip() or None,
+                "experience": str(data.get('experience', '')).strip() or None,
+                "goal": str(data.get('goal', '')).strip() or None,
                 "risk": risk_value,
-                "horizon": str(data.get('horizon')).strip(),
-                "anchor_stock": str(data.get('anchor_stock')).strip(),
-                "literacy_level": str(data.get('literacy_level')).strip(),
+                "horizon": str(data.get('horizon', '')).strip() or None,
+                "anchor_stock": str(data.get('anchor_stock', '')).strip() or None,
+                "literacy_level": str(data.get('literacy_level', '')).strip() or None,
                 "interests": json.dumps(interests_value),
                 "income_bracket": str(data.get('income_bracket', '')).strip() or None,
                 "employment_industry": str(data.get('employment_industry', '')).strip() or None,
