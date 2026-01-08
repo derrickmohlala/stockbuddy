@@ -24,7 +24,7 @@ const MagicInput: React.FC<MagicInputProps> = ({ onAnalyze, isAnalyzing }) => {
     useEffect(() => {
         if (text) return // Don't animate if user is typing
 
-        let timeout: NodeJS.Timeout
+        let timeout: ReturnType<typeof setTimeout>
         const currentFullText = PLACEHOLDERS[placeholderIndex]
 
         if (isTyping) {
