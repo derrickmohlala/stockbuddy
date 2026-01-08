@@ -93,7 +93,7 @@ def analyze_user_profile(user_text: str) -> dict:
             "horizon": "medium",
             "anchor_stock": "SBK.JO",
             "interests": ["Diversified"],
-            "rationale": "We encountered a temporary issue analyzing your text, so we've started you with a balanced profile.",
+            "rationale": f"Debug mode: The AI failed with error: {str(e)}",
             "is_error": True
         }
 
