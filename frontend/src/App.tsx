@@ -19,6 +19,7 @@ import Signup from './pages/Signup'
 import Admin from './pages/Admin'
 import NavBar from './components/NavBar'
 import Footer from './components/Footer'
+import ChatAssistant from './components/ChatAssistant'
 
 interface PageLayoutProps {
   children: ReactNode
@@ -138,6 +139,7 @@ function AppContent() {
           </Routes>
         </main>
         <Footer />
+        {user && userId && <ChatAssistant />}
       </div>
     </Router>
   )

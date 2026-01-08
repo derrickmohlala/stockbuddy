@@ -26,6 +26,7 @@ print("DEBUG: Backend module loading - Debug logs enabled", file=sys.stderr)
 
 from models import db, User, Instrument, Price, Basket, UserPortfolio, UserPosition, UserTrade, CPI, PortfolioBaseline, SuggestionAction
 from news_sources import fetch_live_news, fetch_upcoming_earnings
+from ai_service import analyze_user_profile, chat_with_advisor
 import requests
 import time
 
@@ -1370,6 +1371,64 @@ def onboarding():
         "allocations": allocations,
         "profile_copy": f"Welcome {user.first_name}! You're a {archetype} investor focused on {user.goal}."
     })
+
+@app.route("/api/ai/analyze-profile", methods=["POST"])
+def analyze_profile_ai():
+    data = request.json or {}
+    user_text = data.get('text', '')
+    
+    if not user_text:
+        return jsonify({"error": "No text provided"}), 400
+        
+    result = analyze_user_profile(user_text)
+    return jsonify(result)
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+@jwt_required()
+def chat_ai():
+    user_id = get_jwt_identity()
+    data = request.json or {}
+    message = data.get('message', '')
+    
+    if not message:
+        return jsonify({"error": "No message provided"}), 400
+
+    # Build Portfolio Context for AI
+    positions = UserPosition.query.filter_by(user_id=user_id).all()
+    portfolio_context = {
+        "holdings": [],
+        "total_value": 0.0,
+        "total_pnl_pct": 0.0
+    }
+    
+    total_cost = 0.0
+    for pos in positions:
+        instrument = Instrument.query.filter_by(symbol=pos.symbol).first()
+        current_price = pos.avg_price # Default
+        if instrument:
+            latest_price = Price.query.filter_by(instrument_id=instrument.id).order_by(Price.date.desc()).first()
+            if latest_price and latest_price.close:
+                current_price = latest_price.close
+        
+        value = pos.quantity * current_price
+        cost = pos.quantity * pos.avg_price
+        
+        portfolio_context["total_value"] += value
+        total_cost += cost
+        portfolio_context["holdings"].append({
+            "symbol": pos.symbol,
+            "shares": pos.quantity,
+            "avg_price": pos.avg_price,
+            "current_price": current_price
+        })
+
+    if total_cost > 0:
+        portfolio_context["total_pnl_pct"] = ((portfolio_context["total_value"] - total_cost) / total_cost) * 100
+
+    response_text = chat_with_advisor(message, portfolio_context)
+    return jsonify({"response": response_text})
+
 
 @app.route("/api/profile", methods=["DELETE"])
 @jwt_required()

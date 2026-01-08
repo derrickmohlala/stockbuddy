@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { apiFetch } from '../lib/api'
+import MagicInput from '../components/MagicInput'
 
 interface OnboardingProps {
   onComplete: (userId: number) => void
@@ -39,7 +40,7 @@ const DEBT_LEVELS = [
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(1) // 1=Magic, 2=Personal, 3=Goals, 4=Interests
   const [data, setData] = useState<OnboardingData>({
     first_name: '',
     age_band: '',
@@ -58,6 +59,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitStartedAt, setSubmitStartedAt] = useState<number | null>(null)
+
+  // AI State
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [aiRationale, setAiRationale] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchExistingProfile = async () => {
@@ -81,15 +86,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
             literacy_level: profile.literacy_level || '',
             interests: profile.interests || []
           })
-        } else if (response.status === 404) {
-          // User not found - that's OK for a new user completing signup flow, just use empty data
-          // Silently handle - this is expected for users who haven't completed onboarding yet
+          // If profile exists, skip magic step
+          if (profile.goal) setCurrentStep(2)
         }
-        // For other errors, silently ignore and use empty form
       } catch (error: any) {
-        // Silently handle all errors - new users won't have profiles yet
-        // This prevents console errors from blocking the onboarding flow
-        // Network errors, 404s, etc. are all expected and handled gracefully
+        // Silently handle
       } finally {
         setLoadingProfile(false)
       }
@@ -99,7 +100,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   }, [userId])
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1)
     } else {
       handleSubmit()
@@ -109,6 +110,39 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleAIAnalyze = async (text: string) => {
+    setIsAnalyzing(true)
+    try {
+      const res = await apiFetch('/api/ai/analyze-profile', {
+        method: 'POST',
+        body: JSON.stringify({ text })
+      })
+      if (res.ok) {
+        const prediction = await res.json()
+        setData(prev => ({
+          ...prev,
+          goal: prediction.goal || prev.goal,
+          risk: prediction.risk_score || prev.risk,
+          horizon: prediction.horizon || prev.horizon,
+          anchor_stock: prediction.anchor_stock || prev.anchor_stock,
+          interests: prediction.interests || prev.interests,
+        }))
+        setAiRationale(prediction.rationale)
+        // Move to review steps
+        setCurrentStep(2)
+      } else {
+        console.error("AI Analysis failed")
+        // Just move next manually
+        setCurrentStep(2)
+      }
+    } catch (e) {
+      console.error(e)
+      setCurrentStep(2)
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -158,8 +192,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
     setData(prev => ({ ...prev, [field]: value }))
   }
 
-  const renderStep1 = () => (
+  // --- Render Steps ---
+
+  const renderMagicStep = () => (
+    <div className="flex flex-col items-center">
+      <MagicInput onAnalyze={handleAIAnalyze} isAnalyzing={isAnalyzing} />
+      {/* Fallback link */}
+      <div className="mt-8 text-center">
+        <button
+          onClick={handleNext}
+          className="text-sm text-slate-400 hover:text-brand-ink dark:hover:text-white transition-colors"
+        >
+          I'd rather fill it out manually &rarr;
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderPersonalDetails = () => (
     <div className="space-y-6">
+      {aiRationale && (
+        <div className="p-4 bg-brand-context/10 border border-brand-context/20 rounded-xl text-sm text-brand-ink dark:text-gray-200">
+          <strong>Initial thought:</strong> {aiRationale}
+        </div>
+      )}
       <div>
         <label className="block text-sm font-medium text-muted dark:text-gray-200 dark:text-gray-300 mb-2">
           What's your first name?
@@ -270,7 +326,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
     </div>
   )
 
-  const renderStep2 = () => (
+  const renderGoals = () => (
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-muted dark:text-gray-200 dark:text-gray-300 mb-2">
@@ -356,12 +412,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
           <option value="VOD.JO">Vodacom</option>
           <option value="NPN.JO">Naspers</option>
           <option value="SOL.JO">Sasol</option>
+          <option value="SHP.JO">Shoprite</option>
         </select>
       </div>
     </div>
   )
 
-  const renderStep3 = () => (
+  const renderInterests = () => (
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-muted dark:text-gray-200 dark:text-gray-300 mb-2">
@@ -421,10 +478,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return data.first_name && data.age_band && data.experience && data.income_bracket && data.employment_industry
+        return true // Magic step is always valid to skip
       case 2:
-        return data.goal && data.horizon && data.anchor_stock
+        return data.first_name && data.age_band && data.experience && data.income_bracket && data.employment_industry
       case 3:
+        return data.goal && data.horizon && data.anchor_stock
+      case 4:
         return data.interests.length > 0 && data.literacy_level
       default:
         return false
@@ -443,57 +502,62 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-muted dark:text-gray-200 dark:text-gray-300">
-              Step {currentStep} of 3
+              Step {currentStep} of 4
             </span>
             <span className="text-sm text-subtle dark:text-muted dark:text-gray-300">
-              {Math.round((currentStep / 3) * 100)}% Complete
+              {Math.round((currentStep / 4) * 100)}% Complete
             </span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div
               className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 3) * 100}%` }}
+              style={{ width: `${(currentStep / 4) * 100}%` }}
             />
           </div>
         </div>
 
         {/* Step Content */}
-        <div className="card">
-          <h2 className="text-2xl font-bold text-brand-ink dark:text-gray-100 mb-6">
-            {currentStep === 1 && "Tell us about yourself"}
-            {currentStep === 2 && "Define your investment goals"}
-            {currentStep === 3 && "Customize your experience"}
-          </h2>
+        {!isAnalyzing && currentStep === 1 ? (
+          // Magic Step Render (No card styling to allow full width effect/custom style)
+          renderMagicStep()
+        ) : (
+          <div className="card">
+            <h2 className="text-2xl font-bold text-brand-ink dark:text-gray-100 mb-6">
+              {currentStep === 2 && "Confirm your details"}
+              {currentStep === 3 && "Review your goals"}
+              {currentStep === 4 && "Customize your experience"}
+            </h2>
 
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
+            {currentStep === 2 && renderPersonalDetails()}
+            {currentStep === 3 && renderGoals()}
+            {currentStep === 4 && renderInterests()}
 
-          {/* Navigation */}
-          <div className="flex justify-between mt-8">
-            <button
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="btn-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
+            {/* Navigation */}
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="btn-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Back</span>
+              </button>
 
-            <button
-              onClick={handleNext}
-              disabled={!isStepValid() || submitting}
-              className="btn-cta flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span>{submitting ? 'Finishing…' : (currentStep === 3 ? 'Complete Setup' : 'Next')}</span>
-              {currentStep === 3 ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
+              <button
+                onClick={handleNext}
+                disabled={!isStepValid() || submitting}
+                className="btn-cta flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>{submitting ? 'Finishing…' : (currentStep === 4 ? 'Complete Setup' : 'Next')}</span>
+                {currentStep === 4 ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {submitError && (
+              <p className="mt-4 text-sm text-danger-600 dark:text-danger-500">{submitError}</p>
+            )}
           </div>
-
-          {submitError && (
-            <p className="mt-4 text-sm text-danger-600 dark:text-danger-500">{submitError}</p>
-          )}
-        </div>
+        )}
       </div>
 
       {submitting && (
