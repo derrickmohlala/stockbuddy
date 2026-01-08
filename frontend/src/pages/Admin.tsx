@@ -244,6 +244,34 @@ const Admin: React.FC = () => {
             {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Export Users
           </button>
+
+          <button
+            onClick={async () => {
+              if (confirm('⚠️ ARE YOU SURE? This will delete ALL users, portfolios, and trade history. This cannot be undone.')) {
+                if (confirm('Really? Last chance to cancel.')) {
+                  try {
+                    setLoading(true)
+                    const res = await apiFetch('/api/admin/dangerous/clear-users', { method: 'DELETE' })
+                    if (res.ok) {
+                      alert('Database wiped.')
+                      setUsers([])
+                      setTotalUsers(0)
+                    } else {
+                      alert('Failed to wipe DB.')
+                    }
+                  } catch {
+                    alert('Error wiping DB.')
+                  } finally {
+                    setLoading(false)
+                  }
+                }
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-danger-200 bg-danger-50 px-4 py-2 text-sm font-bold text-danger-600 transition hover:bg-danger-100"
+          >
+            <AlertCircle className="h-4 w-4" />
+            Reset Database
+          </button>
         </div>
       </div>
 
