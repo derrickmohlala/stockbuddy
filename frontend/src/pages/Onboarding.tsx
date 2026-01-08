@@ -72,6 +72,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, userId }) => {
         const response = await apiFetch(`/api/users/${userId}`)
         if (response.ok) {
           const profile = await response.json()
+          console.log("DEBUG: Onboarding Profile", profile)
+          console.log("DEBUG: Goal check", {
+            goal: profile.goal,
+            type: typeof profile.goal,
+            truthy: !!profile.goal
+          })
+
           setData({
             first_name: profile.first_name || '',
             age_band: profile.age_band || '',
